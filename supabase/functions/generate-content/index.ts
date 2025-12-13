@@ -129,6 +129,14 @@ Use sensory language and focus on how it improves the customer's life.`,
 **H1 Suggestions (2 options)**
 
 Focus on search intent and CTR optimization.`,
+  'analyze-voice': `Analyze the following sample text and describe the writing style in detail. Include:
+- Tone (formal, casual, conversational, etc.)
+- Vocabulary level (simple, technical, academic)
+- Sentence structure patterns
+- Unique stylistic elements
+- Voice characteristics
+
+Provide actionable instructions that an AI could follow to replicate this writing style. Be specific and detailed.`,
 };
 
 // Credit costs per template
@@ -144,17 +152,19 @@ const TEMPLATE_CREDITS: Record<string, number> = {
   'email-cold': 12,
   'product-description': 15,
   'seo-meta': 8,
+  'analyze-voice': 5,
 };
 
 interface GenerateRequest {
   templateId: string;
   inputs: Record<string, string | number | boolean>;
   brandVoiceId?: string;
-  language: 'en' | 'bn';
+  language?: 'en' | 'bn';
   organizationId: string;
   model?: string;
   temperature?: number;
   stream?: boolean;
+  skipCreditDeduction?: boolean;
 }
 
 serve(async (req) => {
@@ -243,9 +253,10 @@ serve(async (req) => {
     }
 
     const creditsNeeded = TEMPLATE_CREDITS[templateId] || 10;
-    const creditsAvailable = org.monthly_credits - org.credits_used;
+    const creditsAvailable = (org.monthly_credits || 0) - (org.credits_used || 0);
+    const skipCreditDeduction = body.skipCreditDeduction === true;
 
-    if (creditsAvailable < creditsNeeded) {
+    if (!skipCreditDeduction && creditsAvailable < creditsNeeded) {
       return new Response(JSON.stringify({ 
         error: 'Insufficient credits',
         creditsNeeded,
@@ -261,21 +272,32 @@ serve(async (req) => {
     if (brandVoiceId) {
       const { data: brandVoice } = await supabase
         .from('brand_voices')
-        .select('name, tone_keywords, style_instructions, sample_text')
+        .select('name, tone_keywords, style_instructions, sample_text, language')
         .eq('id', brandVoiceId)
         .eq('organization_id', organizationId)
         .single();
 
       if (brandVoice) {
+        const toneText = brandVoice.tone_keywords?.length 
+          ? `Tone: ${brandVoice.tone_keywords.join(', ')}.` 
+          : '';
+        
         brandVoiceInstructions = `
+
 ---
-BRAND VOICE GUIDELINES:
-Name: ${brandVoice.name}
-Tone: ${brandVoice.tone_keywords?.join(', ') || 'Professional'}
-${brandVoice.style_instructions ? `Style: ${brandVoice.style_instructions}` : ''}
-${brandVoice.sample_text ? `Reference sample: "${brandVoice.sample_text.substring(0, 500)}"` : ''}
+BRAND VOICE GUIDELINES - FOLLOW THESE CAREFULLY:
+Voice Name: "${brandVoice.name}"
+${toneText}
+${brandVoice.style_instructions ? `
+STYLE INSTRUCTIONS:
+${brandVoice.style_instructions}
+` : ''}
+${brandVoice.sample_text ? `
+REFERENCE SAMPLE (mimic this style):
+"${brandVoice.sample_text.substring(0, 800)}"
+` : ''}
 ---
-Apply these brand voice guidelines to your response.`;
+Write in a style that matches these brand voice guidelines. Maintain consistency with the defined tone and style throughout your response.`;
       }
     }
 
@@ -287,10 +309,20 @@ Apply these brand voice guidelines to your response.`;
       }
     }
 
-    // Language instruction
-    const languageInstruction = language === 'bn' 
-      ? '\n\nIMPORTANT: Write your response in Bangla (বাংলা).'
-      : '\n\nWrite your response in English.';
+    // Language instruction - explicit for Bangla
+    let languageInstruction = '';
+    if (language === 'bn') {
+      languageInstruction = `
+
+CRITICAL LANGUAGE REQUIREMENT:
+You are a helpful assistant. Your ENTIRE output MUST be in Bengali language (বাংলা).
+- All text, headings, and content must be written in Bangla script.
+- Do not use English words unless they are technical terms with no Bangla equivalent.
+- Maintain proper Bangla grammar and sentence structure.
+- Use culturally appropriate expressions and idioms.`;
+    } else {
+      languageInstruction = '\n\nWrite your response in clear, fluent English.';
+    }
 
     const userPrompt = userPromptParts.join('\n') + languageInstruction;
 
@@ -348,28 +380,30 @@ Apply these brand voice guidelines to your response.`;
       throw new Error(`AI Gateway error: ${aiResponse.status}`);
     }
 
-    // Deduct credits (do this before streaming starts)
-    const { error: creditError } = await supabase
-      .from('organizations')
-      .update({ credits_used: org.credits_used + creditsNeeded })
-      .eq('id', organizationId);
+    // Deduct credits (do this before streaming starts) - skip if analyzing voice
+    if (!skipCreditDeduction) {
+      const { error: creditError } = await supabase
+        .from('organizations')
+        .update({ credits_used: (org.credits_used || 0) + creditsNeeded })
+        .eq('id', organizationId);
 
-    if (creditError) {
-      console.error('[generate-content] Failed to deduct credits:', creditError);
+      if (creditError) {
+        console.error('[generate-content] Failed to deduct credits:', creditError);
+      }
+
+      // Log usage
+      await supabase.from('credit_usage').insert({
+        organization_id: organizationId,
+        user_id: user.id,
+        credits_consumed: creditsNeeded,
+        model_used: model,
+        template_type: templateId,
+        tokens_input: 0,
+        tokens_output: 0,
+      });
+
+      console.log(`[generate-content] Deducted ${creditsNeeded} credits from org ${organizationId}`);
     }
-
-    // Log usage
-    await supabase.from('credit_usage').insert({
-      organization_id: organizationId,
-      user_id: user.id,
-      credits_consumed: creditsNeeded,
-      model_used: model,
-      template_type: templateId,
-      tokens_input: 0, // Will be updated post-generation if needed
-      tokens_output: 0,
-    });
-
-    console.log(`[generate-content] Deducted ${creditsNeeded} credits from org ${organizationId}`);
 
     // Return streaming response
     if (stream) {
