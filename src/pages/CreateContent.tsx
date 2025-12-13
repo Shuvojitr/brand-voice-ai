@@ -226,9 +226,10 @@ export default function CreateContent() {
           </Badge>
         </div>
 
-        {/* Split Layout */}
-        <div className="grid gap-6 lg:grid-cols-2">
+        {/* Split Layout - Stack on mobile, side-by-side on desktop */}
+        <div className="flex flex-col md:flex-row gap-6">
           {/* Left Column - Input Form */}
+          <div className="w-full md:w-1/2">
           <Card>
             <CardHeader>
               <CardTitle className="text-lg">Content Settings</CardTitle>
@@ -319,15 +320,18 @@ export default function CreateContent() {
               )}
             </CardContent>
           </Card>
+          </div>
 
           {/* Right Column - Editor */}
-          <ContentEditor
-            content={generatedContent}
-            isGenerating={isGenerating}
-            organizationId={organizationId}
-            userId={user?.id}
-            templateId={templateId}
-          />
+          <div className="w-full md:w-1/2">
+            <ContentEditor
+              content={generatedContent}
+              isGenerating={isGenerating}
+              organizationId={organizationId}
+              userId={user?.id}
+              templateId={templateId}
+            />
+          </div>
         </div>
       </div>
     </DashboardLayout>
