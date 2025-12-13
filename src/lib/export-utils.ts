@@ -138,3 +138,48 @@ export function getWordCount(html: string): number {
   const words = text.split(/\s+/).filter(word => word.length > 0);
   return words.length;
 }
+
+// Standalone download functions
+function downloadBlob(content: string, filename: string, mimeType: string) {
+  const blob = new Blob([content], { type: mimeType });
+  const url = URL.createObjectURL(blob);
+  const link = document.createElement("a");
+  link.href = url;
+  link.download = filename;
+  document.body.appendChild(link);
+  link.click();
+  document.body.removeChild(link);
+  URL.revokeObjectURL(url);
+}
+
+export function downloadAsMarkdown(html: string, filename: string): void {
+  const content = htmlToMarkdown(html);
+  downloadBlob(content, `${filename}.md`, "text/markdown");
+}
+
+export function downloadAsText(html: string, filename: string): void {
+  const content = htmlToPlainText(html);
+  downloadBlob(content, `${filename}.txt`, "text/plain");
+}
+
+export function downloadAsHtml(html: string, filename: string): void {
+  const content = `<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>${filename}</title>
+  <style>
+    body { font-family: system-ui, -apple-system, sans-serif; max-width: 800px; margin: 0 auto; padding: 2rem; line-height: 1.6; }
+    h1 { font-size: 2rem; margin-top: 1.5rem; }
+    h2 { font-size: 1.5rem; margin-top: 1.25rem; }
+    h3 { font-size: 1.25rem; margin-top: 1rem; }
+    ul, ol { padding-left: 1.5rem; }
+  </style>
+</head>
+<body>
+${html}
+</body>
+</html>`;
+  downloadBlob(content, `${filename}.html`, "text/html");
+}

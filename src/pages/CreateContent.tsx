@@ -1,31 +1,198 @@
-import { DashboardLayout } from "@/components/dashboard";
+import { useState, useEffect, useCallback } from "react";
 import { useParams, useNavigate } from "react-router-dom";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { DashboardLayout } from "@/components/dashboard";
 import { Button } from "@/components/ui/button";
-import { ArrowLeft } from "lucide-react";
-
-const templateData: Record<string, { name: string; description: string }> = {
-  "blog-post": { name: "Blog Post Writer", description: "Generate engaging, SEO-optimized blog articles" },
-  "blog-outline": { name: "Blog Outline", description: "Create structured outlines for your blog posts" },
-  "linkedin-post": { name: "LinkedIn Post", description: "Create professional thought leadership content" },
-  "twitter-thread": { name: "Twitter Thread", description: "Craft viral Twitter threads" },
-  "instagram-caption": { name: "Instagram Caption", description: "Write captivating captions with hashtags" },
-  "youtube-script": { name: "YouTube Script", description: "Generate engaging video scripts" },
-  "email-newsletter": { name: "Email Newsletter", description: "Write compelling newsletters" },
-  "welcome-email": { name: "Welcome Email", description: "Onboard new subscribers" },
-  "cold-email": { name: "Cold Email", description: "Write personalized outreach emails" },
-  "product-description": { name: "Product Description", description: "Sell with persuasive copy" },
-  "facebook-ad": { name: "Facebook Ad", description: "High-converting Facebook ad copy" },
-  "google-ad": { name: "Google Ad", description: "Search ad headlines and descriptions" },
-  "meta-description": { name: "Meta Description", description: "SEO-optimized meta descriptions" },
-  "seo-keywords": { name: "SEO Keywords", description: "Generate relevant keywords" },
-};
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Switch } from "@/components/ui/switch";
+import { Badge } from "@/components/ui/badge";
+import { Separator } from "@/components/ui/separator";
+import { ArrowLeft, Sparkles, Loader2, Copy, Download, Save, Check, Mic } from "lucide-react";
+import { supabase } from "@/integrations/supabase/client";
+import { useToast } from "@/hooks/use-toast";
+import { contentTemplates } from "@/lib/templates";
+import { ContentEditor } from "@/components/content/ContentEditor";
+import { User, Session } from "@supabase/supabase-js";
+import type { ContentTemplate, TemplateInputField } from "@/lib/types/ai";
 
 export default function CreateContent() {
   const { templateId } = useParams<{ templateId: string }>();
   const navigate = useNavigate();
+  const { toast } = useToast();
   
-  const template = templateId ? templateData[templateId] : null;
+  const [user, setUser] = useState<User | null>(null);
+  const [organizationId, setOrganizationId] = useState<string | null>(null);
+  const [isGenerating, setIsGenerating] = useState(false);
+  const [generatedContent, setGeneratedContent] = useState("");
+  const [inputs, setInputs] = useState<Record<string, string | number | boolean>>({});
+  const [language, setLanguage] = useState<"en" | "bn">("en");
+  const [brandVoiceId, setBrandVoiceId] = useState<string | null>(null);
+  const [brandVoices, setBrandVoices] = useState<Array<{ id: string; name: string }>>([]);
+
+  const template = contentTemplates.find(t => t.id === templateId);
+
+  // Initialize auth and organization
+  useEffect(() => {
+    const initAuth = async () => {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (session?.user) {
+        setUser(session.user);
+        
+        // Get user's organization
+        const { data: membership } = await supabase
+          .from("organization_members")
+          .select("organization_id")
+          .eq("user_id", session.user.id)
+          .limit(1)
+          .single();
+        
+        if (membership) {
+          setOrganizationId(membership.organization_id);
+          
+          // Fetch brand voices
+          const { data: voices } = await supabase
+            .from("brand_voices")
+            .select("id, name")
+            .eq("organization_id", membership.organization_id);
+          
+          if (voices) {
+            setBrandVoices(voices);
+          }
+        }
+      }
+    };
+    
+    initAuth();
+  }, []);
+
+  // Initialize default values for inputs
+  useEffect(() => {
+    if (template) {
+      const defaults: Record<string, string | number | boolean> = {};
+      template.inputs.forEach((input) => {
+        if (input.defaultValue !== undefined) {
+          defaults[input.id] = input.defaultValue;
+        }
+      });
+      setInputs(defaults);
+    }
+  }, [template]);
+
+  const handleInputChange = (inputId: string, value: string | number | boolean) => {
+    setInputs(prev => ({ ...prev, [inputId]: value }));
+  };
+
+  const handleGenerate = useCallback(async () => {
+    if (!template || !organizationId || !user) {
+      toast({
+        title: "Error",
+        description: "Please complete setup before generating content.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    // Validate required inputs
+    const missingRequired = template.inputs
+      .filter(input => input.required && !inputs[input.id])
+      .map(input => input.label);
+
+    if (missingRequired.length > 0) {
+      toast({
+        title: "Missing required fields",
+        description: `Please fill in: ${missingRequired.join(", ")}`,
+        variant: "destructive",
+      });
+      return;
+    }
+
+    setIsGenerating(true);
+    setGeneratedContent("");
+
+    try {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session) throw new Error("Not authenticated");
+
+      const response = await fetch(
+        `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/generate-content`,
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${session.access_token}`,
+          },
+          body: JSON.stringify({
+            templateId: template.id,
+            inputs,
+            brandVoiceId: brandVoiceId || undefined,
+            language,
+            organizationId,
+            stream: true,
+          }),
+        }
+      );
+
+      if (!response.ok) {
+        const error = await response.json();
+        throw new Error(error.error || "Generation failed");
+      }
+
+      // Handle streaming response
+      const reader = response.body?.getReader();
+      if (!reader) throw new Error("No response body");
+
+      const decoder = new TextDecoder();
+      let buffer = "";
+      let fullContent = "";
+
+      while (true) {
+        const { done, value } = await reader.read();
+        if (done) break;
+
+        buffer += decoder.decode(value, { stream: true });
+        
+        // Process SSE lines
+        const lines = buffer.split("\n");
+        buffer = lines.pop() || "";
+
+        for (const line of lines) {
+          if (!line.trim() || line.startsWith(":")) continue;
+          if (!line.startsWith("data: ")) continue;
+
+          const jsonStr = line.slice(6).trim();
+          if (jsonStr === "[DONE]") continue;
+
+          try {
+            const parsed = JSON.parse(jsonStr);
+            const content = parsed.choices?.[0]?.delta?.content;
+            if (content) {
+              fullContent += content;
+              setGeneratedContent(fullContent);
+            }
+          } catch {
+            // Incomplete JSON, skip
+          }
+        }
+      }
+
+      toast({
+        title: "Content generated!",
+        description: "Your content is ready to edit.",
+      });
+    } catch (error) {
+      console.error("Generation error:", error);
+      toast({
+        title: "Generation failed",
+        description: error instanceof Error ? error.message : "Unknown error",
+        variant: "destructive",
+      });
+    } finally {
+      setIsGenerating(false);
+    }
+  }, [template, inputs, language, brandVoiceId, organizationId, user, toast]);
 
   if (!template) {
     return (
@@ -44,30 +211,217 @@ export default function CreateContent() {
   return (
     <DashboardLayout>
       <div className="space-y-6">
+        {/* Header */}
         <div className="flex items-center gap-4">
           <Button variant="ghost" size="icon" onClick={() => navigate("/dashboard/templates")}>
             <ArrowLeft className="h-4 w-4" />
           </Button>
-          <div>
-            <h1 className="text-3xl font-bold">{template.name}</h1>
-            <p className="text-muted-foreground mt-1">{template.description}</p>
+          <div className="flex-1">
+            <h1 className="text-2xl font-bold">{template.name}</h1>
+            <p className="text-muted-foreground">{template.description}</p>
           </div>
+          <Badge variant="secondary" className="hidden sm:flex gap-1">
+            <Sparkles className="h-3 w-3" />
+            ~{template.estimatedCredits} credits
+          </Badge>
         </div>
 
-        <Card>
-          <CardHeader>
-            <CardTitle>Content Generation</CardTitle>
-            <CardDescription>
-              Fill in the details below to generate your content
-            </CardDescription>
-          </CardHeader>
-          <CardContent>
-            <p className="text-muted-foreground text-center py-8">
-              Content generation form will be implemented here.
-            </p>
-          </CardContent>
-        </Card>
+        {/* Split Layout */}
+        <div className="grid gap-6 lg:grid-cols-2">
+          {/* Left Column - Input Form */}
+          <Card>
+            <CardHeader>
+              <CardTitle className="text-lg">Content Settings</CardTitle>
+              <CardDescription>
+                Configure your content parameters
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-6">
+              {/* Dynamic Inputs */}
+              {template.inputs.map((input) => (
+                <FormInput
+                  key={input.id}
+                  input={input}
+                  value={inputs[input.id]}
+                  language={language}
+                  onChange={(value) => handleInputChange(input.id, value)}
+                />
+              ))}
+
+              <Separator />
+
+              {/* Language Selector */}
+              <div className="space-y-2">
+                <Label>Language</Label>
+                <Select value={language} onValueChange={(v) => setLanguage(v as "en" | "bn")}>
+                  <SelectTrigger>
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="en">English</SelectItem>
+                    <SelectItem value="bn">বাংলা (Bangla)</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+
+              {/* Brand Voice Selector */}
+              <div className="space-y-2">
+                <Label className="flex items-center gap-2">
+                  <Mic className="h-4 w-4" />
+                  Brand Voice
+                </Label>
+                <Select 
+                  value={brandVoiceId || "none"} 
+                  onValueChange={(v) => setBrandVoiceId(v === "none" ? null : v)}
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder="Select a brand voice (optional)" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="none">No brand voice</SelectItem>
+                    {brandVoices.map((voice) => (
+                      <SelectItem key={voice.id} value={voice.id}>
+                        {voice.name}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                <p className="text-xs text-muted-foreground">
+                  Apply your brand's unique tone and style
+                </p>
+              </div>
+
+              <Separator />
+
+              {/* Generate Button */}
+              <Button
+                className="w-full h-12 gradient-primary text-white text-base"
+                onClick={handleGenerate}
+                disabled={isGenerating || !organizationId}
+              >
+                {isGenerating ? (
+                  <>
+                    <Loader2 className="h-5 w-5 mr-2 animate-spin" />
+                    Generating...
+                  </>
+                ) : (
+                  <>
+                    <Sparkles className="h-5 w-5 mr-2" />
+                    Generate Content
+                  </>
+                )}
+              </Button>
+
+              {!organizationId && (
+                <p className="text-sm text-amber-600 text-center">
+                  Complete your account setup to start generating content.
+                </p>
+              )}
+            </CardContent>
+          </Card>
+
+          {/* Right Column - Editor */}
+          <ContentEditor
+            content={generatedContent}
+            isGenerating={isGenerating}
+            organizationId={organizationId}
+            userId={user?.id}
+            templateId={templateId}
+          />
+        </div>
       </div>
     </DashboardLayout>
   );
+}
+
+// Dynamic form input component
+interface FormInputProps {
+  input: TemplateInputField;
+  value: string | number | boolean | undefined;
+  language: "en" | "bn";
+  onChange: (value: string | number | boolean) => void;
+}
+
+function FormInput({
+  input,
+  value,
+  language,
+  onChange,
+}: FormInputProps) {
+  const label = language === "bn" && input.labelBn ? input.labelBn : input.label;
+  const placeholder = language === "bn" && input.placeholderBn ? input.placeholderBn : input.placeholder;
+
+  switch (input.type) {
+    case "text":
+      return (
+        <div className="space-y-2">
+          <Label>
+            {label}
+            {input.required && <span className="text-destructive ml-1">*</span>}
+          </Label>
+          <Input
+            value={(value as string) || ""}
+            onChange={(e) => onChange(e.target.value)}
+            placeholder={placeholder}
+            maxLength={input.maxLength}
+          />
+        </div>
+      );
+
+    case "textarea":
+      return (
+        <div className="space-y-2">
+          <Label>
+            {label}
+            {input.required && <span className="text-destructive ml-1">*</span>}
+          </Label>
+          <Textarea
+            value={(value as string) || ""}
+            onChange={(e) => onChange(e.target.value)}
+            placeholder={placeholder}
+            maxLength={input.maxLength}
+            rows={4}
+          />
+        </div>
+      );
+
+    case "select":
+      return (
+        <div className="space-y-2">
+          <Label>
+            {label}
+            {input.required && <span className="text-destructive ml-1">*</span>}
+          </Label>
+          <Select
+            value={(value as string) || input.defaultValue?.toString()}
+            onValueChange={onChange}
+          >
+            <SelectTrigger>
+              <SelectValue placeholder={`Select ${label.toLowerCase()}`} />
+            </SelectTrigger>
+            <SelectContent>
+              {input.options?.map((option) => (
+                <SelectItem key={option.value} value={option.value}>
+                  {language === "bn" && option.labelBn ? option.labelBn : option.label}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
+      );
+
+    case "toggle":
+      return (
+        <div className="flex items-center justify-between">
+          <Label>{label}</Label>
+          <Switch
+            checked={value as boolean}
+            onCheckedChange={onChange}
+          />
+        </div>
+      );
+
+    default:
+      return null;
+  }
 }
