@@ -3,12 +3,45 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
-import { Search, FileText, Mail, MessageSquare, ShoppingBag, Megaphone, Globe } from "lucide-react";
+import { 
+  Search, 
+  FileText, 
+  Mail, 
+  MessageSquare, 
+  ShoppingBag, 
+  Megaphone, 
+  Globe,
+  Linkedin,
+  Twitter,
+  Instagram,
+  Youtube,
+  PenTool,
+  Newspaper,
+  Send,
+  Star,
+  type LucideIcon
+} from "lucide-react";
 import { useState } from "react";
+import { useNavigate } from "react-router-dom";
 
-const categories = [
+interface Category {
+  id: string;
+  label: string;
+  icon: LucideIcon;
+}
+
+interface Template {
+  id: string;
+  name: string;
+  description: string;
+  category: string;
+  icon: LucideIcon;
+  popular: boolean;
+}
+
+const categories: Category[] = [
   { id: "all", label: "All Templates", icon: FileText },
-  { id: "blog", label: "Blog", icon: FileText },
+  { id: "blog", label: "Blog", icon: Newspaper },
   { id: "social", label: "Social Media", icon: MessageSquare },
   { id: "email", label: "Email", icon: Mail },
   { id: "ads", label: "Ads", icon: Megaphone },
@@ -16,21 +49,125 @@ const categories = [
   { id: "seo", label: "SEO", icon: Globe },
 ];
 
-const templates = [
-  { id: "blog-post", name: "Blog Post", description: "Generate engaging blog articles", category: "blog", popular: true },
-  { id: "social-caption", name: "Social Caption", description: "Create viral social media posts", category: "social", popular: true },
-  { id: "email-newsletter", name: "Email Newsletter", description: "Write compelling newsletters", category: "email", popular: false },
-  { id: "product-description", name: "Product Description", description: "Sell with persuasive copy", category: "ecommerce", popular: true },
-  { id: "facebook-ad", name: "Facebook Ad", description: "High-converting ad copy", category: "ads", popular: false },
-  { id: "meta-description", name: "Meta Description", description: "SEO-optimized meta tags", category: "seo", popular: false },
-  { id: "linkedin-post", name: "LinkedIn Post", description: "Professional thought leadership", category: "social", popular: false },
-  { id: "welcome-email", name: "Welcome Email", description: "Onboard new subscribers", category: "email", popular: false },
-  { id: "google-ad", name: "Google Ad", description: "Search ad headlines & descriptions", category: "ads", popular: true },
+const templates: Template[] = [
+  { 
+    id: "blog-post", 
+    name: "Blog Post Writer", 
+    description: "Generate engaging, SEO-optimized blog articles on any topic", 
+    category: "blog", 
+    icon: PenTool,
+    popular: true 
+  },
+  { 
+    id: "blog-outline", 
+    name: "Blog Outline", 
+    description: "Create structured outlines for your blog posts", 
+    category: "blog", 
+    icon: FileText,
+    popular: false 
+  },
+  { 
+    id: "linkedin-post", 
+    name: "LinkedIn Post", 
+    description: "Create professional thought leadership content", 
+    category: "social", 
+    icon: Linkedin,
+    popular: true 
+  },
+  { 
+    id: "twitter-thread", 
+    name: "Twitter Thread", 
+    description: "Craft viral Twitter threads that engage your audience", 
+    category: "social", 
+    icon: Twitter,
+    popular: true 
+  },
+  { 
+    id: "instagram-caption", 
+    name: "Instagram Caption", 
+    description: "Write captivating captions with relevant hashtags", 
+    category: "social", 
+    icon: Instagram,
+    popular: false 
+  },
+  { 
+    id: "youtube-script", 
+    name: "YouTube Script", 
+    description: "Generate engaging video scripts with hooks and CTAs", 
+    category: "social", 
+    icon: Youtube,
+    popular: false 
+  },
+  { 
+    id: "email-newsletter", 
+    name: "Email Newsletter", 
+    description: "Write compelling newsletters that drive engagement", 
+    category: "email", 
+    icon: Mail,
+    popular: true 
+  },
+  { 
+    id: "welcome-email", 
+    name: "Welcome Email", 
+    description: "Onboard new subscribers with a warm welcome", 
+    category: "email", 
+    icon: Send,
+    popular: false 
+  },
+  { 
+    id: "cold-email", 
+    name: "Cold Email", 
+    description: "Write personalized outreach emails that get responses", 
+    category: "email", 
+    icon: Mail,
+    popular: false 
+  },
+  { 
+    id: "product-description", 
+    name: "Product Description", 
+    description: "Sell products with persuasive, benefit-driven copy", 
+    category: "ecommerce", 
+    icon: ShoppingBag,
+    popular: true 
+  },
+  { 
+    id: "facebook-ad", 
+    name: "Facebook Ad", 
+    description: "High-converting ad copy for Facebook campaigns", 
+    category: "ads", 
+    icon: Megaphone,
+    popular: true 
+  },
+  { 
+    id: "google-ad", 
+    name: "Google Ad", 
+    description: "Search ad headlines and descriptions that convert", 
+    category: "ads", 
+    icon: Globe,
+    popular: true 
+  },
+  { 
+    id: "meta-description", 
+    name: "Meta Description", 
+    description: "SEO-optimized meta descriptions for better CTR", 
+    category: "seo", 
+    icon: Globe,
+    popular: false 
+  },
+  { 
+    id: "seo-keywords", 
+    name: "SEO Keywords", 
+    description: "Generate relevant keywords for your content strategy", 
+    category: "seo", 
+    icon: Search,
+    popular: false 
+  },
 ];
 
 export default function Templates() {
   const [search, setSearch] = useState("");
   const [activeCategory, setActiveCategory] = useState("all");
+  const navigate = useNavigate();
 
   const filteredTemplates = templates.filter((template) => {
     const matchesSearch = template.name.toLowerCase().includes(search.toLowerCase()) ||
@@ -38,6 +175,10 @@ export default function Templates() {
     const matchesCategory = activeCategory === "all" || template.category === activeCategory;
     return matchesSearch && matchesCategory;
   });
+
+  const handleTemplateClick = (templateId: string) => {
+    navigate(`/dashboard/create/${templateId}`);
+  };
 
   return (
     <DashboardLayout>
@@ -62,49 +203,68 @@ export default function Templates() {
 
         {/* Categories */}
         <div className="flex flex-wrap gap-2">
-          {categories.map((category) => (
-            <Button
-              key={category.id}
-              variant={activeCategory === category.id ? "default" : "outline"}
-              size="sm"
-              onClick={() => setActiveCategory(category.id)}
-              className={activeCategory === category.id ? "gradient-primary text-white" : ""}
-            >
-              <category.icon className="h-4 w-4 mr-2" />
-              {category.label}
-            </Button>
-          ))}
+          {categories.map((category) => {
+            const IconComponent = category.icon;
+            return (
+              <Button
+                key={category.id}
+                variant={activeCategory === category.id ? "default" : "outline"}
+                size="sm"
+                onClick={() => setActiveCategory(category.id)}
+                className={activeCategory === category.id ? "gradient-primary text-white" : ""}
+              >
+                <IconComponent className="h-4 w-4 mr-2" />
+                {category.label}
+              </Button>
+            );
+          })}
         </div>
 
         {/* Templates Grid */}
         <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-          {filteredTemplates.map((template) => (
-            <Card 
-              key={template.id} 
-              className="group cursor-pointer border-border/50 transition-all hover:border-primary/50 hover:shadow-lg"
-            >
-              <CardHeader>
-                <div className="flex items-start justify-between">
-                  <CardTitle className="text-lg">{template.name}</CardTitle>
-                  {template.popular && (
-                    <Badge variant="secondary" className="text-xs">Popular</Badge>
-                  )}
-                </div>
-                <CardDescription>{template.description}</CardDescription>
-              </CardHeader>
-              <CardContent>
-                <Button className="w-full" variant="outline">
-                  Use Template
-                </Button>
-              </CardContent>
-            </Card>
-          ))}
+          {filteredTemplates.map((template) => {
+            const IconComponent = template.icon;
+            return (
+              <Card 
+                key={template.id} 
+                className="group cursor-pointer border-border/50 transition-all hover:border-primary/50 hover:shadow-lg"
+                onClick={() => handleTemplateClick(template.id)}
+              >
+                <CardHeader>
+                  <div className="flex items-start justify-between gap-2">
+                    <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-primary/10 text-primary transition-colors group-hover:bg-primary group-hover:text-primary-foreground">
+                      <IconComponent className="h-5 w-5" />
+                    </div>
+                    {template.popular && (
+                      <Badge variant="secondary" className="flex items-center gap-1 text-xs">
+                        <Star className="h-3 w-3 fill-current" />
+                        Popular
+                      </Badge>
+                    )}
+                  </div>
+                  <CardTitle className="text-lg mt-3">{template.name}</CardTitle>
+                  <CardDescription className="line-clamp-2">{template.description}</CardDescription>
+                </CardHeader>
+                <CardContent>
+                  <Button className="w-full" variant="outline">
+                    Use Template
+                  </Button>
+                </CardContent>
+              </Card>
+            );
+          })}
         </div>
 
         {filteredTemplates.length === 0 && (
-          <div className="text-center py-12">
-            <p className="text-muted-foreground">No templates found matching your criteria.</p>
-          </div>
+          <Card className="border-dashed">
+            <CardContent className="flex flex-col items-center justify-center py-12">
+              <Search className="h-12 w-12 text-muted-foreground/50 mb-4" />
+              <h3 className="text-lg font-medium mb-2">No templates found</h3>
+              <p className="text-muted-foreground text-center">
+                Try adjusting your search or category filter.
+              </p>
+            </CardContent>
+          </Card>
         )}
       </div>
     </DashboardLayout>
