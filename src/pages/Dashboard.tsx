@@ -182,7 +182,7 @@ export default function Dashboard() {
                         </div>
                       </div>
                       <Button variant="outline" size="sm" asChild>
-                        <Link to={`/dashboard/documents/${doc.id}`}>
+                        <Link to={`/dashboard/document/${doc.id}`}>
                           <Edit className="h-4 w-4 mr-1" />
                           Edit
                         </Link>
