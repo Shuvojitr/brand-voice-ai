@@ -9,6 +9,7 @@ import Dashboard from "./pages/Dashboard";
 import Templates from "./pages/Templates";
 import CreateContent from "./pages/CreateContent";
 import Documents from "./pages/Documents";
+import DocumentEditor from "./pages/DocumentEditor";
 import BrandVoices from "./pages/BrandVoices";
 import History from "./pages/History";
 import Billing from "./pages/Billing";
@@ -31,6 +32,7 @@ const App = () => (
           <Route path="/dashboard/templates" element={<Templates />} />
           <Route path="/dashboard/create/:templateId" element={<CreateContent />} />
           <Route path="/dashboard/documents" element={<Documents />} />
+          <Route path="/dashboard/document/:documentId" element={<DocumentEditor />} />
           <Route path="/dashboard/brand-voices" element={<BrandVoices />} />
           <Route path="/dashboard/history" element={<History />} />
           <Route path="/dashboard/billing" element={<Billing />} />
