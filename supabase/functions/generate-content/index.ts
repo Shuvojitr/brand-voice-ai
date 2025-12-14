@@ -252,14 +252,14 @@ serve(async (req) => {
       });
     }
 
-    const creditsNeeded = TEMPLATE_CREDITS[templateId] || 10;
     const creditsAvailable = (org.monthly_credits || 0) - (org.credits_used || 0);
     const skipCreditDeduction = body.skipCreditDeduction === true;
 
-    if (!skipCreditDeduction && creditsAvailable < creditsNeeded) {
+    // Check if user has at least some credits before starting
+    if (!skipCreditDeduction && creditsAvailable <= 0) {
       return new Response(JSON.stringify({ 
         error: 'Insufficient credits',
-        creditsNeeded,
+        creditsNeeded: 1,
         creditsAvailable,
       }), {
         status: 402,
@@ -380,11 +380,28 @@ You are a helpful assistant. Your ENTIRE output MUST be in Bengali language (ব
       throw new Error(`AI Gateway error: ${aiResponse.status}`);
     }
 
-    // Deduct credits (do this before streaming starts) - skip if analyzing voice
-    if (!skipCreditDeduction) {
+    // Helper function to count words
+    const countWords = (text: string): number => {
+      return text.trim().split(/\s+/).filter(word => word.length > 0).length;
+    };
+
+    // Helper function to deduct credits based on actual word count
+    const deductCredits = async (content: string) => {
+      if (skipCreditDeduction) return 0;
+      
+      const wordCount = countWords(content);
+      const creditsToDeduct = Math.max(1, wordCount); // Minimum 1 credit
+      
+      // Check if user has enough credits for the generated content
+      if (creditsToDeduct > creditsAvailable) {
+        console.log(`[generate-content] Warning: Generated ${wordCount} words but only ${creditsAvailable} credits available. Deducting available amount.`);
+      }
+      
+      const actualDeduction = Math.min(creditsToDeduct, creditsAvailable);
+      
       const { error: creditError } = await supabase
         .from('organizations')
-        .update({ credits_used: (org.credits_used || 0) + creditsNeeded })
+        .update({ credits_used: (org.credits_used || 0) + actualDeduction })
         .eq('id', organizationId);
 
       if (creditError) {
@@ -395,19 +412,71 @@ You are a helpful assistant. Your ENTIRE output MUST be in Bengali language (ব
       await supabase.from('credit_usage').insert({
         organization_id: organizationId,
         user_id: user.id,
-        credits_consumed: creditsNeeded,
+        credits_consumed: actualDeduction,
         model_used: model,
         template_type: templateId,
         tokens_input: 0,
-        tokens_output: 0,
+        tokens_output: wordCount,
       });
 
-      console.log(`[generate-content] Deducted ${creditsNeeded} credits from org ${organizationId}`);
-    }
+      console.log(`[generate-content] Deducted ${actualDeduction} credits (${wordCount} words) from org ${organizationId}`);
+      return actualDeduction;
+    };
 
-    // Return streaming response
+    // Handle streaming response - we need to collect content while streaming to client
     if (stream) {
-      return new Response(aiResponse.body, {
+      const reader = aiResponse.body?.getReader();
+      if (!reader) {
+        throw new Error('No response body');
+      }
+
+      let fullContent = '';
+      const decoder = new TextDecoder();
+      const encoder = new TextEncoder();
+
+      // Create a ReadableStream that processes content and deducts credits at end
+      const transformedStream = new ReadableStream({
+        async start(controller) {
+          try {
+            while (true) {
+              const { done, value } = await reader.read();
+              if (done) break;
+
+              // Forward the chunk to the client
+              controller.enqueue(value);
+
+              // Also parse to collect full content
+              const text = decoder.decode(value, { stream: true });
+              const lines = text.split('\n');
+              for (const line of lines) {
+                if (!line.trim() || line.startsWith(':')) continue;
+                if (!line.startsWith('data: ')) continue;
+                const jsonStr = line.slice(6).trim();
+                if (jsonStr === '[DONE]') continue;
+                try {
+                  const parsed = JSON.parse(jsonStr);
+                  const content = parsed.choices?.[0]?.delta?.content;
+                  if (content) {
+                    fullContent += content;
+                  }
+                } catch {
+                  // Incomplete JSON, skip
+                }
+              }
+            }
+            
+            controller.close();
+            
+            // Deduct credits based on actual word count after stream completes
+            await deductCredits(fullContent);
+          } catch (error) {
+            console.error('[generate-content] Stream processing error:', error);
+            controller.error(error);
+          }
+        }
+      });
+
+      return new Response(transformedStream, {
         headers: { 
           ...corsHeaders, 
           'Content-Type': 'text/event-stream',
@@ -420,10 +489,13 @@ You are a helpful assistant. Your ENTIRE output MUST be in Bengali language (ব
     // Non-streaming response
     const data = await aiResponse.json();
     const content = data.choices?.[0]?.message?.content || '';
+    
+    // Deduct credits based on actual word count
+    const creditsConsumed = await deductCredits(content);
 
     return new Response(JSON.stringify({ 
       content,
-      creditsConsumed: creditsNeeded,
+      creditsConsumed,
     }), {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
     });
