@@ -216,7 +216,7 @@ export default function Documents() {
                         </TableCell>
                         <TableCell
                           className="font-medium"
-                          onClick={() => navigate(`/dashboard/editor/${doc.id}`)}
+                          onClick={() => navigate(`/dashboard/document/${doc.id}`)}
                         >
                           {doc.title}
                         </TableCell>
@@ -239,7 +239,7 @@ export default function Documents() {
                               variant="ghost"
                               size="icon"
                               className="h-8 w-8"
-                              onClick={() => navigate(`/dashboard/editor/${doc.id}`)}
+                              onClick={() => navigate(`/dashboard/document/${doc.id}`)}
                               title="Open document"
                             >
                               <ExternalLink className="h-4 w-4" />
