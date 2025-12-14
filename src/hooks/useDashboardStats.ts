@@ -31,16 +31,17 @@ export function useDashboardStats(organizationId: string | undefined) {
         };
       }
 
-      // Fetch documents count and total words
+      // Fetch documents count and total words (using initial_word_count for permanent tracking)
       const { data: documents, error: docsError } = await supabase
         .from("documents")
-        .select("word_count")
+        .select("initial_word_count")
         .eq("organization_id", organizationId);
 
       if (docsError) throw docsError;
 
       const documentsCount = documents?.length || 0;
-      const wordsGenerated = documents?.reduce((sum, doc) => sum + (doc.word_count || 0), 0) || 0;
+      // Use initial_word_count so edits don't decrease the "Words Generated" stat
+      const wordsGenerated = documents?.reduce((sum, doc) => sum + (doc.initial_word_count || 0), 0) || 0;
 
       // Fetch brand voices count
       const { count: brandVoicesCount, error: voicesError } = await supabase

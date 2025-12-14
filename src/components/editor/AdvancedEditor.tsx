@@ -109,7 +109,7 @@ export function AdvancedEditor({
       };
 
       if (currentDocId) {
-        // Update existing document
+        // Update existing document - only update word_count, NOT initial_word_count
         const { error } = await supabase
           .from("documents")
           .update(documentData)
@@ -117,11 +117,12 @@ export function AdvancedEditor({
 
         if (error) throw error;
       } else {
-        // Create new document
+        // Create new document - set initial_word_count for permanent tracking
         const { data, error } = await supabase
           .from("documents")
           .insert({
             ...documentData,
+            initial_word_count: documentData.word_count, // Lock in original word count
             organization_id: organizationId,
             user_id: userId,
           })

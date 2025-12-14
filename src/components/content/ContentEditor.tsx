@@ -109,6 +109,7 @@ export function ContentEditor({
             content: plainText,
             content_html: html,
             word_count: wordCount,
+            initial_word_count: wordCount, // Lock in original word count for permanent tracking
             organization_id: organizationId,
             user_id: userId,
             template_type: templateId,
@@ -163,6 +164,7 @@ export function ContentEditor({
         content: plainText,
         content_html: html,
         word_count: wordCount,
+        initial_word_count: wordCount, // Lock in original word count for permanent tracking
         organization_id: organizationId,
         user_id: userId,
         template_type: templateId,
