@@ -143,6 +143,7 @@ export type Database = {
           created_at: string | null
           folder: string | null
           id: string
+          initial_word_count: number | null
           is_favorite: boolean | null
           language: string | null
           organization_id: string
@@ -161,6 +162,7 @@ export type Database = {
           created_at?: string | null
           folder?: string | null
           id?: string
+          initial_word_count?: number | null
           is_favorite?: boolean | null
           language?: string | null
           organization_id: string
@@ -179,6 +181,7 @@ export type Database = {
           created_at?: string | null
           folder?: string | null
           id?: string
+          initial_word_count?: number | null
           is_favorite?: boolean | null
           language?: string | null
           organization_id?: string
