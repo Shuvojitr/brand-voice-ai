@@ -255,10 +255,6 @@ export default function CreateContent() {
             <h1 className="text-2xl font-bold">{template.name}</h1>
             <p className="text-muted-foreground">{template.description}</p>
           </div>
-          <Badge variant="secondary" className="hidden sm:flex gap-1">
-            <Sparkles className="h-3 w-3" />
-            ~{template.estimatedCredits} credits
-          </Badge>
         </div>
 
         {/* Split Layout - Stack on mobile, side-by-side on desktop */}
