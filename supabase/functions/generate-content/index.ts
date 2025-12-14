@@ -380,9 +380,21 @@ You are a helpful assistant. Your ENTIRE output MUST be in Bengali language (ব
       throw new Error(`AI Gateway error: ${aiResponse.status}`);
     }
 
-    // Helper function to count words
+    // Helper function to count words - robust method that handles markdown and various whitespace
     const countWords = (text: string): number => {
-      return text.trim().split(/\s+/).filter(word => word.length > 0).length;
+      // Remove markdown formatting characters that might be attached to words
+      const cleanedText = text
+        .replace(/```[\s\S]*?```/g, ' ') // Remove code blocks
+        .replace(/`[^`]+`/g, ' ') // Remove inline code
+        .replace(/\[([^\]]+)\]\([^)]+\)/g, '$1') // Convert links to just text
+        .replace(/[#*_~>`\-]/g, ' ') // Remove markdown symbols
+        .replace(/\n+/g, ' ') // Replace newlines with spaces
+        .replace(/\r+/g, ' ') // Replace carriage returns
+        .replace(/\t+/g, ' '); // Replace tabs
+      
+      // Match word characters (including unicode for non-English like Bangla)
+      const words = cleanedText.match(/[\p{L}\p{N}]+/gu) || [];
+      return words.length;
     };
 
     // Helper function to deduct credits based on actual word count
