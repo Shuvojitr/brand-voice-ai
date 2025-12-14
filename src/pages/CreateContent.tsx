@@ -85,6 +85,9 @@ export default function CreateContent() {
     setInputs(prev => ({ ...prev, [inputId]: value }));
   };
 
+  // Track generation completion for auto-save
+  const [shouldAutoSave, setShouldAutoSave] = useState(false);
+
   const handleGenerate = useCallback(async () => {
     if (!template || !organizationId || !user) {
       toast({
@@ -111,6 +114,7 @@ export default function CreateContent() {
 
     setIsGenerating(true);
     setGeneratedContent("");
+    setShouldAutoSave(false);
 
     try {
       const { data: { session } } = await supabase.auth.getSession();
@@ -134,6 +138,27 @@ export default function CreateContent() {
           }),
         }
       );
+
+      // Handle credit errors specifically
+      if (response.status === 402) {
+        const errorData = await response.json();
+        toast({
+          title: "Insufficient Credits",
+          description: "You don't have enough credits. Please upgrade your plan.",
+          variant: "destructive",
+        });
+        navigate("/dashboard/billing");
+        return;
+      }
+
+      if (response.status === 429) {
+        toast({
+          title: "Rate Limit Exceeded",
+          description: "Too many requests. Please wait a moment and try again.",
+          variant: "destructive",
+        });
+        return;
+      }
 
       if (!response.ok) {
         const error = await response.json();
@@ -178,9 +203,12 @@ export default function CreateContent() {
         }
       }
 
+      // Mark for auto-save after successful generation
+      setShouldAutoSave(true);
+
       toast({
         title: "Content generated!",
-        description: "Your content is ready to edit.",
+        description: "Your content has been auto-saved.",
       });
     } catch (error) {
       console.error("Generation error:", error);
@@ -192,7 +220,7 @@ export default function CreateContent() {
     } finally {
       setIsGenerating(false);
     }
-  }, [template, inputs, language, brandVoiceId, organizationId, user, toast]);
+  }, [template, inputs, language, brandVoiceId, organizationId, user, toast, navigate]);
 
   if (!template) {
     return (
@@ -330,6 +358,8 @@ export default function CreateContent() {
               organizationId={organizationId}
               userId={user?.id}
               templateId={templateId}
+              autoSave={shouldAutoSave}
+              onAutoSaveComplete={() => setShouldAutoSave(false)}
             />
           </div>
         </div>

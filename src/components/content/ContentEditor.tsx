@@ -34,6 +34,8 @@ interface ContentEditorProps {
   organizationId: string | null;
   userId: string | undefined;
   templateId: string | undefined;
+  autoSave?: boolean;
+  onAutoSaveComplete?: () => void;
 }
 
 export function ContentEditor({
@@ -42,6 +44,8 @@ export function ContentEditor({
   organizationId,
   userId,
   templateId,
+  autoSave = false,
+  onAutoSaveComplete,
 }: ContentEditorProps) {
   const [isCopied, setIsCopied] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
@@ -85,6 +89,47 @@ export function ContentEditor({
       setWordCount(getWordCount(htmlContent));
     }
   }, [content, editor]);
+
+  // Auto-save when generation completes
+  useEffect(() => {
+    if (autoSave && editor && content && !isGenerating && !isSaved && organizationId && userId) {
+      const performAutoSave = async () => {
+        setIsSaving(true);
+        try {
+          const html = editor.getHTML();
+          const plainText = editor.getText().substring(0, 500);
+          
+          const titleMatch = html.match(/<h1[^>]*>(.*?)<\/h1>/i);
+          const title = titleMatch 
+            ? titleMatch[1].replace(/<[^>]+>/g, "").substring(0, 100)
+            : `Generated Content - ${new Date().toLocaleDateString()}`;
+
+          const { error } = await supabase.from("documents").insert({
+            title,
+            content: plainText,
+            content_html: html,
+            word_count: wordCount,
+            organization_id: organizationId,
+            user_id: userId,
+            template_type: templateId,
+          });
+
+          if (error) throw error;
+
+          setIsSaved(true);
+          onAutoSaveComplete?.();
+          toast.success("Document auto-saved!");
+        } catch (error) {
+          console.error("Auto-save error:", error);
+          toast.error("Auto-save failed. Please save manually.");
+        } finally {
+          setIsSaving(false);
+        }
+      };
+      
+      performAutoSave();
+    }
+  }, [autoSave, editor, content, isGenerating, isSaved, organizationId, userId, templateId, wordCount, onAutoSaveComplete]);
 
   const handleCopy = async () => {
     if (!editor) return;
