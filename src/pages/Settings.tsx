@@ -4,16 +4,9 @@ import { ProfileTab, TeamTab, BrandVoiceTab } from "@/components/settings";
 import { useOrganization } from "@/hooks/useOrganization";
 import { Skeleton } from "@/components/ui/skeleton";
 import { User, Users, Sparkles } from "lucide-react";
-import { useSearchParams } from "react-router-dom";
 
 export default function Settings() {
   const { organization, isLoading } = useOrganization();
-  const [searchParams, setSearchParams] = useSearchParams();
-  const currentTab = searchParams.get("tab") || "profile";
-
-  const handleTabChange = (value: string) => {
-    setSearchParams({ tab: value });
-  };
 
   return (
     <DashboardLayout>
@@ -31,7 +24,7 @@ export default function Settings() {
             <Skeleton className="h-64 w-full" />
           </div>
         ) : (
-          <Tabs value={currentTab} onValueChange={handleTabChange} className="space-y-6">
+          <Tabs defaultValue="profile" className="space-y-6">
             <TabsList>
               <TabsTrigger value="profile" className="gap-2">
                 <User className="h-4 w-4" />
