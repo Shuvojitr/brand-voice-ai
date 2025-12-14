@@ -1,6 +1,6 @@
 import { DashboardLayout } from "@/components/dashboard";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { ProfileTab, TeamTab, BrandVoiceTab } from "@/components/settings";
+import { ProfileTab, TeamTab, BrandVoiceManager } from "@/components/settings";
 import { useOrganization } from "@/hooks/useOrganization";
 import { Skeleton } from "@/components/ui/skeleton";
 import { User, Users, Sparkles } from "lucide-react";
@@ -54,7 +54,7 @@ export default function Settings() {
 
             <TabsContent value="brand-voice">
               {organization ? (
-                <BrandVoiceTab organizationId={organization.id} />
+                <BrandVoiceManager organizationId={organization.id} />
               ) : (
                 <p className="text-muted-foreground">No organization found.</p>
               )}

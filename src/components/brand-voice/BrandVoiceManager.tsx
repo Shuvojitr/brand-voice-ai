@@ -8,11 +8,11 @@ import type { Tables } from "@/integrations/supabase/types";
 
 type BrandVoice = Tables<"brand_voices">;
 
-interface BrandVoiceTabProps {
+interface BrandVoiceManagerProps {
   organizationId: string;
 }
 
-export function BrandVoiceTab({ organizationId }: BrandVoiceTabProps) {
+export function BrandVoiceManager({ organizationId }: BrandVoiceManagerProps) {
   const queryClient = useQueryClient();
   const [isCreating, setIsCreating] = useState(false);
   const [editingVoice, setEditingVoice] = useState<BrandVoice | null>(null);
