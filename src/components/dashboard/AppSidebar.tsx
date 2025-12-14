@@ -31,7 +31,7 @@ const mainNavItems = [
   { title: "Dashboard", url: "/dashboard", icon: LayoutDashboard },
   { title: "Templates", url: "/dashboard/templates", icon: FileText },
   { title: "Documents", url: "/dashboard/documents", icon: FolderOpen },
-  { title: "Brand Voices", url: "/dashboard/brand-voices", icon: Mic },
+  { title: "Brand Voices", url: "/dashboard/settings?tab=brand-voice", icon: Mic },
   { title: "History", url: "/dashboard/history", icon: History },
 ];
 
@@ -87,6 +87,11 @@ export function AppSidebar() {
   const isActive = (url: string) => {
     if (url === "/dashboard") {
       return location.pathname === "/dashboard";
+    }
+    // Handle URLs with query params (e.g., /dashboard/settings?tab=brand-voice)
+    const [urlPath, urlQuery] = url.split("?");
+    if (urlQuery) {
+      return location.pathname === urlPath && location.search.includes(urlQuery);
     }
     return location.pathname.startsWith(url);
   };
