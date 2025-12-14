@@ -93,13 +93,21 @@ export function TeamTab({ organizationId }: TeamTabProps) {
           id,
           user_id,
           role,
-          joined_at,
-          profile:profiles!organization_members_user_id_fkey(email, full_name)
+          joined_at
         `)
         .eq("organization_id", organizationId)
         .order("role", { ascending: true });
 
       if (error) throw error;
+      
+      // Fetch profiles for each member
+      const memberIds = data.map(m => m.user_id);
+      const { data: profiles } = await supabase
+        .from("profiles")
+        .select("id, email, full_name")
+        .in("id", memberIds);
+
+      const profileMap = new Map(profiles?.map(p => [p.id, p]) || []);
       
       // Transform the data to match our interface
       return (data as any[]).map((member): MemberWithProfile => ({
@@ -107,7 +115,7 @@ export function TeamTab({ organizationId }: TeamTabProps) {
         user_id: member.user_id,
         role: member.role,
         joined_at: member.joined_at,
-        profile: Array.isArray(member.profile) ? member.profile[0] : member.profile,
+        profile: profileMap.get(member.user_id) || null,
       }));
     },
     enabled: !!organizationId,
