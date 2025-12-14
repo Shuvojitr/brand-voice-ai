@@ -15,6 +15,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { contentTemplates } from "@/lib/templates";
 import { ContentEditor } from "@/components/content/ContentEditor";
+import { useOrganization } from "@/hooks/useOrganization";
 import { User, Session } from "@supabase/supabase-js";
 import type { ContentTemplate, TemplateInputField } from "@/lib/types/ai";
 
@@ -31,6 +32,9 @@ export default function CreateContent() {
   const [language, setLanguage] = useState<"en" | "bn">("en");
   const [brandVoiceId, setBrandVoiceId] = useState<string | null>(null);
   const [brandVoices, setBrandVoices] = useState<Array<{ id: string; name: string }>>([]);
+  
+  // Use organization hook to get credits and invalidate after generation
+  const { invalidate: invalidateOrganization } = useOrganization();
 
   const template = contentTemplates.find(t => t.id === templateId);
 
@@ -205,6 +209,9 @@ export default function CreateContent() {
 
       // Mark for auto-save after successful generation
       setShouldAutoSave(true);
+      
+      // Refresh organization data to update credit balance in UI
+      invalidateOrganization();
 
       toast({
         title: "Content generated!",
@@ -220,7 +227,7 @@ export default function CreateContent() {
     } finally {
       setIsGenerating(false);
     }
-  }, [template, inputs, language, brandVoiceId, organizationId, user, toast, navigate]);
+  }, [template, inputs, language, brandVoiceId, organizationId, user, toast, navigate, invalidateOrganization]);
 
   if (!template) {
     return (
