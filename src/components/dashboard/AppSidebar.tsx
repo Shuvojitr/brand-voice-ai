@@ -31,6 +31,7 @@ const mainNavItems = [
   { title: "Dashboard", url: "/dashboard", icon: LayoutDashboard },
   { title: "Templates", url: "/dashboard/templates", icon: FileText },
   { title: "Documents", url: "/dashboard/documents", icon: FolderOpen },
+  { title: "Brand Voices", url: "/dashboard/brand-voices", icon: Mic },
   { title: "History", url: "/dashboard/history", icon: History },
 ];
 
