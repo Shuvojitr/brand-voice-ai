@@ -53,8 +53,16 @@ serve(async (req) => {
       });
     }
 
+    // Check if request is POST with body (for update-user)
+    let bodyAction = null;
+    let body: any = null;
+    if (req.method === 'POST') {
+      body = await req.json();
+      bodyAction = body.action;
+    }
+
     const url = new URL(req.url);
-    const action = url.searchParams.get('action');
+    const action = bodyAction || url.searchParams.get('action');
 
     // Handle different admin actions
     switch (action) {
@@ -149,6 +157,108 @@ serve(async (req) => {
         }) || [];
 
         return new Response(JSON.stringify(users), {
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        });
+      }
+
+      case 'update-user': {
+        if (!body) {
+          return new Response(JSON.stringify({ error: 'Request body required' }), {
+            status: 400,
+            headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+          });
+        }
+
+        const { userId, fullName, email, role, creditsToAdd, isBanned, organizationId } = body;
+
+        if (!userId) {
+          return new Response(JSON.stringify({ error: 'User ID required' }), {
+            status: 400,
+            headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+          });
+        }
+
+        // Update profile (full_name)
+        const { error: profileError } = await supabase
+          .from('profiles')
+          .update({ 
+            full_name: fullName,
+            is_banned: isBanned,
+          })
+          .eq('id', userId);
+
+        if (profileError) {
+          console.error('Profile update error:', profileError);
+          throw new Error(`Failed to update profile: ${profileError.message}`);
+        }
+
+        // Update email in auth (if changed)
+        const { data: currentUser } = await supabase.auth.admin.getUserById(userId);
+        if (currentUser?.user?.email !== email && email) {
+          const { error: emailError } = await supabase.auth.admin.updateUserById(userId, {
+            email: email,
+          });
+          if (emailError) {
+            console.error('Email update error:', emailError);
+            // Don't throw, just log - email updates can fail due to various reasons
+          } else {
+            // Also update email in profiles table
+            await supabase.from('profiles').update({ email }).eq('id', userId);
+          }
+        }
+
+        // Handle role change
+        if (role === 'admin') {
+          // Check if already admin
+          const { data: existingRole } = await supabase
+            .from('user_roles')
+            .select('id')
+            .eq('user_id', userId)
+            .eq('role', 'admin')
+            .single();
+
+          if (!existingRole) {
+            // Add admin role
+            const { error: roleError } = await supabase
+              .from('user_roles')
+              .insert({ user_id: userId, role: 'admin' });
+            
+            if (roleError && !roleError.message.includes('duplicate')) {
+              console.error('Role insert error:', roleError);
+            }
+          }
+        } else if (role === 'user') {
+          // Remove admin role if exists
+          await supabase
+            .from('user_roles')
+            .delete()
+            .eq('user_id', userId)
+            .eq('role', 'admin');
+        }
+
+        // Add credits if specified
+        if (creditsToAdd && creditsToAdd > 0 && organizationId) {
+          const { data: org, error: orgFetchError } = await supabase
+            .from('organizations')
+            .select('monthly_credits')
+            .eq('id', organizationId)
+            .single();
+
+          if (!orgFetchError && org) {
+            const { error: creditsError } = await supabase
+              .from('organizations')
+              .update({ 
+                monthly_credits: (org.monthly_credits || 0) + creditsToAdd 
+              })
+              .eq('id', organizationId);
+
+            if (creditsError) {
+              console.error('Credits update error:', creditsError);
+            }
+          }
+        }
+
+        return new Response(JSON.stringify({ success: true }), {
           headers: { ...corsHeaders, 'Content-Type': 'application/json' },
         });
       }
