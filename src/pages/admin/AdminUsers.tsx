@@ -13,7 +13,8 @@ import { useAllUsers } from "@/hooks/useAdminStats";
 import { supabase } from "@/integrations/supabase/client";
 import { useQueryClient } from "@tanstack/react-query";
 import { formatDistanceToNow } from "date-fns";
-import { Search, Plus, Ban, UserX } from "lucide-react";
+import { Search, Plus, Ban, UserX, Pencil } from "lucide-react";
+import { UserEditDialog } from "@/components/admin/UserEditDialog";
 
 export default function AdminUsers() {
   const { data: users, isLoading } = useAllUsers();
@@ -23,6 +24,7 @@ export default function AdminUsers() {
   const [searchQuery, setSearchQuery] = useState("");
   const [addCreditsOpen, setAddCreditsOpen] = useState(false);
   const [banUserOpen, setBanUserOpen] = useState(false);
+  const [editUserOpen, setEditUserOpen] = useState(false);
   const [selectedUser, setSelectedUser] = useState<any>(null);
   const [creditsToAdd, setCreditsToAdd] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -186,6 +188,17 @@ export default function AdminUsers() {
                               size="sm"
                               onClick={() => {
                                 setSelectedUser(user);
+                                setEditUserOpen(true);
+                              }}
+                            >
+                              <Pencil className="h-4 w-4 mr-1" />
+                              Edit
+                            </Button>
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              onClick={() => {
+                                setSelectedUser(user);
                                 setAddCreditsOpen(true);
                               }}
                               disabled={!user.organization_id}
@@ -291,6 +304,13 @@ export default function AdminUsers() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      {/* Edit User Dialog */}
+      <UserEditDialog
+        open={editUserOpen}
+        onOpenChange={setEditUserOpen}
+        user={selectedUser}
+      />
     </AdminLayout>
   );
 }
