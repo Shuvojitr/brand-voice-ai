@@ -8,12 +8,13 @@ import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useToast } from "@/hooks/use-toast";
 import { useAllUsers } from "@/hooks/useAdminStats";
 import { supabase } from "@/integrations/supabase/client";
 import { useQueryClient } from "@tanstack/react-query";
 import { formatDistanceToNow } from "date-fns";
-import { Search, Plus, Ban, UserX } from "lucide-react";
+import { Search, CreditCard, Ban, UserX } from "lucide-react";
 
 export default function AdminUsers() {
   const { data: users, isLoading } = useAllUsers();
@@ -21,10 +22,11 @@ export default function AdminUsers() {
   const queryClient = useQueryClient();
   
   const [searchQuery, setSearchQuery] = useState("");
-  const [addCreditsOpen, setAddCreditsOpen] = useState(false);
+  const [creditsDialogOpen, setCreditsDialogOpen] = useState(false);
   const [banUserOpen, setBanUserOpen] = useState(false);
   const [selectedUser, setSelectedUser] = useState<any>(null);
-  const [creditsToAdd, setCreditsToAdd] = useState("");
+  const [creditsAmount, setCreditsAmount] = useState("");
+  const [creditsMode, setCreditsMode] = useState<"add" | "deduct">("add");
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   const filteredUsers = users?.filter(user => 
@@ -32,38 +34,41 @@ export default function AdminUsers() {
     user.full_name?.toLowerCase().includes(searchQuery.toLowerCase())
   ) || [];
 
-  const handleAddCredits = async () => {
-    if (!selectedUser?.organization_id || !creditsToAdd) return;
+  const handleUpdateCredits = async () => {
+    if (!selectedUser?.organization_id || !creditsAmount) return;
     
     setIsSubmitting(true);
     try {
-      // Get current credits
-      const { data: org, error: fetchError } = await supabase
-        .from("organizations")
-        .select("monthly_credits")
-        .eq("id", selectedUser.organization_id)
-        .single();
-
-      if (fetchError) throw fetchError;
-
-      // Add credits
-      const { error } = await supabase
-        .from("organizations")
-        .update({ 
-          monthly_credits: (org?.monthly_credits || 0) + parseInt(creditsToAdd) 
-        })
-        .eq("id", selectedUser.organization_id);
-
-      if (error) throw error;
+      const { data: session } = await supabase.auth.getSession();
+      
+      const response = await fetch(
+        `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/admin-stats?action=update-credits`,
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${session.session?.access_token}`,
+          },
+          body: JSON.stringify({
+            organizationId: selectedUser.organization_id,
+            amount: parseInt(creditsAmount),
+            mode: creditsMode,
+          }),
+        }
+      );
+      
+      const data = await response.json();
+      if (!response.ok) throw new Error(data.error || "Failed to update credits");
 
       toast({
-        title: "Credits Added",
-        description: `Added ${creditsToAdd} credits to ${selectedUser.email}`,
+        title: "Credits Updated",
+        description: `${creditsMode === "add" ? "Added" : "Deducted"} ${creditsAmount} credits ${creditsMode === "add" ? "to" : "from"} ${selectedUser.email}`,
       });
       
       queryClient.invalidateQueries({ queryKey: ["admin-all-users"] });
-      setAddCreditsOpen(false);
-      setCreditsToAdd("");
+      setCreditsDialogOpen(false);
+      setCreditsAmount("");
+      setCreditsMode("add");
     } catch (error: any) {
       toast({
         title: "Error",
@@ -80,16 +85,30 @@ export default function AdminUsers() {
     
     setIsSubmitting(true);
     try {
-      const { error } = await supabase
-        .from("profiles")
-        .update({ is_banned: !selectedUser.is_banned })
-        .eq("id", selectedUser.id);
-
-      if (error) throw error;
+      const { data: session } = await supabase.auth.getSession();
+      const newBanStatus = !selectedUser.is_banned;
+      
+      const response = await fetch(
+        `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/admin-stats?action=toggle-ban`,
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${session.session?.access_token}`,
+          },
+          body: JSON.stringify({
+            userId: selectedUser.id,
+            isBanned: newBanStatus,
+          }),
+        }
+      );
+      
+      const data = await response.json();
+      if (!response.ok) throw new Error(data.error || "Failed to update ban status");
 
       toast({
-        title: selectedUser.is_banned ? "User Unbanned" : "User Banned",
-        description: `${selectedUser.email} has been ${selectedUser.is_banned ? "unbanned" : "banned"}.`,
+        title: newBanStatus ? "User Banned" : "User Unbanned",
+        description: `${selectedUser.email} has been ${newBanStatus ? "banned" : "unbanned"}.`,
       });
       
       queryClient.invalidateQueries({ queryKey: ["admin-all-users"] });
@@ -186,11 +205,11 @@ export default function AdminUsers() {
                               size="sm"
                               onClick={() => {
                                 setSelectedUser(user);
-                                setAddCreditsOpen(true);
+                                setCreditsDialogOpen(true);
                               }}
                               disabled={!user.organization_id}
                             >
-                              <Plus className="h-4 w-4 mr-1" />
+                              <CreditCard className="h-4 w-4 mr-1" />
                               Credits
                             </Button>
                             <Button
@@ -229,32 +248,53 @@ export default function AdminUsers() {
         </Card>
       </div>
 
-      {/* Add Credits Dialog */}
-      <Dialog open={addCreditsOpen} onOpenChange={setAddCreditsOpen}>
+      {/* Manage Credits Dialog */}
+      <Dialog open={creditsDialogOpen} onOpenChange={setCreditsDialogOpen}>
         <DialogContent>
           <DialogHeader>
-            <DialogTitle>Add Credits</DialogTitle>
+            <DialogTitle>Manage Credits</DialogTitle>
             <DialogDescription>
-              Add credits to {selectedUser?.email}'s account.
+              Add or deduct credits for {selectedUser?.email}.
             </DialogDescription>
           </DialogHeader>
-          <div className="py-4">
-            <Label htmlFor="credits">Credits to Add</Label>
-            <Input
-              id="credits"
-              type="number"
-              placeholder="e.g., 1000"
-              value={creditsToAdd}
-              onChange={(e) => setCreditsToAdd(e.target.value)}
-              className="mt-2"
-            />
+          <div className="space-y-4 py-4">
+            <div className="space-y-2">
+              <Label>Operation</Label>
+              <Select value={creditsMode} onValueChange={(v) => setCreditsMode(v as "add" | "deduct")}>
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="add">Add Credits</SelectItem>
+                  <SelectItem value="deduct">Deduct Credits</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="credits">Amount</Label>
+              <Input
+                id="credits"
+                type="number"
+                min="1"
+                placeholder="e.g., 1000"
+                value={creditsAmount}
+                onChange={(e) => setCreditsAmount(e.target.value)}
+              />
+            </div>
+            <p className="text-sm text-muted-foreground">
+              Current balance: {selectedUser?.credits_remaining?.toLocaleString() || 0} credits
+            </p>
           </div>
           <DialogFooter>
-            <Button variant="outline" onClick={() => setAddCreditsOpen(false)}>
+            <Button variant="outline" onClick={() => setCreditsDialogOpen(false)}>
               Cancel
             </Button>
-            <Button onClick={handleAddCredits} disabled={isSubmitting || !creditsToAdd}>
-              {isSubmitting ? "Adding..." : "Add Credits"}
+            <Button 
+              onClick={handleUpdateCredits} 
+              disabled={isSubmitting || !creditsAmount}
+              variant={creditsMode === "deduct" ? "destructive" : "default"}
+            >
+              {isSubmitting ? "Processing..." : creditsMode === "add" ? "Add Credits" : "Deduct Credits"}
             </Button>
           </DialogFooter>
         </DialogContent>
