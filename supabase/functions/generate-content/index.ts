@@ -380,13 +380,28 @@ You are a helpful assistant. Your ENTIRE output MUST be in Bengali language (ব
       throw new Error(`AI Gateway error: ${aiResponse.status}`);
     }
 
-    // Helper function to count words - Unicode-aware matching for accuracy with multi-language text
+    // Helper function to count words - matches frontend editor logic exactly
     const countWords = (text: string): number => {
       if (!text) return 0;
-      // This regex matches any sequence of Letters (\p{L}) or Numbers (\p{N})
-      // It effectively ignores punctuation and symbols, counting only "real" words.
-      const matches = text.match(/[\p{L}\p{N}]+/gu);
-      return matches ? matches.length : 0;
+      // Step 1: Remove HTML tags (same as frontend htmlToPlainText)
+      let plainText = text
+        .replace(/<\/h[1-6]>/gi, '\n\n')
+        .replace(/<\/p>/gi, '\n\n')
+        .replace(/<\/li>/gi, '\n')
+        .replace(/<br\s*\/?>/gi, '\n')
+        .replace(/<\/ul>/gi, '\n')
+        .replace(/<\/ol>/gi, '\n')
+        .replace(/<[^>]+>/g, '')
+        .replace(/&nbsp;/g, ' ')
+        .replace(/&amp;/g, '&')
+        .replace(/&lt;/g, '<')
+        .replace(/&gt;/g, '>')
+        .replace(/&quot;/g, '"')
+        .trim();
+      
+      // Step 2: Split by whitespace and filter empty strings (exact frontend logic)
+      const words = plainText.split(/\s+/).filter(word => word.length > 0);
+      return words.length;
     };
 
     // Helper function to deduct credits based on actual word count
