@@ -311,6 +311,7 @@ export type Database = {
           email: string | null
           full_name: string | null
           id: string
+          is_banned: boolean | null
           onboarding_completed: boolean | null
           preferred_language: string | null
           updated_at: string | null
@@ -321,6 +322,7 @@ export type Database = {
           email?: string | null
           full_name?: string | null
           id: string
+          is_banned?: boolean | null
           onboarding_completed?: boolean | null
           preferred_language?: string | null
           updated_at?: string | null
@@ -331,9 +333,94 @@ export type Database = {
           email?: string | null
           full_name?: string | null
           id?: string
+          is_banned?: boolean | null
           onboarding_completed?: boolean | null
           preferred_language?: string | null
           updated_at?: string | null
+        }
+        Relationships: []
+      }
+      templates: {
+        Row: {
+          category: string
+          created_at: string | null
+          description: string | null
+          description_bn: string | null
+          estimated_credits: number | null
+          form_schema_json: Json
+          icon: string | null
+          id: string
+          is_active: boolean | null
+          name: string
+          name_bn: string | null
+          output_format: string | null
+          slug: string
+          sort_order: number | null
+          supported_languages: string[] | null
+          system_prompt: string
+          tags: string[] | null
+          updated_at: string | null
+        }
+        Insert: {
+          category: string
+          created_at?: string | null
+          description?: string | null
+          description_bn?: string | null
+          estimated_credits?: number | null
+          form_schema_json?: Json
+          icon?: string | null
+          id?: string
+          is_active?: boolean | null
+          name: string
+          name_bn?: string | null
+          output_format?: string | null
+          slug: string
+          sort_order?: number | null
+          supported_languages?: string[] | null
+          system_prompt: string
+          tags?: string[] | null
+          updated_at?: string | null
+        }
+        Update: {
+          category?: string
+          created_at?: string | null
+          description?: string | null
+          description_bn?: string | null
+          estimated_credits?: number | null
+          form_schema_json?: Json
+          icon?: string | null
+          id?: string
+          is_active?: boolean | null
+          name?: string
+          name_bn?: string | null
+          output_format?: string | null
+          slug?: string
+          sort_order?: number | null
+          supported_languages?: string[] | null
+          system_prompt?: string
+          tags?: string[] | null
+          updated_at?: string | null
+        }
+        Relationships: []
+      }
+      user_roles: {
+        Row: {
+          created_at: string | null
+          id: string
+          role: Database["public"]["Enums"]["app_role"]
+          user_id: string
+        }
+        Insert: {
+          created_at?: string | null
+          id?: string
+          role?: Database["public"]["Enums"]["app_role"]
+          user_id: string
+        }
+        Update: {
+          created_at?: string | null
+          id?: string
+          role?: Database["public"]["Enums"]["app_role"]
+          user_id?: string
         }
         Relationships: []
       }
@@ -343,6 +430,13 @@ export type Database = {
     }
     Functions: {
       get_user_org_ids: { Args: { _user_id: string }; Returns: string[] }
+      has_role: {
+        Args: {
+          _role: Database["public"]["Enums"]["app_role"]
+          _user_id: string
+        }
+        Returns: boolean
+      }
       is_org_admin: {
         Args: { _org_id: string; _user_id: string }
         Returns: boolean
@@ -353,6 +447,7 @@ export type Database = {
       }
     }
     Enums: {
+      app_role: "admin" | "user"
       org_role: "owner" | "admin" | "member"
       subscription_tier: "free" | "starter" | "pro" | "enterprise"
     }
@@ -482,6 +577,7 @@ export type CompositeTypes<
 export const Constants = {
   public: {
     Enums: {
+      app_role: ["admin", "user"],
       org_role: ["owner", "admin", "member"],
       subscription_tier: ["free", "starter", "pro", "enterprise"],
     },
