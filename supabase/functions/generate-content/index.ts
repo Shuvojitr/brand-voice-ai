@@ -6,154 +6,25 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
 
-// Template system prompts (mirrored from frontend for security)
-const TEMPLATE_PROMPTS: Record<string, string> = {
-  'blog-post': `You are an expert content writer. Generate a well-structured blog post based on the user's requirements.
+// Helper function to get template from database
+async function getTemplateFromDatabase(supabase: any, templateId: string): Promise<{ systemPrompt: string; estimatedCredits: number } | null> {
+  const { data, error } = await supabase
+    .from('templates')
+    .select('system_prompt, estimated_credits, slug, id')
+    .or(`slug.eq.${templateId},id.eq.${templateId}`)
+    .eq('is_active', true)
+    .single();
 
-Structure your response with:
-- An engaging headline (H1)
-- An introduction that hooks the reader
-- Multiple sections with H2 subheadings
-- Actionable tips and insights
-- A conclusion with a call-to-action
+  if (error || !data) {
+    console.log(`[generate-content] Template not found in database: ${templateId}`);
+    return null;
+  }
 
-Use markdown formatting. Be informative, engaging, and SEO-friendly.`,
-
-  'blog-outline': `Generate a detailed blog post outline with:
-- A compelling title
-- Introduction hook ideas
-- 5-7 main sections with subpoints
-- Key talking points for each section
-- Conclusion ideas
-
-Format using markdown with proper hierarchy.`,
-
-  'social-linkedin': `Create a compelling LinkedIn post that:
-- Opens with a hook (question, bold statement, or story)
-- Provides value or insights
-- Uses short paragraphs and line breaks for readability
-- Ends with a call-to-action or question
-- Includes relevant hashtags (3-5)
-
-Keep it authentic and professional. Aim for 150-300 words.`,
-
-  'social-twitter': `Create a Twitter thread that:
-- Starts with a hook tweet that makes people want to read more
-- Each tweet is under 280 characters
-- Numbers each tweet (1/, 2/, etc.)
-- Provides actionable insights or interesting facts
-- Ends with a summary and call-to-action
-
-Make it shareable and valuable.`,
-
-  'social-instagram': `Write an engaging Instagram caption that:
-- Starts with an attention-grabbing first line
-- Tells a micro-story or shares an insight
-- Includes a call-to-action
-- Has relevant hashtags (10-15) at the end
-- Uses emojis appropriately
-
-Keep it authentic and scroll-stopping.`,
-
-  'ad-google': `Generate Google Ads copy with:
-
-**Headlines (3 options, max 30 chars each):**
-- Focus on benefits and urgency
-- Include keywords naturally
-
-**Descriptions (2 options, max 90 chars each):**
-- Highlight unique value
-- Include call-to-action
-
-**Display URL paths (2 suggestions)**
-
-Make it compelling and action-oriented.`,
-
-  'ad-facebook': `Create Facebook ad copy with:
-
-**Primary Text (3 variations):**
-- Hook the audience in first line
-- Address pain points
-- Include social proof if relevant
-- Strong CTA
-
-**Headline (3 options, under 40 chars)**
-
-**Description (2 options)**
-
-Focus on emotional triggers and benefits.`,
-
-  'email-newsletter': `Write an email newsletter with:
-- Compelling subject line (3 options)
-- Preview text
-- Personalized greeting
-- Main content sections with headers
-- Call-to-action buttons
-- Footer with unsubscribe option
-
-Make it scannable and valuable.`,
-
-  'email-cold': `Write a cold email that:
-- Has a personalized, curiosity-inducing subject line
-- Opens with relevance (why them, why now)
-- Clearly states value proposition
-- Is under 150 words
-- Has a clear, low-friction CTA
-- Sounds human, not salesy
-
-Provide 2 versions with different approaches.`,
-
-  'product-description': `Write a product description that:
-- Opens with a benefit-focused headline
-- Paints a picture of the transformation
-- Lists features as benefits
-- Addresses potential objections
-- Creates urgency
-- Includes a strong CTA
-
-Use sensory language and focus on how it improves the customer's life.`,
-
-  'seo-meta': `Generate SEO meta tags:
-
-**Title Tags (3 options):**
-- Under 60 characters
-- Include target keyword near the beginning
-- Compelling and click-worthy
-
-**Meta Descriptions (3 options):**
-- 150-160 characters
-- Include target keyword naturally
-- Clear value proposition
-- Call-to-action
-
-**H1 Suggestions (2 options)**
-
-Focus on search intent and CTR optimization.`,
-  'analyze-voice': `Analyze the following sample text and describe the writing style in detail. Include:
-- Tone (formal, casual, conversational, etc.)
-- Vocabulary level (simple, technical, academic)
-- Sentence structure patterns
-- Unique stylistic elements
-- Voice characteristics
-
-Provide actionable instructions that an AI could follow to replicate this writing style. Be specific and detailed.`,
-};
-
-// Credit costs per template
-const TEMPLATE_CREDITS: Record<string, number> = {
-  'blog-post': 50,
-  'blog-outline': 15,
-  'social-linkedin': 10,
-  'social-twitter': 15,
-  'social-instagram': 8,
-  'ad-google': 12,
-  'ad-facebook': 15,
-  'email-newsletter': 25,
-  'email-cold': 12,
-  'product-description': 15,
-  'seo-meta': 8,
-  'analyze-voice': 5,
-};
+  return {
+    systemPrompt: data.system_prompt,
+    estimatedCredits: data.estimated_credits || 10,
+  };
+}
 
 interface GenerateRequest {
   templateId: string;
@@ -214,14 +85,16 @@ serve(async (req) => {
 
     console.log(`[generate-content] User: ${user.id}, Template: ${templateId}, Org: ${organizationId}`);
 
-    // Validate template
-    const systemPrompt = TEMPLATE_PROMPTS[templateId];
-    if (!systemPrompt) {
+    // Get template from database
+    const templateData = await getTemplateFromDatabase(supabase, templateId);
+    if (!templateData) {
       return new Response(JSON.stringify({ error: `Unknown template: ${templateId}` }), {
         status: 400,
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       });
     }
+
+    const { systemPrompt } = templateData;
 
     // Verify user is member of organization
     const { data: membership, error: memberError } = await supabase
