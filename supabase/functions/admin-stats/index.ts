@@ -54,6 +54,114 @@ Deno.serve(async (req) => {
     const url = new URL(req.url);
     const action = url.searchParams.get("action") || "stats";
 
+    // Handle POST requests for mutations
+    if (req.method === "POST") {
+      const body = await req.json();
+
+      if (action === "toggle-ban") {
+        const { userId, isBanned } = body;
+        if (!userId) {
+          return new Response(JSON.stringify({ error: "userId is required" }), {
+            status: 400,
+            headers: { ...corsHeaders, "Content-Type": "application/json" },
+          });
+        }
+
+        // Update profile ban status
+        const { error: updateError } = await supabaseAdmin
+          .from("profiles")
+          .update({ is_banned: isBanned })
+          .eq("id", userId);
+
+        if (updateError) {
+          console.error("Error updating ban status:", updateError);
+          return new Response(JSON.stringify({ error: updateError.message }), {
+            status: 500,
+            headers: { ...corsHeaders, "Content-Type": "application/json" },
+          });
+        }
+
+        // Also ban/unban at auth level
+        try {
+          if (isBanned) {
+            await supabaseAdmin.auth.admin.updateUserById(userId, {
+              ban_duration: "876000h" // ~100 years
+            });
+          } else {
+            await supabaseAdmin.auth.admin.updateUserById(userId, {
+              ban_duration: "none"
+            });
+          }
+        } catch (authErr) {
+          console.error("Auth ban update failed (non-critical):", authErr);
+        }
+
+        return new Response(JSON.stringify({ success: true, is_banned: isBanned }), {
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+
+      if (action === "update-credits") {
+        const { organizationId, amount, mode } = body;
+        if (!organizationId || amount === undefined) {
+          return new Response(JSON.stringify({ error: "organizationId and amount are required" }), {
+            status: 400,
+            headers: { ...corsHeaders, "Content-Type": "application/json" },
+          });
+        }
+
+        // Get current credits
+        const { data: org, error: fetchError } = await supabaseAdmin
+          .from("organizations")
+          .select("monthly_credits, credits_used")
+          .eq("id", organizationId)
+          .single();
+
+        if (fetchError || !org) {
+          return new Response(JSON.stringify({ error: "Organization not found" }), {
+            status: 404,
+            headers: { ...corsHeaders, "Content-Type": "application/json" },
+          });
+        }
+
+        let newCredits = org.monthly_credits || 0;
+        const parsedAmount = parseInt(amount);
+
+        if (mode === "add") {
+          newCredits = newCredits + parsedAmount;
+        } else if (mode === "deduct") {
+          newCredits = Math.max(0, newCredits - parsedAmount);
+        } else if (mode === "set") {
+          newCredits = Math.max(0, parsedAmount);
+        } else {
+          // Default: if positive add, if negative subtract
+          newCredits = Math.max(0, newCredits + parsedAmount);
+        }
+
+        const { error: updateError } = await supabaseAdmin
+          .from("organizations")
+          .update({ monthly_credits: newCredits })
+          .eq("id", organizationId);
+
+        if (updateError) {
+          console.error("Error updating credits:", updateError);
+          return new Response(JSON.stringify({ error: updateError.message }), {
+            status: 500,
+            headers: { ...corsHeaders, "Content-Type": "application/json" },
+          });
+        }
+
+        return new Response(JSON.stringify({ 
+          success: true, 
+          monthly_credits: newCredits,
+          credits_remaining: newCredits - (org.credits_used || 0)
+        }), {
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+    }
+
+    // GET requests for fetching data
     if (action === "stats") {
       // Get total users count
       const { count: usersCount } = await supabaseAdmin
