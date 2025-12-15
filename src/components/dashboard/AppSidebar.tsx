@@ -21,9 +21,11 @@ import {
   Settings, 
   Sparkles,
   Mic,
-  FolderOpen
+  FolderOpen,
+  Shield
 } from "lucide-react";
 import { useOrganization } from "@/hooks/useOrganization";
+import { useAdminRole } from "@/hooks/useAdminRole";
 import { useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
 
@@ -52,6 +54,7 @@ export function AppSidebar() {
   const collapsed = state === "collapsed";
   const location = useLocation();
   const { organization, invalidate } = useOrganization();
+  const { isAdmin } = useAdminRole();
 
   const creditsUsed = organization?.credits_used || 0;
   const monthlyCredits = organization?.monthly_credits || 1000;
@@ -163,6 +166,30 @@ export function AppSidebar() {
             </SidebarMenu>
           </SidebarGroupContent>
         </SidebarGroup>
+
+        {isAdmin && (
+          <SidebarGroup className="mt-4">
+            <SidebarGroupLabel className={collapsed ? "sr-only" : ""}>
+              Admin
+            </SidebarGroupLabel>
+            <SidebarGroupContent>
+              <SidebarMenu>
+                <SidebarMenuItem>
+                  <SidebarMenuButton asChild tooltip="Super Admin">
+                    <NavLink 
+                      to="/admin"
+                      className="flex items-center gap-3 text-destructive"
+                      activeClassName="bg-destructive/10 text-destructive font-medium"
+                    >
+                      <Shield className="h-4 w-4 flex-shrink-0" />
+                      <span>Super Admin</span>
+                    </NavLink>
+                  </SidebarMenuButton>
+                </SidebarMenuItem>
+              </SidebarMenu>
+            </SidebarGroupContent>
+          </SidebarGroup>
+        )}
       </SidebarContent>
 
       <SidebarFooter className="border-t border-border p-4">

@@ -15,6 +15,10 @@ import History from "./pages/History";
 import Billing from "./pages/Billing";
 import Settings from "./pages/Settings";
 import NotFound from "./pages/NotFound";
+import AdminOverview from "./pages/admin/AdminOverview";
+import AdminUsers from "./pages/admin/AdminUsers";
+import AdminTemplates from "./pages/admin/AdminTemplates";
+import AdminSettings from "./pages/admin/AdminSettings";
 
 const queryClient = new QueryClient();
 
@@ -37,6 +41,11 @@ const App = () => (
           <Route path="/dashboard/history" element={<History />} />
           <Route path="/dashboard/billing" element={<Billing />} />
           <Route path="/dashboard/settings" element={<Settings />} />
+          {/* Admin Routes */}
+          <Route path="/admin" element={<AdminOverview />} />
+          <Route path="/admin/users" element={<AdminUsers />} />
+          <Route path="/admin/templates" element={<AdminTemplates />} />
+          <Route path="/admin/settings" element={<AdminSettings />} />
           {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
           <Route path="*" element={<NotFound />} />
         </Routes>
