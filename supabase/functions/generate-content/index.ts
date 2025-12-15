@@ -381,26 +381,43 @@ You are a helpful assistant. Your ENTIRE output MUST be in Bengali language (ব
     }
 
     // Helper function to count words - matches frontend editor logic exactly
+    // The AI returns plain text (not HTML), so we count words directly from the text
+    // The frontend counts from HTML after TipTap processes it, which preserves word count
     const countWords = (text: string): number => {
       if (!text) return 0;
-      // Step 1: Remove HTML tags (same as frontend htmlToPlainText)
-      let plainText = text
-        .replace(/<\/h[1-6]>/gi, '\n\n')
-        .replace(/<\/p>/gi, '\n\n')
-        .replace(/<\/li>/gi, '\n')
-        .replace(/<br\s*\/?>/gi, '\n')
-        .replace(/<\/ul>/gi, '\n')
-        .replace(/<\/ol>/gi, '\n')
-        .replace(/<[^>]+>/g, '')
-        .replace(/&nbsp;/g, ' ')
-        .replace(/&amp;/g, '&')
-        .replace(/&lt;/g, '<')
-        .replace(/&gt;/g, '>')
-        .replace(/&quot;/g, '"')
-        .trim();
       
-      // Step 2: Split by whitespace and filter empty strings (exact frontend logic)
-      const words = plainText.split(/\s+/).filter(word => word.length > 0);
+      // If the text contains HTML tags, strip them first (for HTML content)
+      let plainText = text;
+      if (/<[^>]+>/.test(text)) {
+        plainText = text
+          .replace(/<\/h[1-6]>/gi, '\n\n')
+          .replace(/<\/p>/gi, '\n\n')
+          .replace(/<\/li>/gi, '\n')
+          .replace(/<br\s*\/?>/gi, '\n')
+          .replace(/<\/ul>/gi, '\n')
+          .replace(/<\/ol>/gi, '\n')
+          .replace(/<[^>]+>/g, '')
+          .replace(/&nbsp;/g, ' ')
+          .replace(/&amp;/g, '&')
+          .replace(/&lt;/g, '<')
+          .replace(/&gt;/g, '>')
+          .replace(/&quot;/g, '"');
+      }
+      
+      // Replace markdown-style formatting that doesn't add words
+      // Remove markdown headers (# ## ###) - they're formatting, not words
+      plainText = plainText.replace(/^#{1,6}\s*/gm, '');
+      
+      // Remove markdown bold/italic markers
+      plainText = plainText.replace(/\*\*/g, '');
+      plainText = plainText.replace(/\*/g, '');
+      plainText = plainText.replace(/__/g, '');
+      plainText = plainText.replace(/_/g, ' '); // underscore between words
+      
+      // Normalize whitespace and count
+      const words = plainText.trim().split(/\s+/).filter(word => word.length > 0);
+      
+      console.log(`[generate-content] Word count debug: ${words.length} words`);
       return words.length;
     };
 
