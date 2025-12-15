@@ -2,3 +2,6 @@ project_id = "xaozmulvcdealaemnebz"
 
 [functions.generate-content]
 verify_jwt = true
+
+[functions.report-word-count]
+verify_jwt = true

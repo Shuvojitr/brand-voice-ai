@@ -363,6 +363,7 @@ export default function CreateContent() {
               templateId={templateId}
               autoSave={shouldAutoSave}
               onAutoSaveComplete={() => setShouldAutoSave(false)}
+              onCreditsDeducted={invalidateOrganization}
             />
           </div>
         </div>

@@ -380,84 +380,9 @@ You are a helpful assistant. Your ENTIRE output MUST be in Bengali language (ব
       throw new Error(`AI Gateway error: ${aiResponse.status}`);
     }
 
-    // Helper function to count words - matches frontend editor logic exactly
-    // The AI returns plain text (not HTML), so we count words directly from the text
-    // The frontend counts from HTML after TipTap processes it, which preserves word count
-    const countWords = (text: string): number => {
-      if (!text) return 0;
-      
-      // If the text contains HTML tags, strip them first (for HTML content)
-      let plainText = text;
-      if (/<[^>]+>/.test(text)) {
-        plainText = text
-          .replace(/<\/h[1-6]>/gi, '\n\n')
-          .replace(/<\/p>/gi, '\n\n')
-          .replace(/<\/li>/gi, '\n')
-          .replace(/<br\s*\/?>/gi, '\n')
-          .replace(/<\/ul>/gi, '\n')
-          .replace(/<\/ol>/gi, '\n')
-          .replace(/<[^>]+>/g, '')
-          .replace(/&nbsp;/g, ' ')
-          .replace(/&amp;/g, '&')
-          .replace(/&lt;/g, '<')
-          .replace(/&gt;/g, '>')
-          .replace(/&quot;/g, '"');
-      }
-      
-      // Replace markdown-style formatting that doesn't add words
-      // Remove markdown headers (# ## ###) - they're formatting, not words
-      plainText = plainText.replace(/^#{1,6}\s*/gm, '');
-      
-      // Remove markdown bold/italic markers
-      plainText = plainText.replace(/\*\*/g, '');
-      plainText = plainText.replace(/\*/g, '');
-      plainText = plainText.replace(/__/g, '');
-      plainText = plainText.replace(/_/g, ' '); // underscore between words
-      
-      // Normalize whitespace and count
-      const words = plainText.trim().split(/\s+/).filter(word => word.length > 0);
-      
-      console.log(`[generate-content] Word count debug: ${words.length} words`);
-      return words.length;
-    };
-
-    // Helper function to deduct credits based on actual word count
-    const deductCredits = async (content: string) => {
-      if (skipCreditDeduction) return 0;
-      
-      const wordCount = countWords(content);
-      const creditsToDeduct = Math.max(1, wordCount); // Minimum 1 credit
-      
-      // Check if user has enough credits for the generated content
-      if (creditsToDeduct > creditsAvailable) {
-        console.log(`[generate-content] Warning: Generated ${wordCount} words but only ${creditsAvailable} credits available. Deducting available amount.`);
-      }
-      
-      const actualDeduction = Math.min(creditsToDeduct, creditsAvailable);
-      
-      const { error: creditError } = await supabase
-        .from('organizations')
-        .update({ credits_used: (org.credits_used || 0) + actualDeduction })
-        .eq('id', organizationId);
-
-      if (creditError) {
-        console.error('[generate-content] Failed to deduct credits:', creditError);
-      }
-
-      // Log usage
-      await supabase.from('credit_usage').insert({
-        organization_id: organizationId,
-        user_id: user.id,
-        credits_consumed: actualDeduction,
-        model_used: model,
-        template_type: templateId,
-        tokens_input: 0,
-        tokens_output: wordCount,
-      });
-
-      console.log(`[generate-content] Deducted ${actualDeduction} credits (${wordCount} words) from org ${organizationId}`);
-      return actualDeduction;
-    };
+    // NOTE: Credit deduction is now handled by the frontend calling report-word-count
+    // This ensures the word count matches exactly what the editor displays
+    console.log(`[generate-content] Content generation started. Credits will be deducted by frontend after editor renders.`);
 
     // Handle streaming response - we need to collect content while streaming to client
     if (stream) {
@@ -503,8 +428,8 @@ You are a helpful assistant. Your ENTIRE output MUST be in Bengali language (ব
             
             controller.close();
             
-            // Deduct credits based on actual word count after stream completes
-            await deductCredits(fullContent);
+            // Credits are now deducted by the frontend via report-word-count endpoint
+            console.log(`[generate-content] Stream complete. Content length: ${fullContent.length} chars`);
           } catch (error) {
             console.error('[generate-content] Stream processing error:', error);
             controller.error(error);
@@ -526,12 +451,11 @@ You are a helpful assistant. Your ENTIRE output MUST be in Bengali language (ব
     const data = await aiResponse.json();
     const content = data.choices?.[0]?.message?.content || '';
     
-    // Deduct credits based on actual word count
-    const creditsConsumed = await deductCredits(content);
+    // Credits are now deducted by the frontend via report-word-count endpoint
+    console.log(`[generate-content] Non-streaming complete. Content length: ${content.length} chars`);
 
     return new Response(JSON.stringify({ 
       content,
-      creditsConsumed,
     }), {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
     });

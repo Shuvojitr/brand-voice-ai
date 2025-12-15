@@ -36,6 +36,7 @@ interface ContentEditorProps {
   templateId: string | undefined;
   autoSave?: boolean;
   onAutoSaveComplete?: () => void;
+  onCreditsDeducted?: () => void;
 }
 
 export function ContentEditor({
@@ -46,12 +47,14 @@ export function ContentEditor({
   templateId,
   autoSave = false,
   onAutoSaveComplete,
+  onCreditsDeducted,
 }: ContentEditorProps) {
   const [isCopied, setIsCopied] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
   const [isSaved, setIsSaved] = useState(false);
   const [wordCount, setWordCount] = useState(0);
-
+  const [creditsReported, setCreditsReported] = useState(false);
+  const [previousContent, setPreviousContent] = useState("");
   const editor = useEditor({
     extensions: [
       StarterKit.configure({
@@ -86,9 +89,60 @@ export function ContentEditor({
       // Convert markdown-style content to HTML if needed
       const htmlContent = convertToHtml(content);
       editor.commands.setContent(htmlContent);
-      setWordCount(getWordCount(htmlContent));
+      const newWordCount = getWordCount(htmlContent);
+      setWordCount(newWordCount);
+      
+      // Reset credits reported flag when new content is generated
+      if (content !== previousContent) {
+        setCreditsReported(false);
+        setPreviousContent(content);
+      }
     }
-  }, [content, editor]);
+  }, [content, editor, previousContent]);
+
+  // Report word count to backend for credit deduction after generation completes
+  useEffect(() => {
+    const reportWordCount = async () => {
+      if (!organizationId || !wordCount || creditsReported || isGenerating) return;
+      
+      try {
+        const { data: { session } } = await supabase.auth.getSession();
+        if (!session) return;
+
+        const response = await fetch(
+          `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/report-word-count`,
+          {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+              Authorization: `Bearer ${session.access_token}`,
+            },
+            body: JSON.stringify({
+              organizationId,
+              wordCount,
+              templateType: templateId,
+            }),
+          }
+        );
+
+        if (response.ok) {
+          const data = await response.json();
+          console.log(`[ContentEditor] Credits deducted: ${data.creditsDeducted} for ${data.wordCount} words`);
+          setCreditsReported(true);
+          onCreditsDeducted?.();
+        } else {
+          console.error('[ContentEditor] Failed to report word count:', await response.text());
+        }
+      } catch (error) {
+        console.error('[ContentEditor] Error reporting word count:', error);
+      }
+    };
+
+    // Only report after generation is complete and we have content
+    if (autoSave && !isGenerating && content && wordCount > 0 && !creditsReported) {
+      reportWordCount();
+    }
+  }, [autoSave, isGenerating, content, wordCount, creditsReported, organizationId, templateId, onCreditsDeducted]);
 
   // Auto-save when generation completes
   useEffect(() => {
