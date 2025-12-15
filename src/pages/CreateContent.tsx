@@ -8,16 +8,16 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Switch } from "@/components/ui/switch";
-import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
-import { ArrowLeft, Sparkles, Loader2, Copy, Download, Save, Check, Mic } from "lucide-react";
+import { Skeleton } from "@/components/ui/skeleton";
+import { ArrowLeft, Sparkles, Loader2, Mic } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
-import { contentTemplates } from "@/lib/templates";
 import { ContentEditor } from "@/components/content/ContentEditor";
 import { useOrganization } from "@/hooks/useOrganization";
-import { User, Session } from "@supabase/supabase-js";
-import type { ContentTemplate, TemplateInputField } from "@/lib/types/ai";
+import { useTemplateBySlug } from "@/hooks/useTemplates";
+import { User } from "@supabase/supabase-js";
+import type { TemplateInputField } from "@/lib/types/ai";
 
 export default function CreateContent() {
   const { templateId } = useParams<{ templateId: string }>();
@@ -36,7 +36,8 @@ export default function CreateContent() {
   // Use organization hook to get credits and invalidate after generation
   const { invalidate: invalidateOrganization } = useOrganization();
 
-  const template = contentTemplates.find(t => t.id === templateId);
+  // Fetch template from database
+  const { data: template, isLoading: templateLoading } = useTemplateBySlug(templateId);
 
   // Initialize auth and organization
   useEffect(() => {
@@ -72,9 +73,9 @@ export default function CreateContent() {
     initAuth();
   }, []);
 
-  // Initialize default values for inputs
+  // Initialize default values for inputs when template loads
   useEffect(() => {
-    if (template) {
+    if (template?.inputs) {
       const defaults: Record<string, string | number | boolean> = {};
       template.inputs.forEach((input) => {
         if (input.defaultValue !== undefined) {
@@ -103,7 +104,7 @@ export default function CreateContent() {
     }
 
     // Validate required inputs
-    const missingRequired = template.inputs
+    const missingRequired = (template.inputs || [])
       .filter(input => input.required && !inputs[input.id])
       .map(input => input.label);
 
@@ -133,7 +134,7 @@ export default function CreateContent() {
             Authorization: `Bearer ${session.access_token}`,
           },
           body: JSON.stringify({
-            templateId: template.id,
+            templateId: template.slug, // Use slug to identify template
             inputs,
             brandVoiceId: brandVoiceId || undefined,
             language,
@@ -145,7 +146,6 @@ export default function CreateContent() {
 
       // Handle credit errors specifically
       if (response.status === 402) {
-        const errorData = await response.json();
         toast({
           title: "Insufficient Credits",
           description: "You don't have enough credits. Please upgrade your plan.",
@@ -229,11 +229,49 @@ export default function CreateContent() {
     }
   }, [template, inputs, language, brandVoiceId, organizationId, user, toast, navigate, invalidateOrganization]);
 
+  // Loading state
+  if (templateLoading) {
+    return (
+      <DashboardLayout>
+        <div className="space-y-6">
+          <div className="flex items-center gap-4">
+            <Skeleton className="h-10 w-10" />
+            <div className="flex-1">
+              <Skeleton className="h-8 w-48" />
+              <Skeleton className="h-4 w-64 mt-2" />
+            </div>
+          </div>
+          <div className="flex flex-col md:flex-row gap-6">
+            <div className="w-full md:w-1/2">
+              <Card>
+                <CardHeader>
+                  <Skeleton className="h-6 w-32" />
+                </CardHeader>
+                <CardContent className="space-y-4">
+                  <Skeleton className="h-10 w-full" />
+                  <Skeleton className="h-24 w-full" />
+                  <Skeleton className="h-10 w-full" />
+                </CardContent>
+              </Card>
+            </div>
+            <div className="w-full md:w-1/2">
+              <Skeleton className="h-96 w-full" />
+            </div>
+          </div>
+        </div>
+      </DashboardLayout>
+    );
+  }
+
+  // Template not found
   if (!template) {
     return (
       <DashboardLayout>
         <div className="flex flex-col items-center justify-center py-16">
           <h1 className="text-2xl font-bold mb-4">Template not found</h1>
+          <p className="text-muted-foreground mb-4">
+            The template "{templateId}" doesn't exist or has been deactivated.
+          </p>
           <Button onClick={() => navigate("/dashboard/templates")}>
             <ArrowLeft className="h-4 w-4 mr-2" />
             Back to Templates
@@ -270,7 +308,7 @@ export default function CreateContent() {
             </CardHeader>
             <CardContent className="space-y-6">
               {/* Dynamic Inputs */}
-              {template.inputs.map((input) => (
+              {(template.inputs || []).map((input) => (
                 <FormInput
                   key={input.id}
                   input={input}
@@ -360,7 +398,7 @@ export default function CreateContent() {
               isGenerating={isGenerating}
               organizationId={organizationId}
               userId={user?.id}
-              templateId={templateId}
+              templateId={template.slug}
               autoSave={shouldAutoSave}
               onAutoSaveComplete={() => setShouldAutoSave(false)}
               onCreditsDeducted={invalidateOrganization}
