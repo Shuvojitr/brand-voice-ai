@@ -50,29 +50,46 @@ export function useTemplates() {
   });
 }
 
-export function useTemplateBySlug(slug: string | undefined) {
+export function useTemplateBySlug(slugOrId: string | undefined) {
   return useQuery({
-    queryKey: ["template", slug],
+    queryKey: ["template", slugOrId],
     queryFn: async () => {
-      if (!slug) return null;
+      if (!slugOrId) return null;
 
-      const { data, error } = await supabase
+      // First try to find by slug
+      const { data: bySlug, error: slugError } = await supabase
         .from("templates")
         .select("*")
-        .or(`slug.eq.${slug},id.eq.${slug}`)
+        .eq("slug", slugOrId)
         .eq("is_active", true)
-        .single();
+        .maybeSingle();
 
-      if (error) {
-        if (error.code === 'PGRST116') return null; // Not found
-        throw error;
+      if (bySlug) {
+        return {
+          ...bySlug,
+          inputs: parseFormSchema(bySlug.form_schema_json),
+        } as ParsedTemplate;
       }
 
-      return {
-        ...data,
-        inputs: parseFormSchema(data.form_schema_json),
-      } as ParsedTemplate;
+      // If not found by slug, try by ID (for UUID-style lookups)
+      const { data: byId, error: idError } = await supabase
+        .from("templates")
+        .select("*")
+        .eq("id", slugOrId)
+        .eq("is_active", true)
+        .maybeSingle();
+
+      if (byId) {
+        return {
+          ...byId,
+          inputs: parseFormSchema(byId.form_schema_json),
+        } as ParsedTemplate;
+      }
+
+      // If still not found, log for debugging
+      console.log(`[useTemplateBySlug] Template not found for: ${slugOrId}`);
+      return null;
     },
-    enabled: !!slug,
+    enabled: !!slugOrId,
   });
 }

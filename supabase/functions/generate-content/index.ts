@@ -8,22 +8,38 @@ const corsHeaders = {
 
 // Helper function to get template from database
 async function getTemplateFromDatabase(supabase: any, templateId: string): Promise<{ systemPrompt: string; estimatedCredits: number } | null> {
-  const { data, error } = await supabase
+  // First try to find by slug
+  const { data: bySlug } = await supabase
     .from('templates')
     .select('system_prompt, estimated_credits, slug, id')
-    .or(`slug.eq.${templateId},id.eq.${templateId}`)
+    .eq('slug', templateId)
     .eq('is_active', true)
-    .single();
+    .maybeSingle();
 
-  if (error || !data) {
-    console.log(`[generate-content] Template not found in database: ${templateId}`);
-    return null;
+  if (bySlug) {
+    return {
+      systemPrompt: bySlug.system_prompt,
+      estimatedCredits: bySlug.estimated_credits || 10,
+    };
   }
 
-  return {
-    systemPrompt: data.system_prompt,
-    estimatedCredits: data.estimated_credits || 10,
-  };
+  // If not found by slug, try by ID
+  const { data: byId } = await supabase
+    .from('templates')
+    .select('system_prompt, estimated_credits, slug, id')
+    .eq('id', templateId)
+    .eq('is_active', true)
+    .maybeSingle();
+
+  if (byId) {
+    return {
+      systemPrompt: byId.system_prompt,
+      estimatedCredits: byId.estimated_credits || 10,
+    };
+  }
+
+  console.log(`[generate-content] Template not found in database: ${templateId}`);
+  return null;
 }
 
 interface GenerateRequest {
