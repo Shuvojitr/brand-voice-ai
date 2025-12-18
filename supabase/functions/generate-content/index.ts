@@ -199,6 +199,29 @@ serve(async (req) => {
       });
     }
 
+    // Check if user is banned
+    const { data: profile, error: profileError } = await supabase
+      .from('profiles')
+      .select('is_banned')
+      .eq('id', user.id)
+      .single();
+
+    if (profileError) {
+      console.error('[generate-content] Profile fetch error:', profileError);
+      return new Response(JSON.stringify({ error: 'Failed to verify account status' }), {
+        status: 500,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      });
+    }
+
+    if (profile?.is_banned) {
+      console.log(`[generate-content] Banned user attempted generation: ${user.id}`);
+      return new Response(JSON.stringify({ error: 'Your account has been suspended. Please contact support.' }), {
+        status: 403,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      });
+    }
+
     // Parse request
     const body: GenerateRequest = await req.json();
     const { 
