@@ -39,7 +39,6 @@ interface TemplateFormData {
   category: string;
   icon: string;
   slug: string;
-  estimated_credits: number;
   system_prompt: string;
   form_schema_json: string;
   is_active: boolean;
@@ -53,7 +52,6 @@ const emptyFormData: TemplateFormData = {
   category: "blog",
   icon: "FileText",
   slug: "",
-  estimated_credits: 10,
   system_prompt: "",
   form_schema_json: "[]",
   is_active: true,
@@ -104,7 +102,6 @@ export default function AdminTemplates() {
       category: template.category,
       icon: template.icon || "FileText",
       slug: template.slug,
-      estimated_credits: template.estimated_credits || 10,
       system_prompt: template.system_prompt,
       form_schema_json: JSON.stringify(template.form_schema_json || [], null, 2),
       is_active: template.is_active,
@@ -144,7 +141,6 @@ export default function AdminTemplates() {
         category: formData.category,
         icon: formData.icon,
         slug: formData.slug,
-        estimated_credits: formData.estimated_credits,
         system_prompt: formData.system_prompt,
         form_schema_json: parsedSchema,
         is_active: formData.is_active,
@@ -257,7 +253,6 @@ export default function AdminTemplates() {
                       <TableHead>Name</TableHead>
                       <TableHead>Category</TableHead>
                       <TableHead>Slug</TableHead>
-                      <TableHead>Credits</TableHead>
                       <TableHead>Status</TableHead>
                       <TableHead className="text-right">Actions</TableHead>
                     </TableRow>
@@ -272,7 +267,6 @@ export default function AdminTemplates() {
                           </Badge>
                         </TableCell>
                         <TableCell className="font-mono text-sm">{template.slug}</TableCell>
-                        <TableCell>{template.estimated_credits}</TableCell>
                         <TableCell>
                           {template.is_active ? (
                             <Badge variant="outline">Active</Badge>
@@ -384,34 +378,23 @@ export default function AdminTemplates() {
               </div>
             </div>
 
-            <div className="grid grid-cols-2 gap-4">
-              <div>
-                <Label htmlFor="icon">Icon</Label>
-                <Select
-                  value={formData.icon}
-                  onValueChange={(v) => setFormData({ ...formData, icon: v })}
-                >
-                  <SelectTrigger>
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {icons.map((icon) => (
-                      <SelectItem key={icon} value={icon}>
-                        {icon}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-              <div>
-                <Label htmlFor="credits">Estimated Credits</Label>
-                <Input
-                  id="credits"
-                  type="number"
-                  value={formData.estimated_credits}
-                  onChange={(e) => setFormData({ ...formData, estimated_credits: parseInt(e.target.value) || 10 })}
-                />
-              </div>
+            <div>
+              <Label htmlFor="icon">Icon</Label>
+              <Select
+                value={formData.icon}
+                onValueChange={(v) => setFormData({ ...formData, icon: v })}
+              >
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  {icons.map((icon) => (
+                    <SelectItem key={icon} value={icon}>
+                      {icon}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
             </div>
 
             <div>
