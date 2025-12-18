@@ -8,16 +8,16 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Switch } from "@/components/ui/switch";
-import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
-import { ArrowLeft, Sparkles, Loader2, Copy, Download, Save, Check, Mic } from "lucide-react";
+import { Skeleton } from "@/components/ui/skeleton";
+import { ArrowLeft, Sparkles, Loader2, Mic } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
-import { contentTemplates } from "@/lib/templates";
+import { useTemplate, getFormFields } from "@/hooks/useTemplates";
 import { ContentEditor } from "@/components/content/ContentEditor";
 import { useOrganization } from "@/hooks/useOrganization";
-import { User, Session } from "@supabase/supabase-js";
-import type { ContentTemplate, TemplateInputField } from "@/lib/types/ai";
+import { User } from "@supabase/supabase-js";
+import type { TemplateInputField } from "@/lib/types/ai";
 
 export default function CreateContent() {
   const { templateId } = useParams<{ templateId: string }>();
@@ -36,7 +36,8 @@ export default function CreateContent() {
   // Use organization hook to get credits and invalidate after generation
   const { invalidate: invalidateOrganization } = useOrganization();
 
-  const template = contentTemplates.find(t => t.id === templateId);
+  // Fetch template from database
+  const { data: template, isLoading: templateLoading, error: templateError } = useTemplate(templateId);
 
   // Initialize auth and organization
   useEffect(() => {
@@ -72,11 +73,12 @@ export default function CreateContent() {
     initAuth();
   }, []);
 
-  // Initialize default values for inputs
+  // Initialize default values for inputs when template loads
   useEffect(() => {
-    if (template) {
+    if (template?.form_schema_json) {
       const defaults: Record<string, string | number | boolean> = {};
-      template.inputs.forEach((input) => {
+      const formFields = getFormFields(template);
+      formFields.forEach((input) => {
         if (input.defaultValue !== undefined) {
           defaults[input.id] = input.defaultValue;
         }
@@ -102,8 +104,10 @@ export default function CreateContent() {
       return;
     }
 
+    const formFields = getFormFields(template);
+
     // Validate required inputs
-    const missingRequired = template.inputs
+    const missingRequired = formFields
       .filter(input => input.required && !inputs[input.id])
       .map(input => input.label);
 
@@ -133,7 +137,7 @@ export default function CreateContent() {
             Authorization: `Bearer ${session.access_token}`,
           },
           body: JSON.stringify({
-            templateId: template.id,
+            templateId: template.slug,
             inputs,
             brandVoiceId: brandVoiceId || undefined,
             language,
@@ -145,7 +149,6 @@ export default function CreateContent() {
 
       // Handle credit errors specifically
       if (response.status === 402) {
-        const errorData = await response.json();
         toast({
           title: "Insufficient Credits",
           description: "You don't have enough credits. Please upgrade your plan.",
@@ -229,7 +232,32 @@ export default function CreateContent() {
     }
   }, [template, inputs, language, brandVoiceId, organizationId, user, toast, navigate, invalidateOrganization]);
 
-  if (!template) {
+  // Loading state
+  if (templateLoading) {
+    return (
+      <DashboardLayout>
+        <div className="space-y-6">
+          <div className="flex items-center gap-4">
+            <Skeleton className="h-10 w-10" />
+            <div className="flex-1">
+              <Skeleton className="h-8 w-48" />
+              <Skeleton className="h-4 w-72 mt-2" />
+            </div>
+          </div>
+          <div className="flex flex-col md:flex-row gap-6">
+            <div className="w-full md:w-1/2">
+              <Skeleton className="h-96" />
+            </div>
+            <div className="w-full md:w-1/2">
+              <Skeleton className="h-96" />
+            </div>
+          </div>
+        </div>
+      </DashboardLayout>
+    );
+  }
+
+  if (!template || templateError) {
     return (
       <DashboardLayout>
         <div className="flex flex-col items-center justify-center py-16">
@@ -242,6 +270,8 @@ export default function CreateContent() {
       </DashboardLayout>
     );
   }
+
+  const formFields = getFormFields(template);
 
   return (
     <DashboardLayout>
@@ -270,7 +300,7 @@ export default function CreateContent() {
             </CardHeader>
             <CardContent className="space-y-6">
               {/* Dynamic Inputs */}
-              {template.inputs.map((input) => (
+              {formFields.map((input) => (
                 <FormInput
                   key={input.id}
                   input={input}

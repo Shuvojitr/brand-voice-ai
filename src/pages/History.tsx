@@ -41,7 +41,7 @@ import {
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { format } from "date-fns";
-import { contentTemplates } from "@/lib/templates";
+import { useTemplates } from "@/hooks/useTemplates";
 import { Link } from "react-router-dom";
 
 interface Document {
@@ -57,6 +57,7 @@ const ITEMS_PER_PAGE = 10;
 export default function History() {
   const navigate = useNavigate();
   const { toast } = useToast();
+  const { data: templates } = useTemplates();
   
   const [documents, setDocuments] = useState<Document[]>([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -163,7 +164,7 @@ export default function History() {
 
   const getTemplateName = (templateType: string | null) => {
     if (!templateType) return "Unknown";
-    const template = contentTemplates.find(t => t.id === templateType);
+    const template = templates?.find(t => t.slug === templateType);
     return template?.name || templateType;
   };
 
