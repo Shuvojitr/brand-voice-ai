@@ -5,3 +5,9 @@ verify_jwt = true
 
 [functions.report-word-count]
 verify_jwt = true
+
+[functions.admin-stats]
+verify_jwt = true
+
+[functions.mock-subscribe]
+verify_jwt = true
