@@ -4,7 +4,6 @@ import type {
   StreamCallbacks,
   AIModel 
 } from './types/ai';
-import { getTemplateById } from './templates';
 
 const GENERATE_URL = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/generate-content`;
 
@@ -40,21 +39,6 @@ export class AIService {
   ): Promise<void> {
     const { templateId, inputs, brandVoiceId, language, organizationId } = request;
     const { model = 'google/gemini-2.5-flash', temperature = 0.7, stream = true } = options;
-
-    // Validate template exists
-    const template = getTemplateById(templateId);
-    if (!template) {
-      callbacks.onError(new Error(`Template "${templateId}" not found`));
-      return;
-    }
-
-    // Validate required inputs
-    for (const field of template.inputs) {
-      if (field.required && !inputs[field.id]) {
-        callbacks.onError(new Error(`Required field "${field.label}" is missing`));
-        return;
-      }
-    }
 
     // Get auth session
     const { data: { session } } = await supabase.auth.getSession();
@@ -186,11 +170,10 @@ export class AIService {
   }
 
   /**
-   * Estimate credits for a template
+   * Estimate credits for a template (default value, actual comes from DB)
    */
-  estimateCredits(templateId: string): number {
-    const template = getTemplateById(templateId);
-    return template?.estimatedCredits ?? 10;
+  estimateCredits(_templateId: string): number {
+    return 10; // Default estimate - actual value fetched from database
   }
 
   /**
