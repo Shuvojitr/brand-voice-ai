@@ -16,8 +16,22 @@ export function DashboardLayout({ children }: DashboardLayoutProps) {
   const [user, setUser] = useState<User | null>(null);
   const [session, setSession] = useState<Session | null>(null);
   const [isLoading, setIsLoading] = useState(true);
+  const [isBanned, setIsBanned] = useState(false);
 
   useEffect(() => {
+    const checkBanStatus = async (userId: string) => {
+      const { data: profile } = await supabase
+        .from('profiles')
+        .select('is_banned')
+        .eq('id', userId)
+        .single();
+      
+      if (profile?.is_banned) {
+        setIsBanned(true);
+        navigate("/banned", { replace: true });
+      }
+    };
+
     const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
       setSession(session);
       setUser(session?.user ?? null);
@@ -25,6 +39,8 @@ export function DashboardLayout({ children }: DashboardLayoutProps) {
       
       if (!session?.user) {
         navigate("/login", { replace: true });
+      } else {
+        setTimeout(() => checkBanStatus(session.user.id), 0);
       }
     });
 
@@ -35,6 +51,8 @@ export function DashboardLayout({ children }: DashboardLayoutProps) {
       
       if (!session?.user) {
         navigate("/login", { replace: true });
+      } else {
+        checkBanStatus(session.user.id);
       }
     });
 
@@ -49,7 +67,7 @@ export function DashboardLayout({ children }: DashboardLayoutProps) {
     );
   }
 
-  if (!user) {
+  if (!user || isBanned) {
     return null;
   }
 

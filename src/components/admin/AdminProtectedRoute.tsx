@@ -13,22 +13,50 @@ export function AdminProtectedRoute({ children }: AdminProtectedRouteProps) {
   const { isAdmin, isLoading: roleLoading } = useAdminRole();
   const [authChecking, setAuthChecking] = useState(true);
   const [isAuthenticated, setIsAuthenticated] = useState(false);
+  const [isBanned, setIsBanned] = useState(false);
 
   useEffect(() => {
     const checkAuth = async () => {
       const { data: { session } } = await supabase.auth.getSession();
       setIsAuthenticated(!!session);
       setAuthChecking(false);
+
+      if (session?.user) {
+        const { data: profile } = await supabase
+          .from('profiles')
+          .select('is_banned')
+          .eq('id', session.user.id)
+          .single();
+        
+        if (profile?.is_banned) {
+          setIsBanned(true);
+          navigate("/banned", { replace: true });
+        }
+      }
     };
     
     checkAuth();
 
     const { data: { subscription } } = supabase.auth.onAuthStateChange((_, session) => {
       setIsAuthenticated(!!session);
+      if (session?.user) {
+        setTimeout(async () => {
+          const { data: profile } = await supabase
+            .from('profiles')
+            .select('is_banned')
+            .eq('id', session.user.id)
+            .single();
+          
+          if (profile?.is_banned) {
+            setIsBanned(true);
+            navigate("/banned", { replace: true });
+          }
+        }, 0);
+      }
     });
 
     return () => subscription.unsubscribe();
-  }, []);
+  }, [navigate]);
 
   useEffect(() => {
     if (!authChecking && !isAuthenticated) {
@@ -36,10 +64,10 @@ export function AdminProtectedRoute({ children }: AdminProtectedRouteProps) {
       return;
     }
 
-    if (!authChecking && !roleLoading && !isAdmin && isAuthenticated) {
+    if (!authChecking && !roleLoading && !isAdmin && isAuthenticated && !isBanned) {
       navigate("/dashboard");
     }
-  }, [authChecking, roleLoading, isAdmin, isAuthenticated, navigate]);
+  }, [authChecking, roleLoading, isAdmin, isAuthenticated, isBanned, navigate]);
 
   if (authChecking || roleLoading) {
     return (
@@ -49,7 +77,7 @@ export function AdminProtectedRoute({ children }: AdminProtectedRouteProps) {
     );
   }
 
-  if (!isAuthenticated || !isAdmin) {
+  if (!isAuthenticated || !isAdmin || isBanned) {
     return null;
   }
 
