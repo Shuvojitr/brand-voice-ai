@@ -15,6 +15,7 @@ import History from "./pages/History";
 import Billing from "./pages/Billing";
 import Settings from "./pages/Settings";
 import NotFound from "./pages/NotFound";
+import Banned from "./pages/Banned";
 import AdminOverview from "./pages/admin/AdminOverview";
 import AdminUsers from "./pages/admin/AdminUsers";
 import AdminTemplates from "./pages/admin/AdminTemplates";
@@ -32,6 +33,7 @@ const App = () => (
           <Route path="/" element={<Index />} />
           <Route path="/login" element={<Auth />} />
           <Route path="/signup" element={<Auth />} />
+          <Route path="/banned" element={<Banned />} />
           <Route path="/dashboard" element={<Dashboard />} />
           <Route path="/dashboard/templates" element={<Templates />} />
           <Route path="/dashboard/create/:templateId" element={<CreateContent />} />
