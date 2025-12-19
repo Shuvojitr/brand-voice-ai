@@ -221,7 +221,7 @@ Deno.serve(async (req) => {
         .from("user_roles")
         .select("user_id, role");
 
-      // Get organization memberships with credits
+      // Get organization memberships with credits and subscription tier
       const { data: memberships } = await supabaseAdmin
         .from("organization_members")
         .select(`
@@ -229,7 +229,8 @@ Deno.serve(async (req) => {
           organizations (
             id,
             monthly_credits,
-            credits_used
+            credits_used,
+            subscription_tier
           )
         `);
 
@@ -244,6 +245,7 @@ Deno.serve(async (req) => {
           role: userRole?.role || "user",
           credits_remaining: org ? (org.monthly_credits - org.credits_used) : 0,
           organization_id: org?.id,
+          subscription_tier: org?.subscription_tier || "free",
         };
       }) || [];
 
