@@ -322,6 +322,7 @@ export type Database = {
           sort_order: number
           stripe_price_id: string | null
           updated_at: string | null
+          yearly_discount: number
         }
         Insert: {
           created_at?: string | null
@@ -340,6 +341,7 @@ export type Database = {
           sort_order?: number
           stripe_price_id?: string | null
           updated_at?: string | null
+          yearly_discount?: number
         }
         Update: {
           created_at?: string | null
@@ -358,6 +360,7 @@ export type Database = {
           sort_order?: number
           stripe_price_id?: string | null
           updated_at?: string | null
+          yearly_discount?: number
         }
         Relationships: []
       }

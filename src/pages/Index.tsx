@@ -19,9 +19,8 @@ import {
   Check,
   Loader2
 } from "lucide-react";
-import { usePlans } from "@/hooks/usePlans";
+import { usePlans, Plan } from "@/hooks/usePlans";
 
-const YEARLY_DISCOUNT = 20;
 const features = [
   {
     icon: Globe2,
@@ -80,23 +79,25 @@ export default function Index() {
   const { data: plans, isLoading: plansLoading } = usePlans();
   const [isYearly, setIsYearly] = useState(false);
 
-  const calculatePrice = (price: number, interval: string) => {
-    if (interval === "forever" || price === 0) return price;
+  const maxDiscount = plans?.reduce((max, plan) => Math.max(max, plan.yearly_discount || 0), 0) || 20;
+
+  const calculatePrice = (plan: Plan) => {
+    if (plan.interval === "forever" || plan.price === 0) return plan.price;
     if (isYearly) {
-      const yearlyPrice = price * 12 * (1 - YEARLY_DISCOUNT / 100);
+      const yearlyPrice = plan.price * 12 * (1 - (plan.yearly_discount || 0) / 100);
       return Math.round(yearlyPrice / 12);
     }
-    return price;
+    return plan.price;
   };
 
-  const formatPrice = (price: number, currency: string, interval: string) => {
-    const displayPrice = calculatePrice(price, interval);
+  const formatPrice = (plan: Plan) => {
+    const displayPrice = calculatePrice(plan);
     const formatted = new Intl.NumberFormat("en-US", {
       style: "currency",
-      currency,
+      currency: plan.currency,
       minimumFractionDigits: 0,
     }).format(displayPrice);
-    return interval === "forever" ? formatted : `${formatted}`;
+    return plan.interval === "forever" ? formatted : `${formatted}`;
   };
 
   const formatInterval = (interval: string) => {
@@ -290,10 +291,10 @@ export default function Index() {
             <p className="text-muted-foreground text-lg mb-8">
               Start free and scale as you grow. No hidden fees.
             </p>
-            <PricingToggle isYearly={isYearly} onToggle={setIsYearly} discount={YEARLY_DISCOUNT} />
+            <PricingToggle isYearly={isYearly} onToggle={setIsYearly} discount={maxDiscount} />
             {isYearly && (
               <p className="mt-3 text-sm text-success">
-                Billed annually. Save {YEARLY_DISCOUNT}% compared to monthly!
+                Billed annually. Save up to {maxDiscount}% compared to monthly!
               </p>
             )}
           </div>
@@ -327,8 +328,13 @@ export default function Index() {
                   </CardHeader>
                   <CardContent className="flex-1">
                     <div className="mb-6 text-center">
-                      <span className="text-4xl font-bold">{formatPrice(plan.price, plan.currency, plan.interval)}</span>
+                      <span className="text-4xl font-bold">{formatPrice(plan)}</span>
                       <span className="text-muted-foreground">{formatInterval(plan.interval)}</span>
+                      {isYearly && plan.yearly_discount > 0 && plan.price > 0 && (
+                        <Badge variant="secondary" className="ml-2 text-success">
+                          -{plan.yearly_discount}%
+                        </Badge>
+                      )}
                     </div>
                     <ul className="space-y-3">
                       {plan.features.map((feature) => (

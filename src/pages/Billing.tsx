@@ -6,11 +6,9 @@ import { Badge } from "@/components/ui/badge";
 import { PricingToggle } from "@/components/pricing";
 import { Check, CreditCard, Loader2, Sparkles } from "lucide-react";
 import { useOrganization } from "@/hooks/useOrganization";
-import { usePlans } from "@/hooks/usePlans";
+import { usePlans, Plan } from "@/hooks/usePlans";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
-
-const YEARLY_DISCOUNT = 20;
 export default function Billing() {
   const { organization, isLoading: orgLoading, invalidate } = useOrganization();
   const { data: plans, isLoading: plansLoading } = usePlans();
@@ -66,23 +64,25 @@ export default function Billing() {
 
   const getPlanIndex = (tier: string) => plans?.findIndex(p => p.slug === tier) ?? -1;
 
-  const calculatePrice = (price: number, interval: string) => {
-    if (interval === "forever" || price === 0) return price;
+  const maxDiscount = plans?.reduce((max, plan) => Math.max(max, plan.yearly_discount || 0), 0) || 20;
+
+  const calculatePrice = (plan: Plan) => {
+    if (plan.interval === "forever" || plan.price === 0) return plan.price;
     if (isYearly) {
-      const yearlyPrice = price * 12 * (1 - YEARLY_DISCOUNT / 100);
+      const yearlyPrice = plan.price * 12 * (1 - (plan.yearly_discount || 0) / 100);
       return Math.round(yearlyPrice / 12);
     }
-    return price;
+    return plan.price;
   };
 
-  const formatPrice = (price: number, currency: string, interval: string) => {
-    const displayPrice = calculatePrice(price, interval);
+  const formatPrice = (plan: Plan) => {
+    const displayPrice = calculatePrice(plan);
     const formatted = new Intl.NumberFormat("en-US", {
       style: "currency",
-      currency,
+      currency: plan.currency,
       minimumFractionDigits: 0,
     }).format(displayPrice);
-    return interval === "forever" ? formatted : `${formatted}`;
+    return plan.interval === "forever" ? formatted : `${formatted}`;
   };
 
   const formatInterval = (interval: string) => {
@@ -159,9 +159,9 @@ export default function Billing() {
           <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-6">
             <h2 className="text-xl font-semibold">Available Plans</h2>
             <div className="flex flex-col items-start sm:items-end gap-1">
-              <PricingToggle isYearly={isYearly} onToggle={setIsYearly} discount={YEARLY_DISCOUNT} />
+              <PricingToggle isYearly={isYearly} onToggle={setIsYearly} discount={maxDiscount} />
               {isYearly && (
-                <p className="text-xs text-success">Save {YEARLY_DISCOUNT}% with annual billing</p>
+                <p className="text-xs text-success">Save up to {maxDiscount}% with annual billing</p>
               )}
             </div>
           </div>
@@ -187,8 +187,13 @@ export default function Billing() {
                   </CardHeader>
                   <CardContent className="text-center">
                     <div className="mb-4">
-                      <span className="text-3xl font-bold">{formatPrice(plan.price, plan.currency, plan.interval)}</span>
+                      <span className="text-3xl font-bold">{formatPrice(plan)}</span>
                       <span className="text-muted-foreground">{formatInterval(plan.interval)}</span>
+                      {isYearly && plan.yearly_discount > 0 && plan.price > 0 && (
+                        <Badge variant="secondary" className="ml-2 text-success text-xs">
+                          -{plan.yearly_discount}%
+                        </Badge>
+                      )}
                     </div>
                     <ul className="space-y-2 text-sm">
                       {plan.features.map((feature) => (

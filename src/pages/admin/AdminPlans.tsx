@@ -12,7 +12,7 @@ import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, D
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { useToast } from "@/hooks/use-toast";
 import { usePlans, useCreatePlan, useUpdatePlan, useDeletePlan, Plan } from "@/hooks/usePlans";
-import { Plus, Pencil, Trash2, Loader2, DollarSign, Star, X, GripVertical } from "lucide-react";
+import { Plus, Pencil, Trash2, Loader2, DollarSign, Star, X, GripVertical, Percent } from "lucide-react";
 
 type PlanFormData = Omit<Plan, "id" | "created_at" | "updated_at">;
 
@@ -30,6 +30,7 @@ const defaultFormData: PlanFormData = {
   is_popular: false,
   sort_order: 0,
   cta_text: "Get Started",
+  yearly_discount: 20,
 };
 
 export default function AdminPlans() {
@@ -69,6 +70,7 @@ export default function AdminPlans() {
       is_popular: plan.is_popular,
       sort_order: plan.sort_order,
       cta_text: plan.cta_text || "Get Started",
+      yearly_discount: plan.yearly_discount ?? 20,
     });
     setIsDialogOpen(true);
   };
@@ -199,6 +201,7 @@ export default function AdminPlans() {
                   <TableHead className="w-[50px]">Order</TableHead>
                   <TableHead>Name</TableHead>
                   <TableHead>Price</TableHead>
+                  <TableHead>Yearly Discount</TableHead>
                   <TableHead>Credits</TableHead>
                   <TableHead>Stripe ID</TableHead>
                   <TableHead>Status</TableHead>
@@ -228,6 +231,12 @@ export default function AdminPlans() {
                     </TableCell>
                     <TableCell>
                       {formatPrice(plan.price, plan.currency, plan.interval)}
+                    </TableCell>
+                    <TableCell>
+                      <Badge variant="outline" className="font-mono">
+                        <Percent className="h-3 w-3 mr-1" />
+                        {plan.yearly_discount}%
+                      </Badge>
                     </TableCell>
                     <TableCell>{plan.credits.toLocaleString()}</TableCell>
                     <TableCell>
@@ -415,6 +424,25 @@ export default function AdminPlans() {
                     }
                   />
                 </div>
+                <div className="space-y-2">
+                  <Label htmlFor="yearly_discount">Yearly Discount (%)</Label>
+                  <Input
+                    id="yearly_discount"
+                    type="number"
+                    min="0"
+                    max="100"
+                    value={formData.yearly_discount}
+                    onChange={(e) =>
+                      setFormData({ ...formData, yearly_discount: parseInt(e.target.value) || 0 })
+                    }
+                  />
+                  <p className="text-xs text-muted-foreground">
+                    Discount applied when users select yearly billing
+                  </p>
+                </div>
+              </div>
+
+              <div className="grid grid-cols-2 gap-4">
                 <div className="space-y-2">
                   <Label htmlFor="cta_text">CTA Button Text</Label>
                   <Input
