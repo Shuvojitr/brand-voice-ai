@@ -329,25 +329,25 @@ export default function Index() {
                   </CardHeader>
                   <CardContent className="flex-1">
                     <div className="mb-6 text-center">
-                      <div className="flex items-center justify-center gap-2">
-                        {isYearly && plan.yearly_discount > 0 && plan.price > 0 && (
-                          <span className="text-xl text-muted-foreground line-through">
-                            {new Intl.NumberFormat("en-US", {
-                              style: "currency",
-                              currency: plan.currency,
-                              minimumFractionDigits: 0,
-                            }).format(plan.price)}
-                          </span>
-                        )}
+                      {isYearly && plan.yearly_discount > 0 && plan.price > 0 && (
+                        <p className="text-sm text-muted-foreground line-through mb-1">
+                          {new Intl.NumberFormat("en-US", {
+                            style: "currency",
+                            currency: plan.currency,
+                            minimumFractionDigits: 0,
+                          }).format(plan.price)}
+                        </p>
+                      )}
+                      <div className="flex items-baseline justify-center gap-1">
                         <span className="text-4xl font-bold">{formatPrice(plan)}</span>
                         <span className="text-muted-foreground">{formatInterval(plan.interval)}</span>
                         {isYearly && plan.yearly_discount > 0 && plan.price > 0 && (
-                          <Badge variant="secondary" className="text-success">
+                          <Badge variant="secondary" className="text-success ml-1">
                             -{plan.yearly_discount}%
                           </Badge>
                         )}
                         {!isYearly && plan.monthly_discount > 0 && plan.price > 0 && (
-                          <Badge variant="secondary" className="text-success">
+                          <Badge variant="secondary" className="text-success ml-1">
                             -{plan.monthly_discount}%
                           </Badge>
                         )}
