@@ -95,7 +95,7 @@ export default function Templates() {
 
   return (
     <DashboardLayout>
-      <div className="space-y-6">
+      <div className="max-w-screen-2xl mx-auto space-y-6">
         <div>
           <h1 className="text-3xl font-bold">Templates</h1>
           <p className="text-muted-foreground mt-1">
@@ -135,15 +135,15 @@ export default function Templates() {
 
         {/* Loading State */}
         {isLoading && (
-          <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-            {[...Array(6)].map((_, i) => (
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5 gap-4">
+            {[...Array(10)].map((_, i) => (
               <Card key={i} className="border-border/50">
-                <CardHeader>
+                <CardHeader className="p-4">
                   <Skeleton className="h-10 w-10 rounded-lg" />
                   <Skeleton className="h-5 w-3/4 mt-3" />
                   <Skeleton className="h-4 w-full" />
                 </CardHeader>
-                <CardContent>
+                <CardContent className="p-4 pt-0">
                   <Skeleton className="h-10 w-full" />
                 </CardContent>
               </Card>
@@ -153,7 +153,7 @@ export default function Templates() {
 
         {/* Templates Grid */}
         {!isLoading && (
-          <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5 gap-4">
             {filteredTemplates.map((template) => {
               const IconComponent = getIcon(template.icon);
               const isPopular = template.tags?.includes('popular') || template.sort_order === 1;
@@ -163,7 +163,7 @@ export default function Templates() {
                   className="group cursor-pointer border-border/50 transition-all hover:border-primary/50 hover:shadow-lg"
                   onClick={() => handleTemplateClick(template.slug)}
                 >
-                  <CardHeader>
+                  <CardHeader className="p-4">
                     <div className="flex items-start justify-between gap-2">
                       <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-primary/10 text-primary transition-colors group-hover:bg-primary group-hover:text-primary-foreground">
                         <IconComponent className="h-5 w-5" />
@@ -178,7 +178,7 @@ export default function Templates() {
                     <CardTitle className="text-lg mt-3">{template.name}</CardTitle>
                     <CardDescription className="line-clamp-2">{template.description}</CardDescription>
                   </CardHeader>
-                  <CardContent>
+                  <CardContent className="p-4 pt-0">
                     <Button className="w-full" variant="outline">
                       Use Template
                     </Button>
