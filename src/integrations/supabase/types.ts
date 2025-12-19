@@ -316,6 +316,7 @@ export type Database = {
           interval: string
           is_active: boolean
           is_popular: boolean
+          monthly_discount: number
           name: string
           price: number
           slug: string
@@ -335,6 +336,7 @@ export type Database = {
           interval?: string
           is_active?: boolean
           is_popular?: boolean
+          monthly_discount?: number
           name: string
           price?: number
           slug: string
@@ -354,6 +356,7 @@ export type Database = {
           interval?: string
           is_active?: boolean
           is_popular?: boolean
+          monthly_discount?: number
           name?: string
           price?: number
           slug?: string
