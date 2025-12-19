@@ -5,64 +5,13 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Check, CreditCard, Loader2, Sparkles } from "lucide-react";
 import { useOrganization } from "@/hooks/useOrganization";
+import { usePlans } from "@/hooks/usePlans";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 
-type PlanTier = "free" | "starter" | "pro" | "enterprise";
-
-interface Plan {
-  id: PlanTier;
-  name: string;
-  price: string;
-  period: string;
-  description: string;
-  features: string[];
-  credits: number;
-  popular?: boolean;
-}
-
-const plans: Plan[] = [
-  {
-    id: "free",
-    name: "Free",
-    price: "$0",
-    period: "forever",
-    description: "Perfect for trying out",
-    features: ["1,000 words/month", "5 templates", "1 brand voice"],
-    credits: 1000,
-  },
-  {
-    id: "starter",
-    name: "Starter",
-    price: "$19",
-    period: "/month",
-    description: "For individuals",
-    features: ["50,000 words/month", "All templates", "3 brand voices", "Email support"],
-    credits: 50000,
-  },
-  {
-    id: "pro",
-    name: "Pro",
-    price: "$49",
-    period: "/month",
-    description: "For professionals",
-    features: ["100,000 words/month", "All templates", "Unlimited brand voices", "Priority support"],
-    credits: 100000,
-    popular: true,
-  },
-  {
-    id: "enterprise",
-    name: "Enterprise",
-    price: "$149",
-    period: "/month",
-    description: "For teams",
-    features: ["500,000 words/month", "All Pro features", "Unlimited team members", "Custom templates", "API access"],
-    credits: 500000,
-  },
-];
-
 export default function Billing() {
-  const { organization, isLoading, invalidate } = useOrganization();
+  const { organization, isLoading: orgLoading, invalidate } = useOrganization();
+  const { data: plans, isLoading: plansLoading } = usePlans();
   const { toast } = useToast();
   const [upgradingPlan, setUpgradingPlan] = useState<string | null>(null);
 
@@ -71,10 +20,10 @@ export default function Billing() {
   const monthlyCredits = organization?.monthly_credits || 1000;
   const usagePercent = Math.min((creditsUsed / monthlyCredits) * 100, 100);
 
-  const handleMockUpgrade = async (planId: PlanTier) => {
-    if (planId === "free" || planId === currentTier) return;
+  const handleMockUpgrade = async (planSlug: string) => {
+    if (planSlug === "free" || planSlug === currentTier) return;
 
-    setUpgradingPlan(planId);
+    setUpgradingPlan(planSlug);
     try {
       const { data: { session } } = await supabase.auth.getSession();
       if (!session) {
@@ -87,7 +36,7 @@ export default function Billing() {
       }
 
       const response = await supabase.functions.invoke("mock-subscribe", {
-        body: { plan: planId },
+        body: { plan: planSlug },
       });
 
       if (response.error) {
@@ -96,7 +45,7 @@ export default function Billing() {
 
       toast({
         title: "Success!",
-        description: `Dev Mode: Upgraded to ${plans.find(p => p.id === planId)?.name} successfully!`,
+        description: `Dev Mode: Upgraded to ${plans?.find(p => p.slug === planSlug)?.name} successfully!`,
       });
 
       invalidate();
@@ -112,7 +61,22 @@ export default function Billing() {
     }
   };
 
-  const getPlanIndex = (tier: PlanTier) => plans.findIndex(p => p.id === tier);
+  const getPlanIndex = (tier: string) => plans?.findIndex(p => p.slug === tier) ?? -1;
+
+  const formatPrice = (price: number, currency: string, interval: string) => {
+    const formatted = new Intl.NumberFormat("en-US", {
+      style: "currency",
+      currency,
+      minimumFractionDigits: 0,
+    }).format(price);
+    return interval === "forever" ? formatted : `${formatted}`;
+  };
+
+  const formatInterval = (interval: string) => {
+    return interval === "forever" ? "forever" : `/${interval}`;
+  };
+
+  const isLoading = orgLoading || plansLoading;
 
   if (isLoading) {
     return (
@@ -180,17 +144,17 @@ export default function Billing() {
         <div>
           <h2 className="text-xl font-semibold mb-4">Available Plans</h2>
           <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
-            {plans.map((plan) => {
-              const isCurrent = plan.id === currentTier;
-              const isDowngrade = getPlanIndex(plan.id) < getPlanIndex(currentTier);
-              const isUpgrading = upgradingPlan === plan.id;
+            {plans?.map((plan) => {
+              const isCurrent = plan.slug === currentTier;
+              const isDowngrade = getPlanIndex(plan.slug) < getPlanIndex(currentTier);
+              const isUpgrading = upgradingPlan === plan.slug;
 
               return (
                 <Card 
                   key={plan.id} 
-                  className={`relative ${plan.popular ? "border-primary shadow-lg" : ""}`}
+                  className={`relative ${plan.is_popular ? "border-primary shadow-lg" : ""}`}
                 >
-                  {plan.popular && (
+                  {plan.is_popular && (
                     <Badge className="absolute -top-2 left-1/2 -translate-x-1/2 bg-primary text-primary-foreground border-0">
                       Most Popular
                     </Badge>
@@ -201,8 +165,8 @@ export default function Billing() {
                   </CardHeader>
                   <CardContent className="text-center">
                     <div className="mb-4">
-                      <span className="text-3xl font-bold">{plan.price}</span>
-                      <span className="text-muted-foreground">{plan.period}</span>
+                      <span className="text-3xl font-bold">{formatPrice(plan.price, plan.currency, plan.interval)}</span>
+                      <span className="text-muted-foreground">{formatInterval(plan.interval)}</span>
                     </div>
                     <ul className="space-y-2 text-sm">
                       {plan.features.map((feature) => (
@@ -215,10 +179,10 @@ export default function Billing() {
                   </CardContent>
                   <CardFooter>
                     <Button 
-                      className={`w-full ${plan.popular && !isCurrent ? "bg-primary text-primary-foreground" : ""}`}
-                      variant={isCurrent ? "outline" : plan.popular ? "default" : "outline"}
+                      className={`w-full ${plan.is_popular && !isCurrent ? "bg-primary text-primary-foreground" : ""}`}
+                      variant={isCurrent ? "outline" : plan.is_popular ? "default" : "outline"}
                       disabled={isCurrent || isDowngrade || isUpgrading}
-                      onClick={() => handleMockUpgrade(plan.id)}
+                      onClick={() => handleMockUpgrade(plan.slug)}
                     >
                       {isUpgrading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
                       {isCurrent 
