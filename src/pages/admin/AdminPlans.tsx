@@ -31,6 +31,7 @@ const defaultFormData: PlanFormData = {
   sort_order: 0,
   cta_text: "Get Started",
   yearly_discount: 20,
+  monthly_discount: 0,
 };
 
 export default function AdminPlans() {
@@ -71,6 +72,7 @@ export default function AdminPlans() {
       sort_order: plan.sort_order,
       cta_text: plan.cta_text || "Get Started",
       yearly_discount: plan.yearly_discount ?? 20,
+      monthly_discount: plan.monthly_discount ?? 0,
     });
     setIsDialogOpen(true);
   };
@@ -201,7 +203,7 @@ export default function AdminPlans() {
                   <TableHead className="w-[50px]">Order</TableHead>
                   <TableHead>Name</TableHead>
                   <TableHead>Price</TableHead>
-                  <TableHead>Yearly Discount</TableHead>
+                  <TableHead>Discounts</TableHead>
                   <TableHead>Credits</TableHead>
                   <TableHead>Stripe ID</TableHead>
                   <TableHead>Status</TableHead>
@@ -233,10 +235,14 @@ export default function AdminPlans() {
                       {formatPrice(plan.price, plan.currency, plan.interval)}
                     </TableCell>
                     <TableCell>
-                      <Badge variant="outline" className="font-mono">
-                        <Percent className="h-3 w-3 mr-1" />
-                        {plan.yearly_discount}%
-                      </Badge>
+                      <div className="flex flex-col gap-1">
+                        <Badge variant="outline" className="font-mono text-xs">
+                          Monthly: {plan.monthly_discount}%
+                        </Badge>
+                        <Badge variant="outline" className="font-mono text-xs">
+                          Yearly: {plan.yearly_discount}%
+                        </Badge>
+                      </div>
                     </TableCell>
                     <TableCell>{plan.credits.toLocaleString()}</TableCell>
                     <TableCell>
@@ -412,7 +418,7 @@ export default function AdminPlans() {
                 </div>
               </div>
 
-              <div className="grid grid-cols-2 gap-4">
+              <div className="grid grid-cols-3 gap-4">
                 <div className="space-y-2">
                   <Label htmlFor="sort_order">Sort Order</Label>
                   <Input
@@ -423,6 +429,22 @@ export default function AdminPlans() {
                       setFormData({ ...formData, sort_order: parseInt(e.target.value) || 0 })
                     }
                   />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="monthly_discount">Monthly Discount (%)</Label>
+                  <Input
+                    id="monthly_discount"
+                    type="number"
+                    min="0"
+                    max="100"
+                    value={formData.monthly_discount}
+                    onChange={(e) =>
+                      setFormData({ ...formData, monthly_discount: parseInt(e.target.value) || 0 })
+                    }
+                  />
+                  <p className="text-xs text-muted-foreground">
+                    Discount for monthly billing
+                  </p>
                 </div>
                 <div className="space-y-2">
                   <Label htmlFor="yearly_discount">Yearly Discount (%)</Label>
@@ -437,7 +459,7 @@ export default function AdminPlans() {
                     }
                   />
                   <p className="text-xs text-muted-foreground">
-                    Discount applied when users select yearly billing
+                    Discount for yearly billing
                   </p>
                 </div>
               </div>

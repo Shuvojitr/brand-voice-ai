@@ -87,7 +87,8 @@ export default function Index() {
       const yearlyPrice = plan.price * 12 * (1 - (plan.yearly_discount || 0) / 100);
       return Math.round(yearlyPrice / 12);
     }
-    return plan.price;
+    // Apply monthly discount
+    return Math.round(plan.price * (1 - (plan.monthly_discount || 0) / 100));
   };
 
   const formatPrice = (plan: Plan) => {
@@ -333,6 +334,11 @@ export default function Index() {
                       {isYearly && plan.yearly_discount > 0 && plan.price > 0 && (
                         <Badge variant="secondary" className="ml-2 text-success">
                           -{plan.yearly_discount}%
+                        </Badge>
+                      )}
+                      {!isYearly && plan.monthly_discount > 0 && plan.price > 0 && (
+                        <Badge variant="secondary" className="ml-2 text-success">
+                          -{plan.monthly_discount}%
                         </Badge>
                       )}
                     </div>

@@ -17,6 +17,7 @@ export interface Plan {
   sort_order: number;
   cta_text: string | null;
   yearly_discount: number;
+  monthly_discount: number;
   created_at: string;
   updated_at: string;
 }
