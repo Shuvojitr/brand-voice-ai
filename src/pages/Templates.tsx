@@ -116,7 +116,7 @@ export default function Templates() {
 
         {/* Categories */}
         <div className="relative">
-          <div className="flex overflow-x-auto pb-2 gap-2 no-scrollbar mask-fade-right md:flex-wrap md:overflow-visible md:pb-0 md:mask-none">
+          <div className="flex overflow-x-auto pb-2 gap-2 no-scrollbar mask-fade-right scroll-snap-x md:flex-wrap md:overflow-visible md:pb-0 md:mask-none md:scroll-snap-none">
             {categories.map((category) => {
               const IconComponent = category.icon;
               return (
@@ -125,7 +125,7 @@ export default function Templates() {
                   variant={activeCategory === category.id ? "default" : "outline"}
                   size="sm"
                   onClick={() => setActiveCategory(category.id)}
-                  className={`whitespace-nowrap flex-shrink-0 ${activeCategory === category.id ? "gradient-primary text-white" : ""}`}
+                  className={`whitespace-nowrap flex-shrink-0 snap-start ${activeCategory === category.id ? "gradient-primary text-white" : ""}`}
                 >
                   <IconComponent className="h-4 w-4 mr-2" />
                   {category.label}
