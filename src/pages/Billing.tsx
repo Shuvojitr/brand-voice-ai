@@ -3,16 +3,19 @@ import { DashboardLayout } from "@/components/dashboard";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
+import { PricingToggle } from "@/components/pricing";
 import { Check, CreditCard, Loader2, Sparkles } from "lucide-react";
 import { useOrganization } from "@/hooks/useOrganization";
 import { usePlans } from "@/hooks/usePlans";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 
+const YEARLY_DISCOUNT = 20;
 export default function Billing() {
   const { organization, isLoading: orgLoading, invalidate } = useOrganization();
   const { data: plans, isLoading: plansLoading } = usePlans();
   const { toast } = useToast();
+  const [isYearly, setIsYearly] = useState(false);
   const [upgradingPlan, setUpgradingPlan] = useState<string | null>(null);
 
   const currentTier = organization?.subscription_tier || "free";
@@ -63,17 +66,28 @@ export default function Billing() {
 
   const getPlanIndex = (tier: string) => plans?.findIndex(p => p.slug === tier) ?? -1;
 
+  const calculatePrice = (price: number, interval: string) => {
+    if (interval === "forever" || price === 0) return price;
+    if (isYearly) {
+      const yearlyPrice = price * 12 * (1 - YEARLY_DISCOUNT / 100);
+      return Math.round(yearlyPrice / 12);
+    }
+    return price;
+  };
+
   const formatPrice = (price: number, currency: string, interval: string) => {
+    const displayPrice = calculatePrice(price, interval);
     const formatted = new Intl.NumberFormat("en-US", {
       style: "currency",
       currency,
       minimumFractionDigits: 0,
-    }).format(price);
+    }).format(displayPrice);
     return interval === "forever" ? formatted : `${formatted}`;
   };
 
   const formatInterval = (interval: string) => {
-    return interval === "forever" ? "forever" : `/${interval}`;
+    if (interval === "forever") return "forever";
+    return isYearly ? "/mo" : "/month";
   };
 
   const isLoading = orgLoading || plansLoading;
@@ -142,7 +156,15 @@ export default function Billing() {
 
         {/* Plans */}
         <div>
-          <h2 className="text-xl font-semibold mb-4">Available Plans</h2>
+          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-6">
+            <h2 className="text-xl font-semibold">Available Plans</h2>
+            <div className="flex flex-col items-start sm:items-end gap-1">
+              <PricingToggle isYearly={isYearly} onToggle={setIsYearly} discount={YEARLY_DISCOUNT} />
+              {isYearly && (
+                <p className="text-xs text-success">Save {YEARLY_DISCOUNT}% with annual billing</p>
+              )}
+            </div>
+          </div>
           <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
             {plans?.map((plan) => {
               const isCurrent = plan.slug === currentTier;

@@ -1,8 +1,10 @@
+import { useState } from "react";
 import { Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Footer } from "@/components/layout/Footer";
+import { PricingToggle } from "@/components/pricing";
 import { 
   Sparkles, 
   Globe2, 
@@ -19,6 +21,7 @@ import {
 } from "lucide-react";
 import { usePlans } from "@/hooks/usePlans";
 
+const YEARLY_DISCOUNT = 20;
 const features = [
   {
     icon: Globe2,
@@ -75,18 +78,30 @@ const steps = [
 
 export default function Index() {
   const { data: plans, isLoading: plansLoading } = usePlans();
+  const [isYearly, setIsYearly] = useState(false);
+
+  const calculatePrice = (price: number, interval: string) => {
+    if (interval === "forever" || price === 0) return price;
+    if (isYearly) {
+      const yearlyPrice = price * 12 * (1 - YEARLY_DISCOUNT / 100);
+      return Math.round(yearlyPrice / 12);
+    }
+    return price;
+  };
 
   const formatPrice = (price: number, currency: string, interval: string) => {
+    const displayPrice = calculatePrice(price, interval);
     const formatted = new Intl.NumberFormat("en-US", {
       style: "currency",
       currency,
       minimumFractionDigits: 0,
-    }).format(price);
+    }).format(displayPrice);
     return interval === "forever" ? formatted : `${formatted}`;
   };
 
   const formatInterval = (interval: string) => {
-    return interval === "forever" ? "forever" : `/${interval}`;
+    if (interval === "forever") return "forever";
+    return isYearly ? "/mo" : "/month";
   };
 
   return (
@@ -272,9 +287,15 @@ export default function Index() {
               Simple, Transparent{" "}
               <span className="gradient-text">Pricing</span>
             </h2>
-            <p className="text-muted-foreground text-lg">
+            <p className="text-muted-foreground text-lg mb-8">
               Start free and scale as you grow. No hidden fees.
             </p>
+            <PricingToggle isYearly={isYearly} onToggle={setIsYearly} discount={YEARLY_DISCOUNT} />
+            {isYearly && (
+              <p className="mt-3 text-sm text-success">
+                Billed annually. Save {YEARLY_DISCOUNT}% compared to monthly!
+              </p>
+            )}
           </div>
           {plansLoading ? (
             <div className="flex items-center justify-center py-12">
