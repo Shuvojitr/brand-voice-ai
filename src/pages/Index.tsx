@@ -329,7 +329,8 @@ export default function Index() {
                   </CardHeader>
                   <CardContent className="flex-1">
                     <div className="mb-6 text-center">
-                      {isYearly && plan.yearly_discount > 0 && plan.price > 0 && (
+                      {/* Strikethrough original price - shown for both monthly and yearly discounts */}
+                      {((isYearly && plan.yearly_discount > 0) || (!isYearly && plan.monthly_discount > 0)) && plan.price > 0 && (
                         <p className="text-sm text-muted-foreground line-through mb-1">
                           {new Intl.NumberFormat("en-US", {
                             style: "currency",
