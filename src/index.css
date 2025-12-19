@@ -199,6 +199,30 @@
   .animate-scale-in {
     animation: scaleIn 0.3s ease-out;
   }
+  
+  /* Hide scrollbar for horizontal scroll areas */
+  .no-scrollbar {
+    -ms-overflow-style: none;
+    scrollbar-width: none;
+  }
+  
+  .no-scrollbar::-webkit-scrollbar {
+    display: none;
+  }
+  
+  /* Fade mask for horizontal scroll indication */
+  .mask-fade-right {
+    mask-image: linear-gradient(to right, black 85%, transparent 100%);
+    -webkit-mask-image: linear-gradient(to right, black 85%, transparent 100%);
+  }
+  
+  /* Remove mask on desktop */
+  @media (min-width: 768px) {
+    .md\:mask-none {
+      mask-image: none;
+      -webkit-mask-image: none;
+    }
+  }
 }
 
 @keyframes fadeIn {

@@ -115,22 +115,24 @@ export default function Templates() {
         </div>
 
         {/* Categories */}
-        <div className="flex flex-wrap gap-2">
-          {categories.map((category) => {
-            const IconComponent = category.icon;
-            return (
-              <Button
-                key={category.id}
-                variant={activeCategory === category.id ? "default" : "outline"}
-                size="sm"
-                onClick={() => setActiveCategory(category.id)}
-                className={activeCategory === category.id ? "gradient-primary text-white" : ""}
-              >
-                <IconComponent className="h-4 w-4 mr-2" />
-                {category.label}
-              </Button>
-            );
-          })}
+        <div className="relative">
+          <div className="flex overflow-x-auto pb-2 gap-2 no-scrollbar mask-fade-right md:flex-wrap md:overflow-visible md:pb-0 md:mask-none">
+            {categories.map((category) => {
+              const IconComponent = category.icon;
+              return (
+                <Button
+                  key={category.id}
+                  variant={activeCategory === category.id ? "default" : "outline"}
+                  size="sm"
+                  onClick={() => setActiveCategory(category.id)}
+                  className={`whitespace-nowrap flex-shrink-0 ${activeCategory === category.id ? "gradient-primary text-white" : ""}`}
+                >
+                  <IconComponent className="h-4 w-4 mr-2" />
+                  {category.label}
+                </Button>
+              );
+            })}
+          </div>
         </div>
 
         {/* Loading State */}
