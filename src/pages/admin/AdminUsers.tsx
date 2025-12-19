@@ -14,7 +14,16 @@ import { useAllUsers } from "@/hooks/useAdminStats";
 import { supabase } from "@/integrations/supabase/client";
 import { useQueryClient } from "@tanstack/react-query";
 import { formatDistanceToNow } from "date-fns";
-import { Search, CreditCard, Ban, UserX } from "lucide-react";
+import { Search, CreditCard, Ban, UserX, Crown } from "lucide-react";
+
+type SubscriptionTier = "free" | "starter" | "pro" | "enterprise";
+
+const PLAN_DETAILS: Record<SubscriptionTier, { label: string; credits: number; color: string }> = {
+  free: { label: "Free", credits: 1000, color: "" },
+  starter: { label: "Starter", credits: 5000, color: "" },
+  pro: { label: "Pro", credits: 20000, color: "bg-blue-500 hover:bg-blue-600" },
+  enterprise: { label: "Enterprise", credits: 100000, color: "bg-purple-500 hover:bg-purple-600" },
+};
 
 export default function AdminUsers() {
   const { data: users, isLoading } = useAllUsers();
@@ -24,9 +33,11 @@ export default function AdminUsers() {
   const [searchQuery, setSearchQuery] = useState("");
   const [creditsDialogOpen, setCreditsDialogOpen] = useState(false);
   const [banUserOpen, setBanUserOpen] = useState(false);
+  const [planDialogOpen, setPlanDialogOpen] = useState(false);
   const [selectedUser, setSelectedUser] = useState<any>(null);
   const [creditsAmount, setCreditsAmount] = useState("");
   const [creditsMode, setCreditsMode] = useState<"add" | "deduct">("add");
+  const [selectedPlan, setSelectedPlan] = useState<SubscriptionTier>("free");
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   const filteredUsers = users?.filter(user => 
@@ -122,6 +133,55 @@ export default function AdminUsers() {
     } finally {
       setIsSubmitting(false);
     }
+  };
+
+  const handleUpdatePlan = async () => {
+    if (!selectedUser?.organization_id || !selectedPlan) return;
+    
+    setIsSubmitting(true);
+    try {
+      const { data: session } = await supabase.auth.getSession();
+      
+      const response = await fetch(
+        `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/admin-stats?action=update-plan`,
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${session.session?.access_token}`,
+          },
+          body: JSON.stringify({
+            organizationId: selectedUser.organization_id,
+            plan: selectedPlan,
+          }),
+        }
+      );
+      
+      const data = await response.json();
+      if (!response.ok) throw new Error(data.error || "Failed to update plan");
+
+      toast({
+        title: "Plan Updated",
+        description: `${selectedUser.email} is now on the ${PLAN_DETAILS[selectedPlan].label} plan with ${PLAN_DETAILS[selectedPlan].credits.toLocaleString()} credits.`,
+      });
+      
+      queryClient.invalidateQueries({ queryKey: ["admin-all-users"] });
+      setPlanDialogOpen(false);
+    } catch (error: any) {
+      toast({
+        title: "Error",
+        description: error.message,
+        variant: "destructive",
+      });
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  const openPlanDialog = (user: any) => {
+    setSelectedUser(user);
+    setSelectedPlan(user.subscription_tier || "free");
+    setPlanDialogOpen(true);
   };
 
   return (
@@ -221,6 +281,15 @@ export default function AdminUsers() {
                             <Button
                               variant="outline"
                               size="sm"
+                              onClick={() => openPlanDialog(user)}
+                              disabled={!user.organization_id}
+                            >
+                              <Crown className="h-4 w-4 mr-1" />
+                              Plan
+                            </Button>
+                            <Button
+                              variant="outline"
+                              size="sm"
                               onClick={() => {
                                 setSelectedUser(user);
                                 setCreditsDialogOpen(true);
@@ -265,6 +334,57 @@ export default function AdminUsers() {
           </CardContent>
         </Card>
       </div>
+
+      {/* Manage Plan Dialog */}
+      <Dialog open={planDialogOpen} onOpenChange={setPlanDialogOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Change Subscription Plan</DialogTitle>
+            <DialogDescription>
+              Update the subscription plan for {selectedUser?.email}.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4 py-4">
+            <div className="space-y-2">
+              <Label>Select Plan</Label>
+              <Select value={selectedPlan} onValueChange={(v) => setSelectedPlan(v as SubscriptionTier)}>
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="free">Free (1,000 credits)</SelectItem>
+                  <SelectItem value="starter">Starter (5,000 credits)</SelectItem>
+                  <SelectItem value="pro">Pro (20,000 credits)</SelectItem>
+                  <SelectItem value="enterprise">Enterprise (100,000 credits)</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="rounded-lg border p-3 bg-muted/50">
+              <p className="text-sm font-medium">Plan Details</p>
+              <p className="text-sm text-muted-foreground mt-1">
+                Monthly credits: {PLAN_DETAILS[selectedPlan].credits.toLocaleString()}
+              </p>
+              <p className="text-xs text-muted-foreground mt-2">
+                Note: Changing the plan will reset the user's credits to the new plan's default amount.
+              </p>
+            </div>
+            <p className="text-sm text-muted-foreground">
+              Current plan: <span className="font-medium capitalize">{selectedUser?.subscription_tier || "Free"}</span>
+            </p>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setPlanDialogOpen(false)}>
+              Cancel
+            </Button>
+            <Button 
+              onClick={handleUpdatePlan} 
+              disabled={isSubmitting || selectedPlan === selectedUser?.subscription_tier}
+            >
+              {isSubmitting ? "Updating..." : "Update Plan"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
 
       {/* Manage Credits Dialog */}
       <Dialog open={creditsDialogOpen} onOpenChange={setCreditsDialogOpen}>

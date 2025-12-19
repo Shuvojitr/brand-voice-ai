@@ -159,6 +159,60 @@ Deno.serve(async (req) => {
           headers: { ...corsHeaders, "Content-Type": "application/json" },
         });
       }
+
+      if (action === "update-plan") {
+        const { organizationId, plan } = body;
+        const validPlans = ["free", "starter", "pro", "enterprise"];
+        
+        if (!organizationId || !plan) {
+          return new Response(JSON.stringify({ error: "organizationId and plan are required" }), {
+            status: 400,
+            headers: { ...corsHeaders, "Content-Type": "application/json" },
+          });
+        }
+
+        if (!validPlans.includes(plan)) {
+          return new Response(JSON.stringify({ error: "Invalid plan. Must be one of: free, starter, pro, enterprise" }), {
+            status: 400,
+            headers: { ...corsHeaders, "Content-Type": "application/json" },
+          });
+        }
+
+        // Define default credits for each plan
+        const planCredits: Record<string, number> = {
+          free: 1000,
+          starter: 5000,
+          pro: 20000,
+          enterprise: 100000,
+        };
+
+        const { error: updateError } = await supabaseAdmin
+          .from("organizations")
+          .update({ 
+            subscription_tier: plan,
+            monthly_credits: planCredits[plan],
+            credits_used: 0 // Reset credits used on plan change
+          })
+          .eq("id", organizationId);
+
+        if (updateError) {
+          console.error("Error updating plan:", updateError);
+          return new Response(JSON.stringify({ error: updateError.message }), {
+            status: 500,
+            headers: { ...corsHeaders, "Content-Type": "application/json" },
+          });
+        }
+
+        console.log(`Plan updated for org ${organizationId}: ${plan} with ${planCredits[plan]} credits`);
+
+        return new Response(JSON.stringify({ 
+          success: true, 
+          subscription_tier: plan,
+          monthly_credits: planCredits[plan]
+        }), {
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
     }
 
     // GET requests for fetching data
