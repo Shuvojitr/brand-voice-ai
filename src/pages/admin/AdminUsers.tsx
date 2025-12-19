@@ -169,6 +169,7 @@ export default function AdminUsers() {
                       <TableHead>Email</TableHead>
                       <TableHead>Name</TableHead>
                       <TableHead>Role</TableHead>
+                      <TableHead>Plan</TableHead>
                       <TableHead>Credits</TableHead>
                       <TableHead>Joined</TableHead>
                       <TableHead>Status</TableHead>
@@ -183,6 +184,23 @@ export default function AdminUsers() {
                         <TableCell>
                           <Badge variant={user.role === "admin" ? "default" : "secondary"}>
                             {user.role}
+                          </Badge>
+                        </TableCell>
+                        <TableCell>
+                          <Badge 
+                            variant={
+                              user.subscription_tier === "enterprise" ? "default" :
+                              user.subscription_tier === "pro" ? "default" :
+                              user.subscription_tier === "starter" ? "secondary" :
+                              "outline"
+                            }
+                            className={
+                              user.subscription_tier === "enterprise" ? "bg-purple-500 hover:bg-purple-600" :
+                              user.subscription_tier === "pro" ? "bg-blue-500 hover:bg-blue-600" :
+                              ""
+                            }
+                          >
+                            {user.subscription_tier?.charAt(0).toUpperCase() + user.subscription_tier?.slice(1) || "Free"}
                           </Badge>
                         </TableCell>
                         <TableCell>{user.credits_remaining.toLocaleString()}</TableCell>
