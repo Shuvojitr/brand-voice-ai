@@ -16,6 +16,7 @@ export interface Plan {
   is_popular: boolean;
   sort_order: number;
   cta_text: string | null;
+  yearly_discount: number;
   created_at: string;
   updated_at: string;
 }
