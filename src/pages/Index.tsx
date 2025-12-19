@@ -10,13 +10,14 @@ import {
   FileText, 
   Zap, 
   Users, 
-  CheckCircle2,
   ArrowRight,
   PenTool,
   Wand2,
   Download,
-  Check
+  Check,
+  Loader2
 } from "lucide-react";
+import { usePlans } from "@/hooks/usePlans";
 
 const features = [
   {
@@ -72,59 +73,22 @@ const steps = [
   },
 ];
 
-const pricingPlans = [
-  {
-    name: "Free",
-    price: "$0",
-    period: "forever",
-    description: "Perfect for trying out MyGenAI",
-    features: [
-      "5,000 words/month",
-      "10 templates",
-      "1 brand voice",
-      "Basic support",
-      "Export to TXT",
-    ],
-    cta: "Get Started Free",
-    popular: false,
-  },
-  {
-    name: "Pro",
-    price: "$29",
-    period: "/month",
-    description: "Best for professionals & creators",
-    features: [
-      "100,000 words/month",
-      "All 50+ templates",
-      "Unlimited brand voices",
-      "Priority support",
-      "All export formats",
-      "SEO optimization",
-      "API access",
-    ],
-    cta: "Start Pro Trial",
-    popular: true,
-  },
-  {
-    name: "Business",
-    price: "$99",
-    period: "/month",
-    description: "For teams and agencies",
-    features: [
-      "Unlimited words",
-      "All Pro features",
-      "10 team members",
-      "Custom templates",
-      "Dedicated account manager",
-      "SSO & advanced security",
-      "Analytics dashboard",
-    ],
-    cta: "Contact Sales",
-    popular: false,
-  },
-];
-
 export default function Index() {
+  const { data: plans, isLoading: plansLoading } = usePlans();
+
+  const formatPrice = (price: number, currency: string, interval: string) => {
+    const formatted = new Intl.NumberFormat("en-US", {
+      style: "currency",
+      currency,
+      minimumFractionDigits: 0,
+    }).format(price);
+    return interval === "forever" ? formatted : `${formatted}`;
+  };
+
+  const formatInterval = (interval: string) => {
+    return interval === "forever" ? "forever" : `/${interval}`;
+  };
+
   return (
     <div className="min-h-screen bg-background">
       {/* Navbar */}
@@ -312,53 +276,61 @@ export default function Index() {
               Start free and scale as you grow. No hidden fees.
             </p>
           </div>
-          <div className="mx-auto grid max-w-5xl gap-6 lg:grid-cols-3">
-            {pricingPlans.map((plan) => (
-              <Card 
-                key={plan.name} 
-                className={`relative flex flex-col ${
-                  plan.popular 
-                    ? "border-primary shadow-lg shadow-primary/10 scale-105" 
-                    : "border-border/50"
-                }`}
-              >
-                {plan.popular && (
-                  <div className="absolute -top-3 left-1/2 -translate-x-1/2">
-                    <Badge className="gradient-primary text-white border-0">
-                      Most Popular
-                    </Badge>
-                  </div>
-                )}
-                <CardHeader className="text-center pb-2">
-                  <CardTitle className="text-xl">{plan.name}</CardTitle>
-                  <CardDescription>{plan.description}</CardDescription>
-                </CardHeader>
-                <CardContent className="flex-1">
-                  <div className="mb-6 text-center">
-                    <span className="text-4xl font-bold">{plan.price}</span>
-                    <span className="text-muted-foreground">{plan.period}</span>
-                  </div>
-                  <ul className="space-y-3">
-                    {plan.features.map((feature) => (
-                      <li key={feature} className="flex items-center gap-2">
-                        <Check className="h-4 w-4 text-success flex-shrink-0" />
-                        <span className="text-sm">{feature}</span>
-                      </li>
-                    ))}
-                  </ul>
-                </CardContent>
-                <CardFooter>
-                  <Button 
-                    className={`w-full ${plan.popular ? "gradient-primary text-white" : ""}`}
-                    variant={plan.popular ? "default" : "outline"}
-                    asChild
-                  >
-                    <Link to="/signup">{plan.cta}</Link>
-                  </Button>
-                </CardFooter>
-              </Card>
-            ))}
-          </div>
+          {plansLoading ? (
+            <div className="flex items-center justify-center py-12">
+              <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+            </div>
+          ) : (
+            <div className={`mx-auto grid max-w-5xl gap-6 ${
+              plans && plans.length <= 3 ? "lg:grid-cols-3" : "lg:grid-cols-4"
+            }`}>
+              {plans?.map((plan) => (
+                <Card 
+                  key={plan.id} 
+                  className={`relative flex flex-col ${
+                    plan.is_popular 
+                      ? "border-primary shadow-lg shadow-primary/10 scale-105" 
+                      : "border-border/50"
+                  }`}
+                >
+                  {plan.is_popular && (
+                    <div className="absolute -top-3 left-1/2 -translate-x-1/2">
+                      <Badge className="gradient-primary text-white border-0">
+                        Most Popular
+                      </Badge>
+                    </div>
+                  )}
+                  <CardHeader className="text-center pb-2">
+                    <CardTitle className="text-xl">{plan.name}</CardTitle>
+                    <CardDescription>{plan.description}</CardDescription>
+                  </CardHeader>
+                  <CardContent className="flex-1">
+                    <div className="mb-6 text-center">
+                      <span className="text-4xl font-bold">{formatPrice(plan.price, plan.currency, plan.interval)}</span>
+                      <span className="text-muted-foreground">{formatInterval(plan.interval)}</span>
+                    </div>
+                    <ul className="space-y-3">
+                      {plan.features.map((feature) => (
+                        <li key={feature} className="flex items-center gap-2">
+                          <Check className="h-4 w-4 text-success flex-shrink-0" />
+                          <span className="text-sm">{feature}</span>
+                        </li>
+                      ))}
+                    </ul>
+                  </CardContent>
+                  <CardFooter>
+                    <Button 
+                      className={`w-full ${plan.is_popular ? "gradient-primary text-white" : ""}`}
+                      variant={plan.is_popular ? "default" : "outline"}
+                      asChild
+                    >
+                      <Link to="/signup">{plan.cta_text || "Get Started"}</Link>
+                    </Button>
+                  </CardFooter>
+                </Card>
+              ))}
+            </div>
+          )}
         </div>
       </section>
 
