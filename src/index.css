@@ -210,17 +210,30 @@
     display: none;
   }
   
+  /* Scroll snap for horizontal filters */
+  .scroll-snap-x {
+    scroll-snap-type: x mandatory;
+    scroll-padding-left: 0.5rem;
+  }
+  
+  .snap-start {
+    scroll-snap-align: start;
+  }
+  
   /* Fade mask for horizontal scroll indication */
   .mask-fade-right {
     mask-image: linear-gradient(to right, black 85%, transparent 100%);
     -webkit-mask-image: linear-gradient(to right, black 85%, transparent 100%);
   }
   
-  /* Remove mask on desktop */
+  /* Remove mask and snap on desktop */
   @media (min-width: 768px) {
     .md\:mask-none {
       mask-image: none;
       -webkit-mask-image: none;
+    }
+    .md\:scroll-snap-none {
+      scroll-snap-type: none;
     }
   }
 }
