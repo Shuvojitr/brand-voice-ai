@@ -183,7 +183,7 @@ export default function AdminUsers() {
 
       toast({
         title: "Plan Updated",
-        description: `${selectedUser.email} is now on the ${planDetailsMap[selectedPlan].label} plan with ${planDetailsMap[selectedPlan].credits.toLocaleString()} credits.`,
+        description: `${selectedUser.email} upgraded to ${planDetailsMap[selectedPlan].label}. Added ${planDetailsMap[selectedPlan].credits.toLocaleString()} credits to existing balance.`,
       });
       
       queryClient.invalidateQueries({ queryKey: ["admin-all-users"] });
@@ -384,10 +384,10 @@ export default function AdminUsers() {
             <div className="rounded-lg border p-3 bg-muted/50">
               <p className="text-sm font-medium">Plan Details</p>
               <p className="text-sm text-muted-foreground mt-1">
-                Monthly credits: {planDetailsMap[selectedPlan].credits.toLocaleString()}
+                Credits to add: {planDetailsMap[selectedPlan].credits.toLocaleString()}
               </p>
               <p className="text-xs text-muted-foreground mt-2">
-                Note: Changing the plan will reset the user's credits to the new plan's default amount.
+                Note: The new plan's credits will be added to the user's existing balance.
               </p>
             </div>
             <p className="text-sm text-muted-foreground">
