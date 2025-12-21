@@ -403,6 +403,48 @@ export type Database = {
         }
         Relationships: []
       }
+      site_settings: {
+        Row: {
+          bottom_tagline: string | null
+          copyright_text: string | null
+          created_at: string | null
+          footer_nav: Json
+          header_nav: Json
+          id: string
+          logo_url: string | null
+          site_description: string | null
+          site_name: string
+          social_links: Json
+          updated_at: string | null
+        }
+        Insert: {
+          bottom_tagline?: string | null
+          copyright_text?: string | null
+          created_at?: string | null
+          footer_nav?: Json
+          header_nav?: Json
+          id?: string
+          logo_url?: string | null
+          site_description?: string | null
+          site_name?: string
+          social_links?: Json
+          updated_at?: string | null
+        }
+        Update: {
+          bottom_tagline?: string | null
+          copyright_text?: string | null
+          created_at?: string | null
+          footer_nav?: Json
+          header_nav?: Json
+          id?: string
+          logo_url?: string | null
+          site_description?: string | null
+          site_name?: string
+          social_links?: Json
+          updated_at?: string | null
+        }
+        Relationships: []
+      }
       templates: {
         Row: {
           category: string
