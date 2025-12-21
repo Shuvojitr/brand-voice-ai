@@ -178,51 +178,20 @@ Deno.serve(async (req) => {
           });
         }
 
-        // Default credits fallback
-        const defaultCredits: Record<string, number> = {
+        // Define default credits for each plan
+        const planCredits: Record<string, number> = {
           free: 1000,
           starter: 5000,
           pro: 20000,
           enterprise: 100000,
         };
 
-        // Fetch plan credits from the plans table
-        const { data: planData, error: planError } = await supabaseAdmin
-          .from("plans")
-          .select("credits")
-          .eq("slug", plan)
-          .single();
-
-        if (planError) {
-          console.log(`Plan ${plan} not found in database, using default: ${defaultCredits[plan]}`);
-        }
-
-        const newPlanCredits = planData?.credits ?? defaultCredits[plan] ?? 1000;
-
-        // Get current organization credits
-        const { data: org, error: orgError } = await supabaseAdmin
-          .from("organizations")
-          .select("monthly_credits, credits_used")
-          .eq("id", organizationId)
-          .single();
-
-        if (orgError || !org) {
-          return new Response(JSON.stringify({ error: "Organization not found" }), {
-            status: 404,
-            headers: { ...corsHeaders, "Content-Type": "application/json" },
-          });
-        }
-
-        // Calculate remaining credits and add new plan credits
-        const currentRemaining = Math.max(0, (org.monthly_credits || 0) - (org.credits_used || 0));
-        const newTotalCredits = currentRemaining + newPlanCredits;
-
         const { error: updateError } = await supabaseAdmin
           .from("organizations")
           .update({ 
             subscription_tier: plan,
-            monthly_credits: newTotalCredits,
-            credits_used: 0 // Reset credits used since we've already factored in remaining
+            monthly_credits: planCredits[plan],
+            credits_used: 0 // Reset credits used on plan change
           })
           .eq("id", organizationId);
 
@@ -234,14 +203,12 @@ Deno.serve(async (req) => {
           });
         }
 
-        console.log(`Plan updated for org ${organizationId}: ${plan} with ${newTotalCredits} credits (${currentRemaining} remaining + ${newPlanCredits} new)`);
+        console.log(`Plan updated for org ${organizationId}: ${plan} with ${planCredits[plan]} credits`);
 
         return new Response(JSON.stringify({ 
           success: true, 
           subscription_tier: plan,
-          monthly_credits: newTotalCredits,
-          credits_added: newPlanCredits,
-          previous_remaining: currentRemaining
+          monthly_credits: planCredits[plan]
         }), {
           headers: { ...corsHeaders, "Content-Type": "application/json" },
         });
