@@ -1,4 +1,4 @@
-import { LayoutDashboard, Users, FileText, Settings, ArrowLeft, DollarSign } from "lucide-react";
+import { LayoutDashboard, Users, FileText, Settings, ArrowLeft, DollarSign, Palette } from "lucide-react";
 import { NavLink } from "@/components/NavLink";
 import { useLocation } from "react-router-dom";
 import {
@@ -22,6 +22,7 @@ const adminNavItems = [
   { title: "Users", url: "/admin/users", icon: Users },
   { title: "Templates", url: "/admin/templates", icon: FileText },
   { title: "Plans", url: "/admin/plans", icon: DollarSign },
+  { title: "Appearance", url: "/admin/appearance", icon: Palette },
   { title: "Settings", url: "/admin/settings", icon: Settings },
 ];
 

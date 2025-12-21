@@ -1,42 +1,67 @@
 import { Link } from "react-router-dom";
-import { Sparkles, Twitter, Linkedin, Github, Mail } from "lucide-react";
+import { Sparkles, Twitter, Linkedin, Github, Mail, Facebook, Instagram, Youtube } from "lucide-react";
 import { Separator } from "@/components/ui/separator";
+import { useSiteSettings, SocialLink } from "@/hooks/useSiteSettings";
 
-const footerLinks = {
-  product: [
-    { label: "Templates", href: "/templates" },
-    { label: "Brand Voice", href: "/brand-voice" },
-    { label: "Pricing", href: "/pricing" },
-    { label: "Changelog", href: "/changelog" },
-  ],
-  resources: [
-    { label: "Documentation", href: "/docs" },
-    { label: "Blog", href: "/blog" },
-    { label: "API Reference", href: "/api" },
-    { label: "Status", href: "/status" },
-  ],
-  company: [
-    { label: "About", href: "/about" },
-    { label: "Careers", href: "/careers" },
-    { label: "Contact", href: "/contact" },
-    { label: "Partners", href: "/partners" },
-  ],
-  legal: [
-    { label: "Privacy Policy", href: "/privacy" },
-    { label: "Terms of Service", href: "/terms" },
-    { label: "Cookie Policy", href: "/cookies" },
-  ],
+const socialIconMap: Record<string, React.FC<{ className?: string }>> = {
+  twitter: Twitter,
+  linkedin: Linkedin,
+  github: Github,
+  email: Mail,
+  facebook: Facebook,
+  instagram: Instagram,
+  youtube: Youtube,
 };
 
-const socialLinks = [
-  { icon: Twitter, href: "https://twitter.com/mygenai", label: "Twitter" },
-  { icon: Linkedin, href: "https://linkedin.com/company/mygenai", label: "LinkedIn" },
-  { icon: Github, href: "https://github.com/mygenai", label: "GitHub" },
-  { icon: Mail, href: "mailto:hello@mygenai.app", label: "Email" },
+// Fallback values
+const defaultFooterNav = [
+  {
+    title: "Product",
+    links: [
+      { label: "Templates", href: "/templates" },
+      { label: "Brand Voice", href: "/brand-voice" },
+      { label: "Pricing", href: "/pricing" },
+    ],
+  },
+  {
+    title: "Resources",
+    links: [
+      { label: "Documentation", href: "/docs" },
+      { label: "Blog", href: "/blog" },
+    ],
+  },
+  {
+    title: "Company",
+    links: [
+      { label: "About", href: "/about" },
+      { label: "Contact", href: "/contact" },
+    ],
+  },
+  {
+    title: "Legal",
+    links: [
+      { label: "Privacy Policy", href: "/privacy" },
+      { label: "Terms of Service", href: "/terms" },
+    ],
+  },
+];
+
+const defaultSocialLinks: SocialLink[] = [
+  { platform: "twitter", url: "https://twitter.com/mygenai" },
+  { platform: "linkedin", url: "https://linkedin.com/company/mygenai" },
+  { platform: "github", url: "https://github.com/mygenai" },
 ];
 
 export function Footer() {
+  const { settings } = useSiteSettings();
   const currentYear = new Date().getFullYear();
+
+  const footerNav = settings?.footer_nav?.length ? settings.footer_nav : defaultFooterNav;
+  const socialLinks = settings?.social_links?.filter((s) => s.url) || defaultSocialLinks;
+  const siteDescription = settings?.site_description || "Generate high-quality marketing content with AI. Create blog posts, social media content, ads, and emails in seconds.";
+  const copyrightText = settings?.copyright_text || `© ${currentYear} MyGenAI. All rights reserved.`;
+  const bottomTagline = settings?.bottom_tagline || "Made with ❤️ for content creators";
+  const siteName = settings?.site_name || "MyGenAI";
 
   return (
     <footer className="border-t border-border bg-muted/30">
@@ -49,104 +74,69 @@ export function Footer() {
                 <Sparkles className="h-5 w-5 text-white" />
               </div>
               <span className="text-xl font-bold tracking-tight">
-                MyGen<span className="gradient-text">AI</span>
+                {siteName.includes("AI") ? (
+                  <>
+                    {siteName.replace("AI", "")}
+                    <span className="gradient-text">AI</span>
+                  </>
+                ) : (
+                  siteName
+                )}
               </span>
             </Link>
             <p className="mt-4 max-w-xs text-sm text-muted-foreground">
-              Generate high-quality marketing content with AI. Create blog posts, social media
-              content, ads, and emails in seconds.
+              {siteDescription}
             </p>
             <div className="mt-6 flex gap-3">
-              {socialLinks.map((social) => (
-                <a
-                  key={social.label}
-                  href={social.href}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="flex h-9 w-9 items-center justify-center rounded-lg bg-secondary text-muted-foreground transition-colors hover:bg-accent hover:text-accent-foreground"
-                  aria-label={social.label}
-                >
-                  <social.icon className="h-4 w-4" />
-                </a>
-              ))}
+              {socialLinks.map((social) => {
+                const Icon = socialIconMap[social.platform] || Mail;
+                const href = social.platform === "email" 
+                  ? (social.url.startsWith("mailto:") ? social.url : `mailto:${social.url}`)
+                  : social.url;
+                return (
+                  <a
+                    key={social.platform}
+                    href={href}
+                    target={social.platform === "email" ? undefined : "_blank"}
+                    rel={social.platform === "email" ? undefined : "noopener noreferrer"}
+                    className="flex h-9 w-9 items-center justify-center rounded-lg bg-secondary text-muted-foreground transition-colors hover:bg-accent hover:text-accent-foreground"
+                    aria-label={social.platform}
+                  >
+                    <Icon className="h-4 w-4" />
+                  </a>
+                );
+              })}
             </div>
           </div>
 
-          {/* Links Columns */}
-          <div>
-            <h3 className="mb-4 text-sm font-semibold">Product</h3>
-            <ul className="space-y-3">
-              {footerLinks.product.map((link) => (
-                <li key={link.href}>
-                  <Link
-                    to={link.href}
-                    className="text-sm text-muted-foreground transition-colors hover:text-foreground"
-                  >
-                    {link.label}
-                  </Link>
-                </li>
-              ))}
-            </ul>
-          </div>
-
-          <div>
-            <h3 className="mb-4 text-sm font-semibold">Resources</h3>
-            <ul className="space-y-3">
-              {footerLinks.resources.map((link) => (
-                <li key={link.href}>
-                  <Link
-                    to={link.href}
-                    className="text-sm text-muted-foreground transition-colors hover:text-foreground"
-                  >
-                    {link.label}
-                  </Link>
-                </li>
-              ))}
-            </ul>
-          </div>
-
-          <div>
-            <h3 className="mb-4 text-sm font-semibold">Company</h3>
-            <ul className="space-y-3">
-              {footerLinks.company.map((link) => (
-                <li key={link.href}>
-                  <Link
-                    to={link.href}
-                    className="text-sm text-muted-foreground transition-colors hover:text-foreground"
-                  >
-                    {link.label}
-                  </Link>
-                </li>
-              ))}
-            </ul>
-          </div>
-
-          <div>
-            <h3 className="mb-4 text-sm font-semibold">Legal</h3>
-            <ul className="space-y-3">
-              {footerLinks.legal.map((link) => (
-                <li key={link.href}>
-                  <Link
-                    to={link.href}
-                    className="text-sm text-muted-foreground transition-colors hover:text-foreground"
-                  >
-                    {link.label}
-                  </Link>
-                </li>
-              ))}
-            </ul>
-          </div>
+          {/* Dynamic Footer Columns */}
+          {footerNav.map((column) => (
+            <div key={column.title}>
+              <h3 className="mb-4 text-sm font-semibold">{column.title}</h3>
+              <ul className="space-y-3">
+                {column.links.map((link) => (
+                  <li key={link.href}>
+                    <Link
+                      to={link.href}
+                      className="text-sm text-muted-foreground transition-colors hover:text-foreground"
+                    >
+                      {link.label}
+                    </Link>
+                  </li>
+                ))}
+              </ul>
+            </div>
+          ))}
         </div>
 
         <Separator className="my-8" />
 
         <div className="flex flex-col items-center justify-between gap-4 md:flex-row">
           <p className="text-sm text-muted-foreground">
-            © {currentYear} MyGenAI. All rights reserved.
+            {copyrightText}
           </p>
           <p className="text-sm text-muted-foreground">
-            Made with{" "}
-            <span className="mx-1 text-primary">♥</span> for content creators
+            {bottomTagline}
           </p>
         </div>
       </div>
