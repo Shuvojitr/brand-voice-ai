@@ -178,20 +178,47 @@ Deno.serve(async (req) => {
           });
         }
 
-        // Define default credits for each plan
-        const planCredits: Record<string, number> = {
+        // Get plan credits from database
+        const { data: planData, error: planError } = await supabaseAdmin
+          .from("plans")
+          .select("credits")
+          .eq("slug", plan)
+          .maybeSingle();
+
+        // Fallback credits if plan not found in DB
+        const defaultPlanCredits: Record<string, number> = {
           free: 1000,
           starter: 5000,
           pro: 20000,
           enterprise: 100000,
         };
 
+        const newPlanCredits = planData?.credits ?? defaultPlanCredits[plan];
+
+        // Get current organization credits
+        const { data: org, error: orgError } = await supabaseAdmin
+          .from("organizations")
+          .select("monthly_credits, credits_used")
+          .eq("id", organizationId)
+          .single();
+
+        if (orgError || !org) {
+          return new Response(JSON.stringify({ error: "Organization not found" }), {
+            status: 404,
+            headers: { ...corsHeaders, "Content-Type": "application/json" },
+          });
+        }
+
+        // Calculate remaining credits and add new plan credits
+        const remainingCredits = Math.max(0, (org.monthly_credits || 0) - (org.credits_used || 0));
+        const newMonthlyCredits = remainingCredits + newPlanCredits;
+
         const { error: updateError } = await supabaseAdmin
           .from("organizations")
           .update({ 
             subscription_tier: plan,
-            monthly_credits: planCredits[plan],
-            credits_used: 0 // Reset credits used on plan change
+            monthly_credits: newMonthlyCredits,
+            credits_used: 0 // Reset credits used since remaining are now in monthly_credits
           })
           .eq("id", organizationId);
 
@@ -203,12 +230,13 @@ Deno.serve(async (req) => {
           });
         }
 
-        console.log(`Plan updated for org ${organizationId}: ${plan} with ${planCredits[plan]} credits`);
+        console.log(`Plan updated for org ${organizationId}: ${plan} with ${newPlanCredits} new credits (total: ${newMonthlyCredits})`);
 
         return new Response(JSON.stringify({ 
           success: true, 
           subscription_tier: plan,
-          monthly_credits: planCredits[plan]
+          monthly_credits: newMonthlyCredits,
+          added_credits: newPlanCredits
         }), {
           headers: { ...corsHeaders, "Content-Type": "application/json" },
         });
