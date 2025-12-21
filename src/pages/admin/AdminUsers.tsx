@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import { AdminLayout } from "@/components/admin";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
@@ -11,6 +11,7 @@ import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useToast } from "@/hooks/use-toast";
 import { useAllUsers } from "@/hooks/useAdminStats";
+import { usePlans } from "@/hooks/usePlans";
 import { supabase } from "@/integrations/supabase/client";
 import { useQueryClient } from "@tanstack/react-query";
 import { formatDistanceToNow } from "date-fns";
@@ -18,15 +19,9 @@ import { Search, CreditCard, Ban, UserX, Crown } from "lucide-react";
 
 type SubscriptionTier = "free" | "starter" | "pro" | "enterprise";
 
-const PLAN_DETAILS: Record<SubscriptionTier, { label: string; credits: number; color: string }> = {
-  free: { label: "Free", credits: 1000, color: "" },
-  starter: { label: "Starter", credits: 5000, color: "" },
-  pro: { label: "Pro", credits: 20000, color: "bg-blue-500 hover:bg-blue-600" },
-  enterprise: { label: "Enterprise", credits: 100000, color: "bg-purple-500 hover:bg-purple-600" },
-};
-
 export default function AdminUsers() {
   const { data: users, isLoading } = useAllUsers();
+  const { data: plans } = usePlans(true);
   const { toast } = useToast();
   const queryClient = useQueryClient();
   
@@ -39,6 +34,32 @@ export default function AdminUsers() {
   const [creditsMode, setCreditsMode] = useState<"add" | "deduct">("add");
   const [selectedPlan, setSelectedPlan] = useState<SubscriptionTier>("free");
   const [isSubmitting, setIsSubmitting] = useState(false);
+
+  // Build plan details from database plans
+  const planDetailsMap = useMemo(() => {
+    const defaultDetails: Record<SubscriptionTier, { label: string; credits: number; color: string }> = {
+      free: { label: "Free", credits: 1000, color: "" },
+      starter: { label: "Starter", credits: 5000, color: "" },
+      pro: { label: "Pro", credits: 20000, color: "bg-blue-500 hover:bg-blue-600" },
+      enterprise: { label: "Enterprise", credits: 100000, color: "bg-purple-500 hover:bg-purple-600" },
+    };
+
+    if (!plans) return defaultDetails;
+
+    plans.forEach(plan => {
+      const tier = plan.slug as SubscriptionTier;
+      if (tier in defaultDetails) {
+        defaultDetails[tier] = {
+          label: plan.name,
+          credits: plan.credits,
+          color: tier === "pro" ? "bg-blue-500 hover:bg-blue-600" : 
+                 tier === "enterprise" ? "bg-purple-500 hover:bg-purple-600" : "",
+        };
+      }
+    });
+
+    return defaultDetails;
+  }, [plans]);
 
   const filteredUsers = users?.filter(user => 
     user.email?.toLowerCase().includes(searchQuery.toLowerCase()) ||
@@ -162,7 +183,7 @@ export default function AdminUsers() {
 
       toast({
         title: "Plan Updated",
-        description: `${selectedUser.email} is now on the ${PLAN_DETAILS[selectedPlan].label} plan with ${PLAN_DETAILS[selectedPlan].credits.toLocaleString()} credits.`,
+        description: `${selectedUser.email} is now on the ${planDetailsMap[selectedPlan].label} plan with ${planDetailsMap[selectedPlan].credits.toLocaleString()} credits.`,
       });
       
       queryClient.invalidateQueries({ queryKey: ["admin-all-users"] });
@@ -352,17 +373,18 @@ export default function AdminUsers() {
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="free">Free (1,000 credits)</SelectItem>
-                  <SelectItem value="starter">Starter (5,000 credits)</SelectItem>
-                  <SelectItem value="pro">Pro (20,000 credits)</SelectItem>
-                  <SelectItem value="enterprise">Enterprise (100,000 credits)</SelectItem>
+                  {(["free", "starter", "pro", "enterprise"] as SubscriptionTier[]).map((tier) => (
+                    <SelectItem key={tier} value={tier}>
+                      {planDetailsMap[tier].label} ({planDetailsMap[tier].credits.toLocaleString()} credits)
+                    </SelectItem>
+                  ))}
                 </SelectContent>
               </Select>
             </div>
             <div className="rounded-lg border p-3 bg-muted/50">
               <p className="text-sm font-medium">Plan Details</p>
               <p className="text-sm text-muted-foreground mt-1">
-                Monthly credits: {PLAN_DETAILS[selectedPlan].credits.toLocaleString()}
+                Monthly credits: {planDetailsMap[selectedPlan].credits.toLocaleString()}
               </p>
               <p className="text-xs text-muted-foreground mt-2">
                 Note: Changing the plan will reset the user's credits to the new plan's default amount.
