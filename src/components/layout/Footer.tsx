@@ -61,8 +61,8 @@ export function Footer() {
   const socialLinks = filteredSocialLinks?.length ? filteredSocialLinks : defaultSocialLinks;
   const siteDescription = settings?.site_description || "Generate high-quality marketing content with AI. Create blog posts, social media content, ads, and emails in seconds.";
   const copyrightText = settings?.copyright_text || `© ${currentYear} MyGenAI. All rights reserved.`;
-  const bottomTagline = settings?.bottom_tagline || "Made with ❤️ for content creators";
   const siteName = settings?.site_name || "MyGenAI";
+  const logoUrl = settings?.logo_url;
 
   return (
     <footer className="border-t border-border bg-muted/30">
@@ -71,9 +71,13 @@ export function Footer() {
           {/* Brand Column */}
           <div className="lg:col-span-2">
             <Link to="/" className="flex items-center gap-2">
-              <div className="flex h-9 w-9 items-center justify-center rounded-lg gradient-primary">
-                <Sparkles className="h-5 w-5 text-white" />
-              </div>
+              {logoUrl ? (
+                <img src={logoUrl} alt={siteName} className="h-9 w-9 rounded-lg object-contain" />
+              ) : (
+                <div className="flex h-9 w-9 items-center justify-center rounded-lg gradient-primary">
+                  <Sparkles className="h-5 w-5 text-white" />
+                </div>
+              )}
               <span className="text-xl font-bold tracking-tight">
                 {siteName.includes("AI") ? (
                   <>
@@ -132,12 +136,9 @@ export function Footer() {
 
         <Separator className="my-8" />
 
-        <div className="flex flex-col items-center justify-between gap-4 md:flex-row">
+        <div className="flex justify-center">
           <p className="text-sm text-muted-foreground">
             {copyrightText}
-          </p>
-          <p className="text-sm text-muted-foreground">
-            {bottomTagline}
           </p>
         </div>
       </div>

@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { AdminLayout } from "@/components/admin/AdminLayout";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -7,8 +7,10 @@ import { Textarea } from "@/components/ui/textarea";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useSiteSettings, NavLink, FooterColumn, SocialLink } from "@/hooks/useSiteSettings";
-import { Plus, Trash2, GripVertical, Save, Loader2, Twitter, Linkedin, Github, Mail, Facebook, Instagram, Youtube } from "lucide-react";
+import { Plus, Trash2, GripVertical, Save, Loader2, Twitter, Linkedin, Github, Mail, Facebook, Instagram, Youtube, Upload, X } from "lucide-react";
 import { Skeleton } from "@/components/ui/skeleton";
+import { supabase } from "@/integrations/supabase/client";
+import { toast } from "sonner";
 
 const socialPlatforms = [
   { platform: "twitter", icon: Twitter, label: "Twitter / X" },
@@ -22,11 +24,13 @@ const socialPlatforms = [
 
 export default function AdminAppearance() {
   const { settings, isLoading, updateSettings } = useSiteSettings();
+  const fileInputRef = useRef<HTMLInputElement>(null);
   
   // General settings
   const [logoUrl, setLogoUrl] = useState("");
   const [siteName, setSiteName] = useState("");
   const [siteDescription, setSiteDescription] = useState("");
+  const [isUploading, setIsUploading] = useState(false);
   
   // Header nav
   const [headerNav, setHeaderNav] = useState<NavLink[]>([]);
@@ -34,7 +38,6 @@ export default function AdminAppearance() {
   // Footer
   const [footerNav, setFooterNav] = useState<FooterColumn[]>([]);
   const [copyrightText, setCopyrightText] = useState("");
-  const [bottomTagline, setBottomTagline] = useState("");
   
   // Socials
   const [socialLinks, setSocialLinks] = useState<SocialLink[]>([]);
@@ -48,10 +51,54 @@ export default function AdminAppearance() {
       setHeaderNav(settings.header_nav || []);
       setFooterNav(settings.footer_nav || []);
       setCopyrightText(settings.copyright_text || "");
-      setBottomTagline(settings.bottom_tagline || "");
       setSocialLinks(settings.social_links || []);
     }
   }, [settings]);
+
+  const handleLogoUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (!file) return;
+
+    // Validate file type
+    if (!file.type.startsWith("image/")) {
+      toast.error("Please upload an image file");
+      return;
+    }
+
+    // Validate file size (max 2MB)
+    if (file.size > 2 * 1024 * 1024) {
+      toast.error("Image size should be less than 2MB");
+      return;
+    }
+
+    setIsUploading(true);
+    try {
+      const fileExt = file.name.split(".").pop();
+      const fileName = `logo-${Date.now()}.${fileExt}`;
+      const filePath = `logos/${fileName}`;
+
+      const { error: uploadError } = await supabase.storage
+        .from("site-assets")
+        .upload(filePath, file);
+
+      if (uploadError) throw uploadError;
+
+      const { data: { publicUrl } } = supabase.storage
+        .from("site-assets")
+        .getPublicUrl(filePath);
+
+      setLogoUrl(publicUrl);
+      toast.success("Logo uploaded successfully");
+    } catch (error: any) {
+      toast.error(error.message || "Failed to upload logo");
+    } finally {
+      setIsUploading(false);
+    }
+  };
+
+  const handleRemoveLogo = () => {
+    setLogoUrl("");
+  };
 
   const handleSave = () => {
     updateSettings.mutate({
@@ -61,7 +108,6 @@ export default function AdminAppearance() {
       header_nav: headerNav,
       footer_nav: footerNav,
       copyright_text: copyrightText || null,
-      bottom_tagline: bottomTagline || null,
       social_links: socialLinks,
     });
   };
@@ -182,14 +228,59 @@ export default function AdminAppearance() {
               </CardHeader>
               <CardContent className="space-y-4">
                 <div className="space-y-2">
-                  <Label htmlFor="logoUrl">Logo URL</Label>
-                  <Input
-                    id="logoUrl"
-                    placeholder="https://example.com/logo.png"
-                    value={logoUrl}
-                    onChange={(e) => setLogoUrl(e.target.value)}
-                  />
-                  <p className="text-xs text-muted-foreground">Leave empty to use the default logo</p>
+                  <Label>Logo</Label>
+                  <div className="flex items-start gap-4">
+                    {logoUrl ? (
+                      <div className="relative">
+                        <img 
+                          src={logoUrl} 
+                          alt="Site logo" 
+                          className="h-16 w-16 rounded-lg object-contain border bg-background"
+                        />
+                        <Button
+                          variant="destructive"
+                          size="icon"
+                          className="absolute -top-2 -right-2 h-6 w-6"
+                          onClick={handleRemoveLogo}
+                        >
+                          <X className="h-3 w-3" />
+                        </Button>
+                      </div>
+                    ) : (
+                      <div className="flex h-16 w-16 items-center justify-center rounded-lg border-2 border-dashed border-muted-foreground/25 bg-muted/50">
+                        <Upload className="h-6 w-6 text-muted-foreground" />
+                      </div>
+                    )}
+                    <div className="flex-1 space-y-2">
+                      <input
+                        type="file"
+                        ref={fileInputRef}
+                        onChange={handleLogoUpload}
+                        accept="image/*"
+                        className="hidden"
+                      />
+                      <Button
+                        variant="outline"
+                        onClick={() => fileInputRef.current?.click()}
+                        disabled={isUploading}
+                      >
+                        {isUploading ? (
+                          <>
+                            <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                            Uploading...
+                          </>
+                        ) : (
+                          <>
+                            <Upload className="mr-2 h-4 w-4" />
+                            Upload Logo
+                          </>
+                        )}
+                      </Button>
+                      <p className="text-xs text-muted-foreground">
+                        PNG, JPG or SVG. Max 2MB.
+                      </p>
+                    </div>
+                  </div>
                 </div>
 
                 <div className="space-y-2">
@@ -315,7 +406,7 @@ export default function AdminAppearance() {
             <Card>
               <CardHeader>
                 <CardTitle>Footer Bottom</CardTitle>
-                <CardDescription>Copyright and tagline shown at the bottom</CardDescription>
+                <CardDescription>Copyright text shown at the bottom center</CardDescription>
               </CardHeader>
               <CardContent className="space-y-4">
                 <div className="space-y-2">
@@ -326,19 +417,6 @@ export default function AdminAppearance() {
                     value={copyrightText}
                     onChange={(e) => setCopyrightText(e.target.value)}
                   />
-                </div>
-
-                <div className="space-y-2">
-                  <Label htmlFor="tagline">Bottom Tagline</Label>
-                  <Input
-                    id="tagline"
-                    placeholder="Made with ❤️ for content creators."
-                    value={bottomTagline}
-                    onChange={(e) => setBottomTagline(e.target.value)}
-                  />
-                  <p className="text-xs text-muted-foreground">
-                    Example: "Built in Bangladesh" or "Made with ❤️ for content creators"
-                  </p>
                 </div>
               </CardContent>
             </Card>
