@@ -57,7 +57,8 @@ export function Footer() {
   const currentYear = new Date().getFullYear();
 
   const footerNav = settings?.footer_nav?.length ? settings.footer_nav : defaultFooterNav;
-  const socialLinks = settings?.social_links?.filter((s) => s.url) || defaultSocialLinks;
+  const filteredSocialLinks = settings?.social_links?.filter((s) => s.url);
+  const socialLinks = filteredSocialLinks?.length ? filteredSocialLinks : defaultSocialLinks;
   const siteDescription = settings?.site_description || "Generate high-quality marketing content with AI. Create blog posts, social media content, ads, and emails in seconds.";
   const copyrightText = settings?.copyright_text || `© ${currentYear} MyGenAI. All rights reserved.`;
   const bottomTagline = settings?.bottom_tagline || "Made with ❤️ for content creators";

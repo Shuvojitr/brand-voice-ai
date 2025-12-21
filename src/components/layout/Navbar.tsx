@@ -23,6 +23,7 @@ import {
   ChevronDown,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { useSiteSettings } from "@/hooks/useSiteSettings";
 
 interface NavbarProps {
   isAuthenticated?: boolean;
@@ -35,17 +36,27 @@ interface NavbarProps {
   onLogout?: () => void;
 }
 
-const navLinks = [
+const authenticatedNavLinks = [
   { href: "/templates", label: "Templates", icon: FileText },
   { href: "/brand-voice", label: "Brand Voice", icon: Mic },
   { href: "/documents", label: "Documents", icon: FileText },
 ];
 
+const defaultPublicNavLinks = [
+  { href: "/", label: "Home" },
+  { href: "/templates", label: "Templates" },
+  { href: "/pricing", label: "Pricing" },
+];
+
 export function Navbar({ isAuthenticated = false, user, credits = 0, onLogout }: NavbarProps) {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const location = useLocation();
+  const { settings } = useSiteSettings();
 
   const isActive = (path: string) => location.pathname === path;
+
+  const siteName = settings?.site_name || "MyGenAI";
+  const publicNavLinks = settings?.header_nav?.length ? settings.header_nav : defaultPublicNavLinks;
 
   return (
     <header className="sticky top-0 z-50 w-full border-b border-border/40 bg-background/80 backdrop-blur-lg">
@@ -56,14 +67,21 @@ export function Navbar({ isAuthenticated = false, user, credits = 0, onLogout }:
             <Sparkles className="h-5 w-5 text-white" />
           </div>
           <span className="text-xl font-bold tracking-tight">
-            MyGen<span className="gradient-text">AI</span>
+            {siteName.includes("AI") ? (
+              <>
+                {siteName.replace("AI", "")}
+                <span className="gradient-text">AI</span>
+              </>
+            ) : (
+              siteName
+            )}
           </span>
         </Link>
 
         {/* Desktop Navigation */}
         <div className="hidden items-center gap-1 md:flex">
-          {isAuthenticated &&
-            navLinks.map((link) => (
+          {isAuthenticated ? (
+            authenticatedNavLinks.map((link) => (
               <Link
                 key={link.href}
                 to={link.href}
@@ -77,7 +95,23 @@ export function Navbar({ isAuthenticated = false, user, credits = 0, onLogout }:
                 <link.icon className="h-4 w-4" />
                 {link.label}
               </Link>
-            ))}
+            ))
+          ) : (
+            publicNavLinks.map((link) => (
+              <Link
+                key={link.href}
+                to={link.href}
+                className={cn(
+                  "rounded-lg px-4 py-2 text-sm font-medium transition-colors",
+                  isActive(link.href)
+                    ? "bg-accent text-accent-foreground"
+                    : "text-muted-foreground hover:bg-accent hover:text-accent-foreground"
+                )}
+              >
+                {link.label}
+              </Link>
+            ))
+          )}
         </div>
 
         {/* Right Section */}
@@ -171,7 +205,7 @@ export function Navbar({ isAuthenticated = false, user, credits = 0, onLogout }:
                       <span className="text-muted-foreground">credits</span>
                     </Badge>
                     <div className="space-y-1">
-                      {navLinks.map((link) => (
+                      {authenticatedNavLinks.map((link) => (
                         <Link
                           key={link.href}
                           to={link.href}
