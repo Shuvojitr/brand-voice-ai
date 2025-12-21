@@ -75,13 +75,34 @@ Deno.serve(async (req) => {
       enterprise: 500000,
     };
 
-    // Update organization subscription
+    // Get current organization credits to preserve remaining balance
+    const { data: currentOrg, error: orgError } = await supabaseClient
+      .from("organizations")
+      .select("monthly_credits, credits_used")
+      .eq("id", membership.organization_id)
+      .single();
+
+    if (orgError || !currentOrg) {
+      console.error("Org fetch error:", orgError);
+      return new Response(JSON.stringify({ error: "Failed to fetch organization" }), {
+        status: 500,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
+    // Calculate remaining credits and add new plan credits
+    const remainingCredits = Math.max(0, (currentOrg.monthly_credits || 0) - (currentOrg.credits_used || 0));
+    const newTotalCredits = remainingCredits + planCredits[plan];
+
+    console.log(`Upgrading to ${plan}: remaining=${remainingCredits}, adding=${planCredits[plan]}, total=${newTotalCredits}`);
+
+    // Update organization subscription - add new credits to remaining balance
     const { error: updateError } = await supabaseClient
       .from("organizations")
       .update({
         subscription_tier: plan,
-        monthly_credits: planCredits[plan],
-        credits_used: 0, // Reset credits on upgrade
+        monthly_credits: newTotalCredits,
+        credits_used: 0, // Reset used counter since we've already factored in remaining
         updated_at: new Date().toISOString(),
       })
       .eq("id", membership.organization_id);
@@ -98,8 +119,10 @@ Deno.serve(async (req) => {
       JSON.stringify({ 
         success: true, 
         plan,
-        credits: planCredits[plan],
-        message: `Dev Mode: Upgraded to ${plan} successfully!`
+        credits: newTotalCredits,
+        previousRemaining: remainingCredits,
+        added: planCredits[plan],
+        message: `Dev Mode: Upgraded to ${plan} successfully! ${remainingCredits} existing credits preserved.`
       }),
       { headers: { ...corsHeaders, "Content-Type": "application/json" } }
     );
