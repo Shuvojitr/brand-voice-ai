@@ -217,6 +217,39 @@ export type Database = {
           },
         ]
       }
+      faqs: {
+        Row: {
+          answer: string
+          category: string | null
+          created_at: string | null
+          id: string
+          is_active: boolean | null
+          question: string
+          sort_order: number | null
+          updated_at: string | null
+        }
+        Insert: {
+          answer: string
+          category?: string | null
+          created_at?: string | null
+          id?: string
+          is_active?: boolean | null
+          question: string
+          sort_order?: number | null
+          updated_at?: string | null
+        }
+        Update: {
+          answer?: string
+          category?: string | null
+          created_at?: string | null
+          id?: string
+          is_active?: boolean | null
+          question?: string
+          sort_order?: number | null
+          updated_at?: string | null
+        }
+        Relationships: []
+      }
       organization_members: {
         Row: {
           id: string
@@ -505,6 +538,48 @@ export type Database = {
           system_prompt?: string
           tags?: string[] | null
           updated_at?: string | null
+        }
+        Relationships: []
+      }
+      testimonials: {
+        Row: {
+          created_at: string | null
+          id: string
+          is_active: boolean | null
+          is_featured: boolean | null
+          rating: number | null
+          review_text: string
+          sort_order: number | null
+          updated_at: string | null
+          user_avatar: string | null
+          user_name: string
+          user_role: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          id?: string
+          is_active?: boolean | null
+          is_featured?: boolean | null
+          rating?: number | null
+          review_text: string
+          sort_order?: number | null
+          updated_at?: string | null
+          user_avatar?: string | null
+          user_name: string
+          user_role?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          id?: string
+          is_active?: boolean | null
+          is_featured?: boolean | null
+          rating?: number | null
+          review_text?: string
+          sort_order?: number | null
+          updated_at?: string | null
+          user_avatar?: string | null
+          user_name?: string
+          user_role?: string | null
         }
         Relationships: []
       }

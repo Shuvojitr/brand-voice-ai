@@ -5,6 +5,7 @@ import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle }
 import { Badge } from "@/components/ui/badge";
 import { Footer } from "@/components/layout/Footer";
 import { PricingToggle } from "@/components/pricing";
+import { UseCasesSection, TestimonialsSection, FAQSection } from "@/components/landing";
 import { 
   Sparkles, 
   Globe2, 
@@ -228,6 +229,9 @@ export default function Index() {
         </div>
       </section>
 
+      {/* Use Cases / Interactive Demo Section */}
+      <UseCasesSection />
+
       {/* Features Grid */}
       <section className="border-t border-border bg-muted/30 py-20 md:py-28">
         <div className="container">
@@ -297,6 +301,9 @@ export default function Index() {
           </div>
         </div>
       </section>
+
+      {/* Testimonials Section */}
+      <TestimonialsSection />
 
       {/* Pricing Section */}
       <section id="pricing" className="border-t border-border bg-muted/30 py-20 md:py-28">
@@ -405,6 +412,9 @@ export default function Index() {
           )}
         </div>
       </section>
+
+      {/* FAQ Section */}
+      <FAQSection />
 
       {/* CTA Section */}
       <section className="py-20 md:py-28">
