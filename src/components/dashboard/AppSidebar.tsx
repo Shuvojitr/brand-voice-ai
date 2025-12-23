@@ -23,9 +23,7 @@ import {
   Mic,
   FolderOpen,
   Shield,
-  LifeBuoy,
-  BookOpen,
-  MessageSquare
+  LifeBuoy
 } from "lucide-react";
 import { Separator } from "@/components/ui/separator";
 import { useOrganization } from "@/hooks/useOrganization";
@@ -229,30 +227,6 @@ export function AppSidebar() {
                 <LifeBuoy className="h-4 w-4 flex-shrink-0" />
                 <span>Support</span>
               </NavLink>
-            </SidebarMenuButton>
-          </SidebarMenuItem>
-          <SidebarMenuItem>
-            <SidebarMenuButton asChild tooltip="Documentation">
-              <a 
-                href="/docs"
-                target="_blank"
-                rel="noopener noreferrer"
-                className="flex items-center gap-3"
-              >
-                <BookOpen className="h-4 w-4 flex-shrink-0" />
-                <span>Documentation</span>
-              </a>
-            </SidebarMenuButton>
-          </SidebarMenuItem>
-          <SidebarMenuItem>
-            <SidebarMenuButton asChild tooltip="Feedback">
-              <a 
-                href="mailto:support@mygenai.com"
-                className="flex items-center gap-3"
-              >
-                <MessageSquare className="h-4 w-4 flex-shrink-0" />
-                <span>Feedback</span>
-              </a>
             </SidebarMenuButton>
           </SidebarMenuItem>
         </SidebarMenu>
