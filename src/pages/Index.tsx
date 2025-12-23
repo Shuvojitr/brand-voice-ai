@@ -20,6 +20,13 @@ import {
   Loader2
 } from "lucide-react";
 import { usePlans, Plan } from "@/hooks/usePlans";
+import { useSiteSettings } from "@/hooks/useSiteSettings";
+
+const defaultPublicNavLinks = [
+  { href: "/", label: "Home" },
+  { href: "/templates", label: "Templates" },
+  { href: "/pricing", label: "Pricing" },
+];
 
 const features = [
   {
@@ -77,7 +84,11 @@ const steps = [
 
 export default function Index() {
   const { data: plans, isLoading: plansLoading } = usePlans();
+  const { settings } = useSiteSettings();
   const [isYearly, setIsYearly] = useState(false);
+
+  const siteName = settings?.site_name || "MyGenAI";
+  const publicNavLinks = settings?.header_nav?.length ? settings.header_nav : defaultPublicNavLinks;
 
   const maxDiscount = plans?.reduce((max, plan) => Math.max(max, plan.yearly_discount || 0), 0) || 20;
 
@@ -116,19 +127,26 @@ export default function Index() {
               <Sparkles className="h-5 w-5 text-white" />
             </div>
             <span className="text-xl font-bold tracking-tight">
-              MyGen<span className="gradient-text">AI</span>
+              {siteName.includes("AI") ? (
+                <>
+                  {siteName.replace("AI", "")}
+                  <span className="gradient-text">AI</span>
+                </>
+              ) : (
+                siteName
+              )}
             </span>
           </Link>
           <nav className="hidden items-center gap-6 md:flex">
-            <Link to="/templates" className="text-sm font-medium text-muted-foreground transition-colors hover:text-foreground">
-              Templates
-            </Link>
-            <Link to="/pricing" className="text-sm font-medium text-muted-foreground transition-colors hover:text-foreground">
-              Pricing
-            </Link>
-            <Link to="/blog" className="text-sm font-medium text-muted-foreground transition-colors hover:text-foreground">
-              Blog
-            </Link>
+            {publicNavLinks.map((link) => (
+              <Link 
+                key={link.href} 
+                to={link.href} 
+                className="text-sm font-medium text-muted-foreground transition-colors hover:text-foreground"
+              >
+                {link.label}
+              </Link>
+            ))}
           </nav>
           <div className="flex items-center gap-3">
             <Button variant="ghost" size="sm" asChild>
