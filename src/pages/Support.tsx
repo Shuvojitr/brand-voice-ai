@@ -24,8 +24,8 @@ export default function Support() {
       title: "Getting Started Guide",
       description: "Learn the basics of using MyGenAI and create your first content.",
       buttonText: "Read Guide",
-      href: "/docs/getting-started",
-      external: true,
+      href: "/dashboard/getting-started",
+      isInternal: true,
     },
     {
       icon: HelpCircle,
@@ -33,15 +33,15 @@ export default function Support() {
       description: "Find answers to the most commonly asked questions.",
       buttonText: "View FAQs",
       href: "#faqs",
-      external: false,
+      isInternal: false,
     },
     {
       icon: FileText,
       title: "API Documentation",
       description: "Integrate MyGenAI into your own applications.",
       buttonText: "View Docs",
-      href: "/docs/api",
-      external: true,
+      href: "/docs",
+      isInternal: true,
     },
   ];
 
@@ -94,12 +94,12 @@ export default function Support() {
                   </CardDescription>
                 </CardHeader>
                 <CardContent className="pt-0">
-                  {resource.external ? (
+                  {resource.isInternal ? (
                     <Button asChild variant="outline" className="w-full">
-                      <a href={resource.href} target="_blank" rel="noopener noreferrer">
+                      <Link to={resource.href}>
                         {resource.buttonText}
                         <ExternalLink className="ml-2 h-4 w-4" />
-                      </a>
+                      </Link>
                     </Button>
                   ) : (
                     <Button asChild variant="outline" className="w-full">
@@ -153,7 +153,7 @@ export default function Support() {
                     </div>
                   </div>
                   <Button asChild size="sm">
-                    <a href="mailto:support@mygenai.com">Send Email</a>
+                    <Link to="/dashboard/support/email">Send Email</Link>
                   </Button>
                 </div>
               </CardContent>

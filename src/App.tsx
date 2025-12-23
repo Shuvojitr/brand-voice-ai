@@ -16,6 +16,9 @@ import Billing from "./pages/Billing";
 import Settings from "./pages/Settings";
 import NotFound from "./pages/NotFound";
 import Support from "./pages/Support";
+import EmailSupport from "./pages/EmailSupport";
+import GettingStarted from "./pages/GettingStarted";
+import Docs from "./pages/Docs";
 import Banned from "./pages/Banned";
 import AdminOverview from "./pages/admin/AdminOverview";
 import AdminUsers from "./pages/admin/AdminUsers";
@@ -49,6 +52,9 @@ const App = () => (
           <Route path="/dashboard/billing" element={<Billing />} />
           <Route path="/dashboard/settings" element={<Settings />} />
           <Route path="/dashboard/support" element={<Support />} />
+          <Route path="/dashboard/support/email" element={<EmailSupport />} />
+          <Route path="/dashboard/getting-started" element={<GettingStarted />} />
+          <Route path="/docs" element={<Docs />} />
           {/* Admin Routes */}
           <Route path="/admin" element={<AdminOverview />} />
           <Route path="/admin/users" element={<AdminUsers />} />
