@@ -22,8 +22,12 @@ import {
   Sparkles,
   Mic,
   FolderOpen,
-  Shield
+  Shield,
+  LifeBuoy,
+  BookOpen,
+  MessageSquare
 } from "lucide-react";
+import { Separator } from "@/components/ui/separator";
 import { useOrganization } from "@/hooks/useOrganization";
 import { useAdminRole } from "@/hooks/useAdminRole";
 import { useEffect } from "react";
@@ -192,7 +196,7 @@ export function AppSidebar() {
         )}
       </SidebarContent>
 
-      <SidebarFooter className="border-t border-border p-4">
+      <SidebarFooter className="border-t border-border p-4 space-y-4">
         {!collapsed && (
           <Link to="/dashboard/billing" className="block">
             <div className="rounded-lg bg-primary/5 p-3 hover:bg-primary/10 transition-colors">
@@ -211,6 +215,47 @@ export function AppSidebar() {
             </div>
           </Link>
         )}
+        
+        {!collapsed && <Separator />}
+        
+        <SidebarMenu>
+          <SidebarMenuItem>
+            <SidebarMenuButton asChild tooltip="Support">
+              <NavLink 
+                to="/dashboard/support"
+                className="flex items-center gap-3"
+                activeClassName="bg-primary/10 text-primary font-medium"
+              >
+                <LifeBuoy className="h-4 w-4 flex-shrink-0" />
+                <span>Support</span>
+              </NavLink>
+            </SidebarMenuButton>
+          </SidebarMenuItem>
+          <SidebarMenuItem>
+            <SidebarMenuButton asChild tooltip="Documentation">
+              <a 
+                href="/docs"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="flex items-center gap-3"
+              >
+                <BookOpen className="h-4 w-4 flex-shrink-0" />
+                <span>Documentation</span>
+              </a>
+            </SidebarMenuButton>
+          </SidebarMenuItem>
+          <SidebarMenuItem>
+            <SidebarMenuButton asChild tooltip="Feedback">
+              <a 
+                href="mailto:support@mygenai.com"
+                className="flex items-center gap-3"
+              >
+                <MessageSquare className="h-4 w-4 flex-shrink-0" />
+                <span>Feedback</span>
+              </a>
+            </SidebarMenuButton>
+          </SidebarMenuItem>
+        </SidebarMenu>
       </SidebarFooter>
     </Sidebar>
   );

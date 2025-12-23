@@ -15,6 +15,7 @@ import History from "./pages/History";
 import Billing from "./pages/Billing";
 import Settings from "./pages/Settings";
 import NotFound from "./pages/NotFound";
+import Support from "./pages/Support";
 import Banned from "./pages/Banned";
 import AdminOverview from "./pages/admin/AdminOverview";
 import AdminUsers from "./pages/admin/AdminUsers";
@@ -47,6 +48,7 @@ const App = () => (
           <Route path="/dashboard/history" element={<History />} />
           <Route path="/dashboard/billing" element={<Billing />} />
           <Route path="/dashboard/settings" element={<Settings />} />
+          <Route path="/dashboard/support" element={<Support />} />
           {/* Admin Routes */}
           <Route path="/admin" element={<AdminOverview />} />
           <Route path="/admin/users" element={<AdminUsers />} />
