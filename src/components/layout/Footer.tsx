@@ -57,7 +57,7 @@ export function Footer() {
   const currentYear = new Date().getFullYear();
 
   const footerNav = settings?.footer_nav?.length ? settings.footer_nav : defaultFooterNav;
-  const filteredSocialLinks = settings?.social_links?.filter((s) => s.url);
+  const filteredSocialLinks = settings?.social_links?.filter((s) => s.url && s.visible !== false);
   const socialLinks = filteredSocialLinks?.length ? filteredSocialLinks : defaultSocialLinks;
   const siteDescription = settings?.site_description || "Generate high-quality marketing content with AI. Create blog posts, social media content, ads, and emails in seconds.";
   const copyrightText = settings?.copyright_text || `© ${currentYear} MyGenAI. All rights reserved.`;
