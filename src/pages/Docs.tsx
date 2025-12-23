@@ -55,25 +55,12 @@ export default function Docs() {
   const apiEndpoints = [
     {
       method: "POST",
-      endpoint: "/api/v1/generate",
-      description: "Generate content using a template",
-    },
-    {
-      method: "GET",
-      endpoint: "/api/v1/templates",
-      description: "List all available templates",
-    },
-    {
-      method: "GET",
-      endpoint: "/api/v1/documents",
-      description: "List user's documents",
-    },
-    {
-      method: "POST",
-      endpoint: "/api/v1/brand-voices",
-      description: "Create a new brand voice",
+      endpoint: "/functions/v1/api-completion",
+      description: "Generate content with AI",
     },
   ];
+
+  const baseUrl = import.meta.env.VITE_SUPABASE_URL || 'https://xaozmulvcdealaemnebz.supabase.co';
 
   return (
     <Layout>
@@ -230,11 +217,11 @@ export default function Docs() {
                     variant="ghost" 
                     size="icon" 
                     className="absolute top-2 right-2 h-8 w-8"
-                    onClick={() => copyToClipboard('https://api.mygenai.com/v1')}
+                    onClick={() => copyToClipboard(`${baseUrl}/functions/v1`)}
                   >
                     <Copy className="h-4 w-4" />
                   </Button>
-                  <p>https://api.mygenai.com/v1</p>
+                  <p>{baseUrl}/functions/v1</p>
                 </div>
               </CardContent>
             </Card>
@@ -271,45 +258,153 @@ export default function Docs() {
               </CardContent>
             </Card>
 
-            {/* Example Request */}
+            {/* Example Requests */}
             <Card>
               <CardHeader>
-                <CardTitle>Example: Generate Content</CardTitle>
+                <CardTitle>Code Examples</CardTitle>
                 <CardDescription>
-                  Generate content using the blog-post template.
+                  Use your API key to generate content programmatically.
+                </CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-6">
+                {/* cURL */}
+                <div className="space-y-2">
+                  <p className="text-sm font-medium">cURL</p>
+                  <div className="bg-muted rounded-lg p-4 font-mono text-sm overflow-x-auto relative">
+                    <Button 
+                      variant="ghost" 
+                      size="icon" 
+                      className="absolute top-2 right-2 h-8 w-8"
+                      onClick={() => copyToClipboard(`curl -X POST ${baseUrl}/functions/v1/api-completion \\
+  -H "Authorization: Bearer sk-mygenai-YOUR_KEY" \\
+  -H "Content-Type: application/json" \\
+  -d '{
+    "prompt": "Write a blog post about AI in marketing",
+    "template": "blog-post"
+  }'`)}
+                    >
+                      <Copy className="h-4 w-4" />
+                    </Button>
+                    <pre className="text-xs md:text-sm">{`curl -X POST ${baseUrl}/functions/v1/api-completion \\
+  -H "Authorization: Bearer sk-mygenai-YOUR_KEY" \\
+  -H "Content-Type: application/json" \\
+  -d '{
+    "prompt": "Write a blog post about AI in marketing",
+    "template": "blog-post"
+  }'`}</pre>
+                  </div>
+                </div>
+
+                {/* JavaScript */}
+                <div className="space-y-2">
+                  <p className="text-sm font-medium">JavaScript / TypeScript</p>
+                  <div className="bg-muted rounded-lg p-4 font-mono text-sm overflow-x-auto relative">
+                    <Button 
+                      variant="ghost" 
+                      size="icon" 
+                      className="absolute top-2 right-2 h-8 w-8"
+                      onClick={() => copyToClipboard(`const response = await fetch('${baseUrl}/functions/v1/api-completion', {
+  method: 'POST',
+  headers: {
+    'Authorization': 'Bearer sk-mygenai-YOUR_KEY',
+    'Content-Type': 'application/json',
+  },
+  body: JSON.stringify({
+    prompt: 'Write a blog post about AI in marketing',
+    template: 'blog-post',
+  }),
+});
+
+const data = await response.json();
+console.log(data.content);`)}
+                    >
+                      <Copy className="h-4 w-4" />
+                    </Button>
+                    <pre className="text-xs md:text-sm">{`const response = await fetch('${baseUrl}/functions/v1/api-completion', {
+  method: 'POST',
+  headers: {
+    'Authorization': 'Bearer sk-mygenai-YOUR_KEY',
+    'Content-Type': 'application/json',
+  },
+  body: JSON.stringify({
+    prompt: 'Write a blog post about AI in marketing',
+    template: 'blog-post',
+  }),
+});
+
+const data = await response.json();
+console.log(data.content);`}</pre>
+                  </div>
+                </div>
+
+                {/* Python */}
+                <div className="space-y-2">
+                  <p className="text-sm font-medium">Python</p>
+                  <div className="bg-muted rounded-lg p-4 font-mono text-sm overflow-x-auto relative">
+                    <Button 
+                      variant="ghost" 
+                      size="icon" 
+                      className="absolute top-2 right-2 h-8 w-8"
+                      onClick={() => copyToClipboard(`import requests
+
+response = requests.post(
+    '${baseUrl}/functions/v1/api-completion',
+    headers={
+        'Authorization': 'Bearer sk-mygenai-YOUR_KEY',
+        'Content-Type': 'application/json',
+    },
+    json={
+        'prompt': 'Write a blog post about AI in marketing',
+        'template': 'blog-post',
+    }
+)
+
+data = response.json()
+print(data['content'])`)}
+                    >
+                      <Copy className="h-4 w-4" />
+                    </Button>
+                    <pre className="text-xs md:text-sm">{`import requests
+
+response = requests.post(
+    '${baseUrl}/functions/v1/api-completion',
+    headers={
+        'Authorization': 'Bearer sk-mygenai-YOUR_KEY',
+        'Content-Type': 'application/json',
+    },
+    json={
+        'prompt': 'Write a blog post about AI in marketing',
+        'template': 'blog-post',
+    }
+)
+
+data = response.json()
+print(data['content'])`}</pre>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+
+            {/* Response Format */}
+            <Card>
+              <CardHeader>
+                <CardTitle>Response Format</CardTitle>
+                <CardDescription>
+                  Successful API responses include the generated content and usage information.
                 </CardDescription>
               </CardHeader>
               <CardContent>
-                <div className="bg-muted rounded-lg p-4 font-mono text-sm overflow-x-auto relative">
-                  <Button 
-                    variant="ghost" 
-                    size="icon" 
-                    className="absolute top-2 right-2 h-8 w-8"
-                    onClick={() => copyToClipboard(`curl -X POST https://api.mygenai.com/v1/generate \\
-  -H "Authorization: Bearer YOUR_API_KEY" \\
-  -H "Content-Type: application/json" \\
-  -d '{
-    "template": "blog-post",
-    "inputs": {
-      "topic": "AI in Marketing",
-      "tone": "professional",
-      "length": "medium"
-    }
-  }'`)}
-                  >
-                    <Copy className="h-4 w-4" />
-                  </Button>
-                  <pre className="text-xs md:text-sm">{`curl -X POST https://api.mygenai.com/v1/generate \\
-  -H "Authorization: Bearer YOUR_API_KEY" \\
-  -H "Content-Type: application/json" \\
-  -d '{
-    "template": "blog-post",
-    "inputs": {
-      "topic": "AI in Marketing",
-      "tone": "professional",
-      "length": "medium"
-    }
-  }'`}</pre>
+                <div className="bg-muted rounded-lg p-4 font-mono text-sm overflow-x-auto">
+                  <pre className="text-xs md:text-sm">{`{
+  "content": "Generated content here...",
+  "usage": {
+    "prompt_tokens": 50,
+    "completion_tokens": 500,
+    "total_tokens": 550,
+    "credits_used": 6
+  },
+  "model": "google/gemini-2.5-flash"
+}`}</pre>
                 </div>
               </CardContent>
             </Card>

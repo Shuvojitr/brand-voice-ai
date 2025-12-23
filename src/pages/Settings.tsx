@@ -1,9 +1,9 @@
 import { DashboardLayout } from "@/components/dashboard";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { ProfileTab, TeamTab, BrandVoiceManager } from "@/components/settings";
+import { ProfileTab, TeamTab, ApiTab, BrandVoiceManager } from "@/components/settings";
 import { useOrganization } from "@/hooks/useOrganization";
 import { Skeleton } from "@/components/ui/skeleton";
-import { User, Users, Sparkles } from "lucide-react";
+import { User, Users, Sparkles, Key } from "lucide-react";
 
 export default function Settings() {
   const { organization, isLoading } = useOrganization();
@@ -38,6 +38,10 @@ export default function Settings() {
                 <Sparkles className="h-4 w-4" />
                 Brand Voice
               </TabsTrigger>
+              <TabsTrigger value="api" className="gap-2">
+                <Key className="h-4 w-4" />
+                API
+              </TabsTrigger>
             </TabsList>
 
             <TabsContent value="profile">
@@ -55,6 +59,14 @@ export default function Settings() {
             <TabsContent value="brand-voice">
               {organization ? (
                 <BrandVoiceManager organizationId={organization.id} />
+              ) : (
+                <p className="text-muted-foreground">No organization found.</p>
+              )}
+            </TabsContent>
+
+            <TabsContent value="api">
+              {organization ? (
+                <ApiTab organizationId={organization.id} />
               ) : (
                 <p className="text-muted-foreground">No organization found.</p>
               )}
