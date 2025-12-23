@@ -57,8 +57,12 @@ export function Footer() {
   const currentYear = new Date().getFullYear();
 
   const footerNav = settings?.footer_nav?.length ? settings.footer_nav : defaultFooterNav;
+  
+  // Only fall back to defaults if no social links are configured at all
+  const hasConfiguredSocialLinks = settings?.social_links?.some((s) => s.url);
   const filteredSocialLinks = settings?.social_links?.filter((s) => s.url && s.visible !== false);
-  const socialLinks = filteredSocialLinks?.length ? filteredSocialLinks : defaultSocialLinks;
+  // Only use defaults if user hasn't configured any social links
+  const socialLinks = hasConfiguredSocialLinks ? (filteredSocialLinks || []) : defaultSocialLinks;
   const siteDescription = settings?.site_description || "Generate high-quality marketing content with AI. Create blog posts, social media content, ads, and emails in seconds.";
   const copyrightText = settings?.copyright_text || `© ${currentYear} MyGenAI. All rights reserved.`;
   const siteName = settings?.site_name || "MyGenAI";
