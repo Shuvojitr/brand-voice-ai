@@ -7,18 +7,19 @@ import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, Di
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Badge } from "@/components/ui/badge";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useApiKeys } from "@/hooks/useApiKeys";
+import { ApiUsageAnalytics } from "./ApiUsageAnalytics";
 import { supabase } from "@/integrations/supabase/client";
 import { 
   Key, 
   Plus, 
   Copy, 
   Trash2, 
-  Eye, 
-  EyeOff,
   CheckCircle,
   Clock,
-  AlertTriangle
+  AlertTriangle,
+  BarChart3
 } from "lucide-react";
 import { toast } from "sonner";
 import { formatDistanceToNow } from "date-fns";
@@ -82,8 +83,19 @@ export function ApiTab({ organizationId }: ApiTabProps) {
   };
 
   return (
-    <div className="space-y-6">
-      {/* Header */}
+    <Tabs defaultValue="keys" className="space-y-6">
+      <TabsList>
+        <TabsTrigger value="keys" className="gap-2">
+          <Key className="h-4 w-4" />
+          API Keys
+        </TabsTrigger>
+        <TabsTrigger value="analytics" className="gap-2">
+          <BarChart3 className="h-4 w-4" />
+          Usage Analytics
+        </TabsTrigger>
+      </TabsList>
+
+      <TabsContent value="keys" className="space-y-6">
       <Card>
         <CardHeader>
           <div className="flex items-center justify-between">
@@ -328,7 +340,12 @@ export function ApiTab({ organizationId }: ApiTabProps) {
             </a>
           </Button>
         </CardContent>
-      </Card>
-    </div>
+        </Card>
+      </TabsContent>
+
+      <TabsContent value="analytics">
+        <ApiUsageAnalytics organizationId={organizationId} />
+      </TabsContent>
+    </Tabs>
   );
 }
