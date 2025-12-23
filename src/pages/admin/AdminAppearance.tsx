@@ -6,6 +6,7 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Switch } from "@/components/ui/switch";
 import { useSiteSettings, NavLink, FooterColumn, SocialLink } from "@/hooks/useSiteSettings";
 import { Plus, Trash2, GripVertical, Save, Loader2, Twitter, Linkedin, Github, Mail, Facebook, Instagram, Youtube, Upload, X } from "lucide-react";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -169,17 +170,22 @@ export default function AdminAppearance() {
   };
 
   // Social links handlers
-  const updateSocialLink = (platform: string, url: string) => {
+  const updateSocialLink = (platform: string, field: "url" | "visible", value: string | boolean) => {
     const existing = socialLinks.find((s) => s.platform === platform);
     if (existing) {
-      setSocialLinks(socialLinks.map((s) => (s.platform === platform ? { ...s, url } : s)));
+      setSocialLinks(socialLinks.map((s) => (s.platform === platform ? { ...s, [field]: value } : s)));
     } else {
-      setSocialLinks([...socialLinks, { platform, url }]);
+      setSocialLinks([...socialLinks, { platform, url: "", visible: true, [field]: value }]);
     }
   };
 
   const getSocialUrl = (platform: string) => {
     return socialLinks.find((s) => s.platform === platform)?.url || "";
+  };
+
+  const getSocialVisible = (platform: string) => {
+    const social = socialLinks.find((s) => s.platform === platform);
+    return social?.visible !== false; // Default to true if not set
   };
 
   if (isLoading) {
@@ -430,7 +436,7 @@ export default function AdminAppearance() {
                 <CardDescription>Configure social media links shown in the footer</CardDescription>
               </CardHeader>
               <CardContent className="space-y-4">
-                {socialPlatforms.map((social) => (
+              {socialPlatforms.map((social) => (
                   <div key={social.platform} className="flex items-center gap-3">
                     <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-secondary">
                       <social.icon className="h-4 w-4" />
@@ -439,9 +445,18 @@ export default function AdminAppearance() {
                     <Input
                       placeholder={`https://${social.platform}.com/yourhandle`}
                       value={getSocialUrl(social.platform)}
-                      onChange={(e) => updateSocialLink(social.platform, e.target.value)}
+                      onChange={(e) => updateSocialLink(social.platform, "url", e.target.value)}
                       className="flex-1"
                     />
+                    <div className="flex items-center gap-2">
+                      <Switch
+                        checked={getSocialVisible(social.platform)}
+                        onCheckedChange={(checked) => updateSocialLink(social.platform, "visible", checked)}
+                      />
+                      <span className="text-xs text-muted-foreground w-8">
+                        {getSocialVisible(social.platform) ? "Show" : "Hide"}
+                      </span>
+                    </div>
                   </div>
                 ))}
               </CardContent>

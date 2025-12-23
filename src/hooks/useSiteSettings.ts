@@ -16,6 +16,7 @@ export interface FooterColumn {
 export interface SocialLink {
   platform: string;
   url: string;
+  visible?: boolean;
 }
 
 export interface SiteSettings {
