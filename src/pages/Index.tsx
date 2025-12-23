@@ -5,7 +5,7 @@ import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle }
 import { Badge } from "@/components/ui/badge";
 import { Footer } from "@/components/layout/Footer";
 import { PricingToggle } from "@/components/pricing";
-import { UseCasesSection, TestimonialsSection, FAQSection } from "@/components/landing";
+import { UseCasesSection, TestimonialsSection, FAQSection, PopularTemplatesSection } from "@/components/landing";
 import { 
   Sparkles, 
   Globe2, 
@@ -268,6 +268,9 @@ export default function Index() {
           </div>
         </div>
       </section>
+
+      {/* Popular Templates Section */}
+      <PopularTemplatesSection />
 
       {/* How it Works */}
       <section className="py-20 md:py-28">
