@@ -5,7 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useToast } from "@/hooks/use-toast";
-import { Sparkles, Lock, Loader2, Eye, EyeOff, CheckCircle2, ArrowRight } from "lucide-react";
+import { Sparkles, Lock, Loader2, Eye, EyeOff, CheckCircle2, ArrowRight, ArrowLeft } from "lucide-react";
 import { z } from "zod";
 
 const passwordSchema = z.object({
@@ -194,15 +194,24 @@ export default function ResetPassword() {
       {/* Right Panel - Reset Form */}
       <div className="w-full lg:w-1/2 xl:w-[45%] flex items-center justify-center p-6 sm:p-8 lg:p-12 bg-background">
         <div className="w-full max-w-md space-y-8">
-          {/* Mobile Logo */}
-          <Link to="/" className="flex lg:hidden items-center justify-center gap-2 mb-4">
-            <div className="flex h-10 w-10 items-center justify-center rounded-lg gradient-primary">
-              <Sparkles className="h-6 w-6 text-white" />
-            </div>
-            <span className="text-2xl font-bold tracking-tight">
-              MyGen<span className="gradient-text">AI</span>
-            </span>
-          </Link>
+          {/* Mobile Header with Logo and Back Link */}
+          <div className="flex lg:hidden items-center justify-between mb-4">
+            <Link 
+              to="/" 
+              className="inline-flex items-center gap-2 text-sm font-medium text-muted-foreground hover:text-foreground transition-colors"
+            >
+              <ArrowLeft className="h-4 w-4" />
+              Home
+            </Link>
+            <Link to="/" className="flex items-center gap-2">
+              <div className="flex h-10 w-10 items-center justify-center rounded-lg gradient-primary">
+                <Sparkles className="h-6 w-6 text-white" />
+              </div>
+              <span className="text-xl font-bold tracking-tight">
+                MyGen<span className="gradient-text">AI</span>
+              </span>
+            </Link>
+          </div>
 
           {!isSuccess ? (
             <>
