@@ -3,6 +3,7 @@ import { Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
 import { Footer } from "@/components/layout/Footer";
 import { PricingToggle } from "@/components/pricing";
 import { UseCasesSection, TestimonialsSection, FAQSection, PopularTemplatesSection } from "@/components/landing";
@@ -18,7 +19,8 @@ import {
   Wand2,
   Download,
   Check,
-  Loader2
+  Loader2,
+  Menu
 } from "lucide-react";
 import { usePlans, Plan } from "@/hooks/usePlans";
 import { useSiteSettings } from "@/hooks/useSiteSettings";
@@ -87,9 +89,20 @@ export default function Index() {
   const { data: plans, isLoading: plansLoading } = usePlans();
   const { settings } = useSiteSettings();
   const [isYearly, setIsYearly] = useState(false);
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
   const siteName = settings?.site_name || "MyGenAI";
   const publicNavLinks = settings?.header_nav?.length ? settings.header_nav : defaultPublicNavLinks;
+
+  const handleMobileNavClick = (href: string) => {
+    setMobileMenuOpen(false);
+    if (href.startsWith('#')) {
+      const element = document.getElementById(href.slice(1));
+      if (element) {
+        element.scrollIntoView({ behavior: 'smooth' });
+      }
+    }
+  };
 
   const maxDiscount = plans?.reduce((max, plan) => Math.max(max, plan.yearly_discount || 0), 0) || 20;
 
@@ -149,6 +162,8 @@ export default function Index() {
               </>
             )}
           </Link>
+          
+          {/* Desktop Navigation */}
           <nav className="hidden items-center gap-6 md:flex">
             {publicNavLinks.map((link) => (
               <a 
@@ -169,13 +184,62 @@ export default function Index() {
               </a>
             ))}
           </nav>
+          
+          {/* Right Section - Auth buttons and Mobile Menu */}
           <div className="flex items-center gap-3">
-            <Button variant="ghost" size="sm" asChild>
+            {/* Auth Buttons - hidden on very small screens, shown in mobile menu */}
+            <Button variant="ghost" size="sm" asChild className="hidden sm:inline-flex">
               <Link to="/login">Log in</Link>
             </Button>
-            <Button size="sm" className="gradient-primary text-white" asChild>
+            <Button size="sm" className="gradient-primary text-white hidden sm:inline-flex" asChild>
               <Link to="/signup">Start Free</Link>
             </Button>
+            
+            {/* Mobile Menu Button */}
+            <Sheet open={mobileMenuOpen} onOpenChange={setMobileMenuOpen}>
+              <SheetTrigger asChild className="md:hidden">
+                <Button variant="ghost" size="icon">
+                  <Menu className="h-5 w-5" />
+                  <span className="sr-only">Toggle menu</span>
+                </Button>
+              </SheetTrigger>
+              <SheetContent side="right" className="w-72">
+                <div className="flex flex-col gap-6 pt-8">
+                  {/* Navigation Links */}
+                  <div className="flex flex-col gap-2">
+                    {publicNavLinks.map((link) => (
+                      <a
+                        key={link.href}
+                        href={link.href}
+                        onClick={(e) => {
+                          if (link.href.startsWith('#')) {
+                            e.preventDefault();
+                          }
+                          handleMobileNavClick(link.href);
+                        }}
+                        className="flex items-center rounded-lg px-3 py-2.5 text-sm font-medium text-muted-foreground transition-colors hover:bg-accent hover:text-accent-foreground"
+                      >
+                        {link.label}
+                      </a>
+                    ))}
+                  </div>
+                  
+                  {/* Auth Buttons in Mobile Menu */}
+                  <div className="flex flex-col gap-2 pt-4 border-t border-border">
+                    <Button variant="outline" asChild className="w-full">
+                      <Link to="/login" onClick={() => setMobileMenuOpen(false)}>
+                        Log in
+                      </Link>
+                    </Button>
+                    <Button asChild className="w-full gradient-primary text-white">
+                      <Link to="/signup" onClick={() => setMobileMenuOpen(false)}>
+                        Start Free
+                      </Link>
+                    </Button>
+                  </div>
+                </div>
+              </SheetContent>
+            </Sheet>
           </div>
         </div>
       </header>
