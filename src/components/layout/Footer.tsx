@@ -95,7 +95,7 @@ export function Footer() {
                 </>
               )}
             </Link>
-            <p className="mt-3 md:mt-4 max-w-xs text-xs md:text-sm text-muted-foreground">
+            <p className="mt-3 md:mt-4 max-w-xs text-sm md:text-sm text-muted-foreground">
               {siteDescription}
             </p>
             <div className="mt-4 md:mt-6 flex gap-2 md:gap-3">
@@ -124,13 +124,13 @@ export function Footer() {
           <div className="grid grid-cols-2 gap-4 md:gap-6 lg:col-span-4 lg:grid-cols-4">
             {footerNav.map((column) => (
               <div key={column.title}>
-                <h3 className="mb-2 md:mb-4 text-xs md:text-sm font-semibold">{column.title}</h3>
-                <ul className="space-y-1.5 md:space-y-3">
+                <h3 className="mb-3 md:mb-4 text-sm md:text-sm font-semibold">{column.title}</h3>
+                <ul className="space-y-2.5 md:space-y-3">
                   {column.links.map((link) => (
                     <li key={link.href}>
                       <Link
                         to={link.href}
-                        className="text-xs md:text-sm text-muted-foreground transition-colors hover:text-foreground"
+                        className="text-sm md:text-sm text-muted-foreground transition-colors hover:text-foreground"
                       >
                         {link.label}
                       </Link>
@@ -145,7 +145,7 @@ export function Footer() {
         <Separator className="my-6 md:my-8" />
 
         <div className="flex justify-center">
-          <p className="text-xs md:text-sm text-muted-foreground text-center">
+          <p className="text-sm md:text-sm text-muted-foreground text-center">
             {copyrightText}
           </p>
         </div>
