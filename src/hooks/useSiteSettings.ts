@@ -24,6 +24,7 @@ export interface SiteSettings {
   logo_url: string | null;
   header_logo_url: string | null;
   footer_logo_url: string | null;
+  favicon_url: string | null;
   site_name: string;
   site_description: string | null;
   header_nav: NavLink[];
@@ -52,11 +53,24 @@ export function useSiteSettings() {
       
       if (!data) return null;
 
+      // Cast to any to access columns not yet in the auto-generated types
+      const rawData = data as any;
+
       return {
-        ...data,
-        header_nav: (data.header_nav as unknown as NavLink[]) || [],
-        footer_nav: (data.footer_nav as unknown as FooterColumn[]) || [],
-        social_links: (data.social_links as unknown as SocialLink[]) || [],
+        id: rawData.id,
+        logo_url: rawData.logo_url,
+        header_logo_url: rawData.header_logo_url,
+        footer_logo_url: rawData.footer_logo_url,
+        favicon_url: rawData.favicon_url,
+        site_name: rawData.site_name,
+        site_description: rawData.site_description,
+        header_nav: (rawData.header_nav as NavLink[]) || [],
+        footer_nav: (rawData.footer_nav as FooterColumn[]) || [],
+        social_links: (rawData.social_links as SocialLink[]) || [],
+        copyright_text: rawData.copyright_text,
+        bottom_tagline: rawData.bottom_tagline,
+        created_at: rawData.created_at,
+        updated_at: rawData.updated_at,
       } as SiteSettings;
     },
     staleTime: 1000 * 60 * 5, // 5 minutes
@@ -74,6 +88,7 @@ export function useSiteSettings() {
           logo_url: updates.logo_url,
           header_logo_url: updates.header_logo_url,
           footer_logo_url: updates.footer_logo_url,
+          favicon_url: updates.favicon_url,
           site_name: updates.site_name,
           site_description: updates.site_description,
           header_nav: updates.header_nav as unknown as Json,
