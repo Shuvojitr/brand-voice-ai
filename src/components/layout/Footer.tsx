@@ -70,19 +70,19 @@ export function Footer() {
 
   return (
     <footer className="border-t border-border bg-muted/30">
-      <div className="container py-12 md:py-16">
-        <div className="grid gap-8 md:grid-cols-2 lg:grid-cols-6">
-          {/* Brand Column */}
+      <div className="container py-8 md:py-12 lg:py-16">
+        <div className="grid gap-6 md:gap-8 lg:grid-cols-6">
+          {/* Brand Column - Full width on mobile, then responsive */}
           <div className="lg:col-span-2">
             <Link to="/" className="flex items-center gap-2">
               {footerLogoUrl ? (
-                <img src={footerLogoUrl} alt={siteName} className="h-12 w-auto max-w-[200px] object-contain" />
+                <img src={footerLogoUrl} alt={siteName} className="h-10 md:h-12 w-auto max-w-[180px] md:max-w-[200px] object-contain" />
               ) : (
                 <>
-                  <div className="flex h-9 w-9 items-center justify-center rounded-lg gradient-primary">
-                    <Sparkles className="h-5 w-5 text-white" />
+                  <div className="flex h-8 w-8 md:h-9 md:w-9 items-center justify-center rounded-lg gradient-primary">
+                    <Sparkles className="h-4 w-4 md:h-5 md:w-5 text-white" />
                   </div>
-                  <span className="text-xl font-bold tracking-tight">
+                  <span className="text-lg md:text-xl font-bold tracking-tight">
                     {siteName.includes("AI") ? (
                       <>
                         {siteName.replace("AI", "")}
@@ -95,10 +95,10 @@ export function Footer() {
                 </>
               )}
             </Link>
-            <p className="mt-4 max-w-xs text-sm text-muted-foreground">
+            <p className="mt-3 md:mt-4 max-w-xs text-xs md:text-sm text-muted-foreground">
               {siteDescription}
             </p>
-            <div className="mt-6 flex gap-3">
+            <div className="mt-4 md:mt-6 flex gap-2 md:gap-3">
               {socialLinks.map((social) => {
                 const Icon = socialIconMap[social.platform] || Mail;
                 const href = social.platform === "email" 
@@ -110,40 +110,42 @@ export function Footer() {
                     href={href}
                     target={social.platform === "email" ? undefined : "_blank"}
                     rel={social.platform === "email" ? undefined : "noopener noreferrer"}
-                    className="flex h-9 w-9 items-center justify-center rounded-lg bg-secondary text-muted-foreground transition-colors hover:bg-accent hover:text-accent-foreground"
+                    className="flex h-8 w-8 md:h-9 md:w-9 items-center justify-center rounded-lg bg-secondary text-muted-foreground transition-colors hover:bg-accent hover:text-accent-foreground"
                     aria-label={social.platform}
                   >
-                    <Icon className="h-4 w-4" />
+                    <Icon className="h-3.5 w-3.5 md:h-4 md:w-4" />
                   </a>
                 );
               })}
             </div>
           </div>
 
-          {/* Dynamic Footer Columns */}
-          {footerNav.map((column) => (
-            <div key={column.title}>
-              <h3 className="mb-4 text-sm font-semibold">{column.title}</h3>
-              <ul className="space-y-3">
-                {column.links.map((link) => (
-                  <li key={link.href}>
-                    <Link
-                      to={link.href}
-                      className="text-sm text-muted-foreground transition-colors hover:text-foreground"
-                    >
-                      {link.label}
-                    </Link>
-                  </li>
-                ))}
-              </ul>
-            </div>
-          ))}
+          {/* Dynamic Footer Columns - 2 columns on mobile, 4 on desktop */}
+          <div className="grid grid-cols-2 gap-4 md:gap-6 lg:col-span-4 lg:grid-cols-4">
+            {footerNav.map((column) => (
+              <div key={column.title}>
+                <h3 className="mb-2 md:mb-4 text-xs md:text-sm font-semibold">{column.title}</h3>
+                <ul className="space-y-1.5 md:space-y-3">
+                  {column.links.map((link) => (
+                    <li key={link.href}>
+                      <Link
+                        to={link.href}
+                        className="text-xs md:text-sm text-muted-foreground transition-colors hover:text-foreground"
+                      >
+                        {link.label}
+                      </Link>
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            ))}
+          </div>
         </div>
 
-        <Separator className="my-8" />
+        <Separator className="my-6 md:my-8" />
 
         <div className="flex justify-center">
-          <p className="text-sm text-muted-foreground">
+          <p className="text-xs md:text-sm text-muted-foreground text-center">
             {copyrightText}
           </p>
         </div>
