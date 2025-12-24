@@ -94,19 +94,29 @@ export function Navbar({ isAuthenticated = false, user, credits = 0, onLogout }:
       <nav className="container flex h-16 items-center justify-between">
         {/* Logo */}
         <Link to="/" className="flex items-center gap-2">
-          <div className="flex h-9 w-9 items-center justify-center rounded-lg gradient-primary">
-            <Sparkles className="h-5 w-5 text-white" />
-          </div>
-          <span className="text-xl font-bold tracking-tight">
-            {siteName.includes("AI") ? (
-              <>
-                {siteName.replace("AI", "")}
-                <span className="gradient-text">AI</span>
-              </>
-            ) : (
-              siteName
-            )}
-          </span>
+          {settings?.logo_url ? (
+            <img 
+              src={settings.logo_url} 
+              alt={siteName} 
+              className="h-9 w-auto max-w-[180px] object-contain" 
+            />
+          ) : (
+            <>
+              <div className="flex h-9 w-9 items-center justify-center rounded-lg gradient-primary">
+                <Sparkles className="h-5 w-5 text-white" />
+              </div>
+              <span className="text-xl font-bold tracking-tight">
+                {siteName.includes("AI") ? (
+                  <>
+                    {siteName.replace("AI", "")}
+                    <span className="gradient-text">AI</span>
+                  </>
+                ) : (
+                  siteName
+                )}
+              </span>
+            </>
+          )}
         </Link>
 
         {/* Desktop Navigation */}
