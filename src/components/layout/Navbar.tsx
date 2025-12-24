@@ -94,11 +94,11 @@ export function Navbar({ isAuthenticated = false, user, credits = 0, onLogout }:
       <nav className="container flex h-16 items-center justify-between">
         {/* Logo */}
         <Link to="/" className="flex items-center gap-2">
-          {settings?.logo_url ? (
+          {settings?.header_logo_url ? (
             <img 
-              src={settings.logo_url} 
+              src={settings.header_logo_url} 
               alt={siteName} 
-              className="h-9 w-auto max-w-[180px] object-contain" 
+              className="h-10 w-auto max-w-[200px] object-contain" 
             />
           ) : (
             <>

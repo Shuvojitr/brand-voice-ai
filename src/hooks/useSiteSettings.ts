@@ -22,6 +22,8 @@ export interface SocialLink {
 export interface SiteSettings {
   id: string;
   logo_url: string | null;
+  header_logo_url: string | null;
+  footer_logo_url: string | null;
   site_name: string;
   site_description: string | null;
   header_nav: NavLink[];
@@ -70,6 +72,8 @@ export function useSiteSettings() {
         .from("site_settings")
         .update({
           logo_url: updates.logo_url,
+          header_logo_url: updates.header_logo_url,
+          footer_logo_url: updates.footer_logo_url,
           site_name: updates.site_name,
           site_description: updates.site_description,
           header_nav: updates.header_nav as unknown as Json,
