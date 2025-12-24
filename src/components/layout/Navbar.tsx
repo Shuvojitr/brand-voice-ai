@@ -1,5 +1,5 @@
-import { useState } from "react";
-import { Link, useLocation } from "react-router-dom";
+import { useState, useCallback } from "react";
+import { Link, useLocation, useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
 import {
@@ -44,19 +44,50 @@ const authenticatedNavLinks = [
 
 const defaultPublicNavLinks = [
   { href: "/", label: "Home" },
-  { href: "/templates", label: "Templates" },
-  { href: "/pricing", label: "Pricing" },
+  { href: "/#templates", label: "Templates" },
+  { href: "/#pricing", label: "Pricing" },
 ];
 
 export function Navbar({ isAuthenticated = false, user, credits = 0, onLogout }: NavbarProps) {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const location = useLocation();
+  const navigate = useNavigate();
   const { settings } = useSiteSettings();
 
   const isActive = (path: string) => location.pathname === path;
 
   const siteName = settings?.site_name || "MyGenAI";
   const publicNavLinks = settings?.header_nav?.length ? settings.header_nav : defaultPublicNavLinks;
+
+  const handleAnchorClick = useCallback((e: React.MouseEvent<HTMLAnchorElement>, href: string) => {
+    // Check if it's an anchor link
+    if (href.includes('#')) {
+      e.preventDefault();
+      const [path, hash] = href.split('#');
+      const targetPath = path || '/';
+      
+      // Close mobile menu if open
+      setMobileMenuOpen(false);
+      
+      if (location.pathname === targetPath || (targetPath === '/' && location.pathname === '/')) {
+        // Already on the page, just scroll
+        const element = document.getElementById(hash);
+        if (element) {
+          element.scrollIntoView({ behavior: 'smooth' });
+        }
+      } else {
+        // Navigate to the page first, then scroll
+        navigate(targetPath);
+        // Wait for navigation and DOM update, then scroll
+        setTimeout(() => {
+          const element = document.getElementById(hash);
+          if (element) {
+            element.scrollIntoView({ behavior: 'smooth' });
+          }
+        }, 100);
+      }
+    }
+  }, [location.pathname, navigate]);
 
   return (
     <header className="sticky top-0 z-50 w-full border-b border-border/40 bg-background/80 backdrop-blur-lg">
@@ -98,18 +129,19 @@ export function Navbar({ isAuthenticated = false, user, credits = 0, onLogout }:
             ))
           ) : (
             publicNavLinks.map((link) => (
-              <Link
+              <a
                 key={link.href}
-                to={link.href}
+                href={link.href}
+                onClick={(e) => handleAnchorClick(e, link.href)}
                 className={cn(
-                  "rounded-lg px-4 py-2 text-sm font-medium transition-colors",
+                  "rounded-lg px-4 py-2 text-sm font-medium transition-colors cursor-pointer",
                   isActive(link.href)
                     ? "bg-accent text-accent-foreground"
                     : "text-muted-foreground hover:bg-accent hover:text-accent-foreground"
                 )}
               >
                 {link.label}
-              </Link>
+              </a>
             ))
           )}
         </div>
