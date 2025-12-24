@@ -27,14 +27,17 @@ export default function AdminAppearance() {
   const { settings, isLoading, updateSettings } = useSiteSettings();
   const headerFileInputRef = useRef<HTMLInputElement>(null);
   const footerFileInputRef = useRef<HTMLInputElement>(null);
+  const faviconFileInputRef = useRef<HTMLInputElement>(null);
   
   // General settings
   const [headerLogoUrl, setHeaderLogoUrl] = useState("");
   const [footerLogoUrl, setFooterLogoUrl] = useState("");
+  const [faviconUrl, setFaviconUrl] = useState("");
   const [siteName, setSiteName] = useState("");
   const [siteDescription, setSiteDescription] = useState("");
   const [isUploadingHeader, setIsUploadingHeader] = useState(false);
   const [isUploadingFooter, setIsUploadingFooter] = useState(false);
+  const [isUploadingFavicon, setIsUploadingFavicon] = useState(false);
   
   // Header nav
   const [headerNav, setHeaderNav] = useState<NavLink[]>([]);
@@ -51,6 +54,7 @@ export default function AdminAppearance() {
     if (settings) {
       setHeaderLogoUrl(settings.header_logo_url || "");
       setFooterLogoUrl(settings.footer_logo_url || "");
+      setFaviconUrl(settings.favicon_url || "");
       setSiteName(settings.site_name || "");
       setSiteDescription(settings.site_description || "");
       setHeaderNav(settings.header_nav || []);
@@ -62,7 +66,7 @@ export default function AdminAppearance() {
 
   const handleLogoUpload = async (
     event: React.ChangeEvent<HTMLInputElement>,
-    type: "header" | "footer"
+    type: "header" | "footer" | "favicon"
   ) => {
     const file = event.target.files?.[0];
     if (!file) return;
@@ -81,14 +85,16 @@ export default function AdminAppearance() {
 
     if (type === "header") {
       setIsUploadingHeader(true);
-    } else {
+    } else if (type === "footer") {
       setIsUploadingFooter(true);
+    } else {
+      setIsUploadingFavicon(true);
     }
 
     try {
       const fileExt = file.name.split(".").pop();
-      const fileName = `${type}-logo-${Date.now()}.${fileExt}`;
-      const filePath = `logos/${fileName}`;
+      const fileName = `${type}-${Date.now()}.${fileExt}`;
+      const filePath = type === "favicon" ? `favicons/${fileName}` : `logos/${fileName}`;
 
       const { error: uploadError } = await supabase.storage
         .from("site-assets")
@@ -102,17 +108,23 @@ export default function AdminAppearance() {
 
       if (type === "header") {
         setHeaderLogoUrl(publicUrl);
-      } else {
+      } else if (type === "footer") {
         setFooterLogoUrl(publicUrl);
+      } else {
+        setFaviconUrl(publicUrl);
       }
-      toast.success(`${type === "header" ? "Header" : "Footer"} logo uploaded successfully`);
+      
+      const typeLabel = type === "header" ? "Header logo" : type === "footer" ? "Footer logo" : "Favicon";
+      toast.success(`${typeLabel} uploaded successfully`);
     } catch (error: any) {
-      toast.error(error.message || "Failed to upload logo");
+      toast.error(error.message || "Failed to upload");
     } finally {
       if (type === "header") {
         setIsUploadingHeader(false);
-      } else {
+      } else if (type === "footer") {
         setIsUploadingFooter(false);
+      } else {
+        setIsUploadingFavicon(false);
       }
     }
   };
@@ -125,11 +137,16 @@ export default function AdminAppearance() {
     setFooterLogoUrl("");
   };
 
+  const handleRemoveFavicon = () => {
+    setFaviconUrl("");
+  };
+
   const handleSave = () => {
     updateSettings.mutate({
       logo_url: headerLogoUrl || footerLogoUrl || null,
       header_logo_url: headerLogoUrl || null,
       footer_logo_url: footerLogoUrl || null,
+      favicon_url: faviconUrl || null,
       site_name: siteName,
       site_description: siteDescription || null,
       header_nav: headerNav,
@@ -374,6 +391,66 @@ export default function AdminAppearance() {
                       </Button>
                       <p className="text-xs text-muted-foreground">
                         Recommended: PNG or SVG with transparent background. Max 2MB.
+                      </p>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Favicon */}
+                <div className="space-y-2">
+                  <Label>Favicon</Label>
+                  <p className="text-xs text-muted-foreground mb-2">
+                    The small icon shown in browser tabs. Recommended size: 32x32 or 64x64 pixels.
+                  </p>
+                  <div className="flex items-start gap-4">
+                    {faviconUrl ? (
+                      <div className="relative">
+                        <img 
+                          src={faviconUrl} 
+                          alt="Favicon" 
+                          className="h-12 w-12 rounded-lg object-contain border bg-background p-1"
+                        />
+                        <Button
+                          variant="destructive"
+                          size="icon"
+                          className="absolute -top-2 -right-2 h-6 w-6"
+                          onClick={handleRemoveFavicon}
+                        >
+                          <X className="h-3 w-3" />
+                        </Button>
+                      </div>
+                    ) : (
+                      <div className="flex h-12 w-12 items-center justify-center rounded-lg border-2 border-dashed border-muted-foreground/25 bg-muted/50">
+                        <Upload className="h-5 w-5 text-muted-foreground" />
+                      </div>
+                    )}
+                    <div className="flex-1 space-y-2">
+                      <input
+                        type="file"
+                        ref={faviconFileInputRef}
+                        onChange={(e) => handleLogoUpload(e, "favicon")}
+                        accept="image/png,image/x-icon,image/svg+xml"
+                        className="hidden"
+                      />
+                      <Button
+                        variant="outline"
+                        onClick={() => faviconFileInputRef.current?.click()}
+                        disabled={isUploadingFavicon}
+                      >
+                        {isUploadingFavicon ? (
+                          <>
+                            <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                            Uploading...
+                          </>
+                        ) : (
+                          <>
+                            <Upload className="mr-2 h-4 w-4" />
+                            Upload Favicon
+                          </>
+                        )}
+                      </Button>
+                      <p className="text-xs text-muted-foreground">
+                        PNG, ICO or SVG. Max 2MB.
                       </p>
                     </div>
                   </div>
