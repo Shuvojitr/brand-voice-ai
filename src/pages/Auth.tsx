@@ -256,6 +256,24 @@ export default function Auth() {
               ))}
             </div>
           </div>
+          
+          {/* Testimonial */}
+          <div className="space-y-4">
+            <div className="bg-white/10 backdrop-blur-sm rounded-2xl p-6">
+              <p className="text-white/90 italic">
+                "{siteName} has transformed how we create content. What used to take hours now takes minutes."
+              </p>
+              <div className="mt-4 flex items-center gap-3">
+                <div className="h-10 w-10 rounded-full bg-white/20 flex items-center justify-center font-semibold">
+                  SK
+                </div>
+                <div>
+                  <p className="font-medium">Sarah K.</p>
+                  <p className="text-sm text-white/70">Content Marketing Manager</p>
+                </div>
+              </div>
+            </div>
+          </div>
         </div>
       </div>
       
