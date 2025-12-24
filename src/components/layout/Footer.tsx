@@ -66,7 +66,7 @@ export function Footer() {
   const siteDescription = settings?.site_description || "Generate high-quality marketing content with AI. Create blog posts, social media content, ads, and emails in seconds.";
   const copyrightText = settings?.copyright_text || `© ${currentYear} MyGenAI. All rights reserved.`;
   const siteName = settings?.site_name || "MyGenAI";
-  const logoUrl = settings?.logo_url;
+  const footerLogoUrl = settings?.footer_logo_url;
 
   return (
     <footer className="border-t border-border bg-muted/30">
@@ -75,23 +75,25 @@ export function Footer() {
           {/* Brand Column */}
           <div className="lg:col-span-2">
             <Link to="/" className="flex items-center gap-2">
-              {logoUrl ? (
-                <img src={logoUrl} alt={siteName} className="h-9 w-9 rounded-lg object-contain" />
+              {footerLogoUrl ? (
+                <img src={footerLogoUrl} alt={siteName} className="h-12 w-auto max-w-[200px] object-contain" />
               ) : (
-                <div className="flex h-9 w-9 items-center justify-center rounded-lg gradient-primary">
-                  <Sparkles className="h-5 w-5 text-white" />
-                </div>
+                <>
+                  <div className="flex h-9 w-9 items-center justify-center rounded-lg gradient-primary">
+                    <Sparkles className="h-5 w-5 text-white" />
+                  </div>
+                  <span className="text-xl font-bold tracking-tight">
+                    {siteName.includes("AI") ? (
+                      <>
+                        {siteName.replace("AI", "")}
+                        <span className="gradient-text">AI</span>
+                      </>
+                    ) : (
+                      siteName
+                    )}
+                  </span>
+                </>
               )}
-              <span className="text-xl font-bold tracking-tight">
-                {siteName.includes("AI") ? (
-                  <>
-                    {siteName.replace("AI", "")}
-                    <span className="gradient-text">AI</span>
-                  </>
-                ) : (
-                  siteName
-                )}
-              </span>
             </Link>
             <p className="mt-4 max-w-xs text-sm text-muted-foreground">
               {siteDescription}

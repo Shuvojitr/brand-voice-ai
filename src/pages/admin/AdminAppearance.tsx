@@ -25,13 +25,16 @@ const socialPlatforms = [
 
 export default function AdminAppearance() {
   const { settings, isLoading, updateSettings } = useSiteSettings();
-  const fileInputRef = useRef<HTMLInputElement>(null);
+  const headerFileInputRef = useRef<HTMLInputElement>(null);
+  const footerFileInputRef = useRef<HTMLInputElement>(null);
   
   // General settings
-  const [logoUrl, setLogoUrl] = useState("");
+  const [headerLogoUrl, setHeaderLogoUrl] = useState("");
+  const [footerLogoUrl, setFooterLogoUrl] = useState("");
   const [siteName, setSiteName] = useState("");
   const [siteDescription, setSiteDescription] = useState("");
-  const [isUploading, setIsUploading] = useState(false);
+  const [isUploadingHeader, setIsUploadingHeader] = useState(false);
+  const [isUploadingFooter, setIsUploadingFooter] = useState(false);
   
   // Header nav
   const [headerNav, setHeaderNav] = useState<NavLink[]>([]);
@@ -46,7 +49,8 @@ export default function AdminAppearance() {
   // Load settings
   useEffect(() => {
     if (settings) {
-      setLogoUrl(settings.logo_url || "");
+      setHeaderLogoUrl(settings.header_logo_url || "");
+      setFooterLogoUrl(settings.footer_logo_url || "");
       setSiteName(settings.site_name || "");
       setSiteDescription(settings.site_description || "");
       setHeaderNav(settings.header_nav || []);
@@ -56,7 +60,10 @@ export default function AdminAppearance() {
     }
   }, [settings]);
 
-  const handleLogoUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
+  const handleLogoUpload = async (
+    event: React.ChangeEvent<HTMLInputElement>,
+    type: "header" | "footer"
+  ) => {
     const file = event.target.files?.[0];
     if (!file) return;
 
@@ -72,10 +79,15 @@ export default function AdminAppearance() {
       return;
     }
 
-    setIsUploading(true);
+    if (type === "header") {
+      setIsUploadingHeader(true);
+    } else {
+      setIsUploadingFooter(true);
+    }
+
     try {
       const fileExt = file.name.split(".").pop();
-      const fileName = `logo-${Date.now()}.${fileExt}`;
+      const fileName = `${type}-logo-${Date.now()}.${fileExt}`;
       const filePath = `logos/${fileName}`;
 
       const { error: uploadError } = await supabase.storage
@@ -88,22 +100,36 @@ export default function AdminAppearance() {
         .from("site-assets")
         .getPublicUrl(filePath);
 
-      setLogoUrl(publicUrl);
-      toast.success("Logo uploaded successfully");
+      if (type === "header") {
+        setHeaderLogoUrl(publicUrl);
+      } else {
+        setFooterLogoUrl(publicUrl);
+      }
+      toast.success(`${type === "header" ? "Header" : "Footer"} logo uploaded successfully`);
     } catch (error: any) {
       toast.error(error.message || "Failed to upload logo");
     } finally {
-      setIsUploading(false);
+      if (type === "header") {
+        setIsUploadingHeader(false);
+      } else {
+        setIsUploadingFooter(false);
+      }
     }
   };
 
-  const handleRemoveLogo = () => {
-    setLogoUrl("");
+  const handleRemoveHeaderLogo = () => {
+    setHeaderLogoUrl("");
+  };
+
+  const handleRemoveFooterLogo = () => {
+    setFooterLogoUrl("");
   };
 
   const handleSave = () => {
     updateSettings.mutate({
-      logo_url: logoUrl || null,
+      logo_url: headerLogoUrl || footerLogoUrl || null,
+      header_logo_url: headerLogoUrl || null,
+      footer_logo_url: footerLogoUrl || null,
       site_name: siteName,
       site_description: siteDescription || null,
       header_nav: headerNav,
@@ -232,45 +258,49 @@ export default function AdminAppearance() {
                 <CardTitle>General Settings</CardTitle>
                 <CardDescription>Configure your site's basic branding</CardDescription>
               </CardHeader>
-              <CardContent className="space-y-4">
+              <CardContent className="space-y-6">
+                {/* Header Logo */}
                 <div className="space-y-2">
-                  <Label>Logo</Label>
+                  <Label>Header Logo</Label>
+                  <p className="text-xs text-muted-foreground mb-2">
+                    Displayed in the navigation bar. When set, the site name text will be hidden.
+                  </p>
                   <div className="flex items-start gap-4">
-                    {logoUrl ? (
+                    {headerLogoUrl ? (
                       <div className="relative">
                         <img 
-                          src={logoUrl} 
-                          alt="Site logo" 
-                          className="h-16 w-16 rounded-lg object-contain border bg-background"
+                          src={headerLogoUrl} 
+                          alt="Header logo" 
+                          className="h-16 w-auto max-w-[200px] rounded-lg object-contain border bg-background p-2"
                         />
                         <Button
                           variant="destructive"
                           size="icon"
                           className="absolute -top-2 -right-2 h-6 w-6"
-                          onClick={handleRemoveLogo}
+                          onClick={handleRemoveHeaderLogo}
                         >
                           <X className="h-3 w-3" />
                         </Button>
                       </div>
                     ) : (
-                      <div className="flex h-16 w-16 items-center justify-center rounded-lg border-2 border-dashed border-muted-foreground/25 bg-muted/50">
+                      <div className="flex h-16 w-24 items-center justify-center rounded-lg border-2 border-dashed border-muted-foreground/25 bg-muted/50">
                         <Upload className="h-6 w-6 text-muted-foreground" />
                       </div>
                     )}
                     <div className="flex-1 space-y-2">
                       <input
                         type="file"
-                        ref={fileInputRef}
-                        onChange={handleLogoUpload}
+                        ref={headerFileInputRef}
+                        onChange={(e) => handleLogoUpload(e, "header")}
                         accept="image/*"
                         className="hidden"
                       />
                       <Button
                         variant="outline"
-                        onClick={() => fileInputRef.current?.click()}
-                        disabled={isUploading}
+                        onClick={() => headerFileInputRef.current?.click()}
+                        disabled={isUploadingHeader}
                       >
-                        {isUploading ? (
+                        {isUploadingHeader ? (
                           <>
                             <Loader2 className="mr-2 h-4 w-4 animate-spin" />
                             Uploading...
@@ -278,12 +308,72 @@ export default function AdminAppearance() {
                         ) : (
                           <>
                             <Upload className="mr-2 h-4 w-4" />
-                            Upload Logo
+                            Upload Header Logo
                           </>
                         )}
                       </Button>
                       <p className="text-xs text-muted-foreground">
-                        PNG, JPG or SVG. Max 2MB.
+                        Recommended: PNG or SVG with transparent background. Max 2MB.
+                      </p>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Footer Logo */}
+                <div className="space-y-2">
+                  <Label>Footer Logo</Label>
+                  <p className="text-xs text-muted-foreground mb-2">
+                    Displayed in the footer. When set, the site name text will be hidden.
+                  </p>
+                  <div className="flex items-start gap-4">
+                    {footerLogoUrl ? (
+                      <div className="relative">
+                        <img 
+                          src={footerLogoUrl} 
+                          alt="Footer logo" 
+                          className="h-16 w-auto max-w-[200px] rounded-lg object-contain border bg-background p-2"
+                        />
+                        <Button
+                          variant="destructive"
+                          size="icon"
+                          className="absolute -top-2 -right-2 h-6 w-6"
+                          onClick={handleRemoveFooterLogo}
+                        >
+                          <X className="h-3 w-3" />
+                        </Button>
+                      </div>
+                    ) : (
+                      <div className="flex h-16 w-24 items-center justify-center rounded-lg border-2 border-dashed border-muted-foreground/25 bg-muted/50">
+                        <Upload className="h-6 w-6 text-muted-foreground" />
+                      </div>
+                    )}
+                    <div className="flex-1 space-y-2">
+                      <input
+                        type="file"
+                        ref={footerFileInputRef}
+                        onChange={(e) => handleLogoUpload(e, "footer")}
+                        accept="image/*"
+                        className="hidden"
+                      />
+                      <Button
+                        variant="outline"
+                        onClick={() => footerFileInputRef.current?.click()}
+                        disabled={isUploadingFooter}
+                      >
+                        {isUploadingFooter ? (
+                          <>
+                            <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                            Uploading...
+                          </>
+                        ) : (
+                          <>
+                            <Upload className="mr-2 h-4 w-4" />
+                            Upload Footer Logo
+                          </>
+                        )}
+                      </Button>
+                      <p className="text-xs text-muted-foreground">
+                        Recommended: PNG or SVG with transparent background. Max 2MB.
                       </p>
                     </div>
                   </div>
