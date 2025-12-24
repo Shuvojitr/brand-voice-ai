@@ -40,7 +40,7 @@ export function FAQSection() {
   }
 
   return (
-    <section className="py-20 md:py-28 border-t border-border">
+    <section id="faq" className="py-20 md:py-28 border-t border-border">
       <div className="container">
         <div className="mx-auto max-w-5xl">
           <div className="grid gap-12 lg:grid-cols-[1fr_320px] items-start">

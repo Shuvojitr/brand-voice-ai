@@ -25,8 +25,8 @@ import { useSiteSettings } from "@/hooks/useSiteSettings";
 
 const defaultPublicNavLinks = [
   { href: "/", label: "Home" },
-  { href: "/templates", label: "Templates" },
-  { href: "/pricing", label: "Pricing" },
+  { href: "#templates", label: "Templates" },
+  { href: "#pricing", label: "Pricing" },
 ];
 
 const features = [
@@ -140,13 +140,22 @@ export default function Index() {
           </Link>
           <nav className="hidden items-center gap-6 md:flex">
             {publicNavLinks.map((link) => (
-              <Link 
+              <a 
                 key={link.href} 
-                to={link.href} 
+                href={link.href} 
                 className="text-sm font-medium text-muted-foreground transition-colors hover:text-foreground"
+                onClick={(e) => {
+                  if (link.href.startsWith('#')) {
+                    e.preventDefault();
+                    const element = document.getElementById(link.href.slice(1));
+                    if (element) {
+                      element.scrollIntoView({ behavior: 'smooth' });
+                    }
+                  }
+                }}
               >
                 {link.label}
-              </Link>
+              </a>
             ))}
           </nav>
           <div className="flex items-center gap-3">
@@ -184,8 +193,18 @@ export default function Index() {
                   <ArrowRight className="ml-2 h-4 w-4" />
                 </Link>
               </Button>
-              <Button size="lg" variant="outline" className="h-12 px-8 text-base" asChild>
-                <Link to="#pricing">View Pricing</Link>
+              <Button 
+                size="lg" 
+                variant="outline" 
+                className="h-12 px-8 text-base"
+                onClick={() => {
+                  const element = document.getElementById('pricing');
+                  if (element) {
+                    element.scrollIntoView({ behavior: 'smooth' });
+                  }
+                }}
+              >
+                View Pricing
               </Button>
             </div>
             <p className="mt-4 text-sm text-muted-foreground animate-fade-in" style={{ animationDelay: "0.3s" }}>
@@ -233,7 +252,7 @@ export default function Index() {
       <UseCasesSection />
 
       {/* Features Grid */}
-      <section className="border-t border-border bg-muted/30 py-20 md:py-28">
+      <section id="features" className="border-t border-border bg-muted/30 py-20 md:py-28">
         <div className="container">
           <div className="mx-auto max-w-2xl text-center mb-12 md:mb-16">
             <Badge variant="outline" className="mb-4">Features</Badge>
@@ -270,7 +289,9 @@ export default function Index() {
       </section>
 
       {/* Popular Templates Section */}
-      <PopularTemplatesSection />
+      <section id="templates">
+        <PopularTemplatesSection />
+      </section>
 
       {/* How it Works */}
       <section className="py-20 md:py-28">
