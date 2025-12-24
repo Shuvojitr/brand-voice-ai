@@ -219,18 +219,20 @@ export default function Auth() {
         />
         
         {/* Content */}
-        <div className="relative z-10 flex flex-col justify-between p-12 xl:p-16 text-white">
+        <div className="relative z-10 flex flex-col items-center justify-center h-full p-12 xl:p-16 text-white text-center">
           {/* Logo */}
-          <BrandLogo 
-            variant="header" 
-            height="h-12" 
-            linkTo="/" 
-            inverted 
-            textClassName="text-2xl"
-          />
+          <div className="mb-12">
+            <BrandLogo 
+              variant="header" 
+              height="h-12" 
+              linkTo="/" 
+              inverted 
+              textClassName="text-2xl"
+            />
+          </div>
           
           {/* Main Content */}
-          <div className="space-y-8">
+          <div className="space-y-8 max-w-lg">
             <div className="space-y-4">
               <h1 className="text-4xl xl:text-5xl font-bold leading-tight">
                 {isLogin 
@@ -247,33 +249,16 @@ export default function Auth() {
             </div>
             
             {/* Features */}
-            <div className="space-y-3">
+            <div className="space-y-3 inline-block text-left">
               {features.map((feature, index) => (
                 <div key={index} className="flex items-center gap-3">
-                  <CheckCircle2 className="h-5 w-5 text-white/90" />
+                  <CheckCircle2 className="h-5 w-5 text-white/90 flex-shrink-0" />
                   <span className="text-white/90">{feature}</span>
                 </div>
               ))}
             </div>
           </div>
           
-          {/* Testimonial */}
-          <div className="space-y-4">
-            <div className="bg-white/10 backdrop-blur-sm rounded-2xl p-6">
-              <p className="text-white/90 italic">
-                "{siteName} has transformed how we create content. What used to take hours now takes minutes."
-              </p>
-              <div className="mt-4 flex items-center gap-3">
-                <div className="h-10 w-10 rounded-full bg-white/20 flex items-center justify-center font-semibold">
-                  SK
-                </div>
-                <div>
-                  <p className="font-medium">Sarah K.</p>
-                  <p className="text-sm text-white/70">Content Marketing Manager</p>
-                </div>
-              </div>
-            </div>
-          </div>
         </div>
       </div>
       
