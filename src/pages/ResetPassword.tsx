@@ -5,8 +5,10 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useToast } from "@/hooks/use-toast";
-import { Sparkles, Lock, Loader2, Eye, EyeOff, CheckCircle2, ArrowRight, ArrowLeft } from "lucide-react";
+import { Lock, Loader2, Eye, EyeOff, CheckCircle2, ArrowRight } from "lucide-react";
 import { z } from "zod";
+import { BrandLogo } from "@/components/BrandLogo";
+import { useSiteSettings } from "@/hooks/useSiteSettings";
 
 const passwordSchema = z.object({
   password: z.string().min(6, "Password must be at least 6 characters"),
@@ -19,6 +21,7 @@ const passwordSchema = z.object({
 export default function ResetPassword() {
   const navigate = useNavigate();
   const { toast } = useToast();
+  const { settings } = useSiteSettings();
   
   const [isLoading, setIsLoading] = useState(false);
   const [isSuccess, setIsSuccess] = useState(false);
@@ -27,6 +30,8 @@ export default function ResetPassword() {
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
   const [errors, setErrors] = useState<Record<string, string>>({});
+  
+  const siteName = settings?.site_name || "MyGenAI";
 
   // Check if we have a valid session (from the reset link)
   useEffect(() => {
@@ -140,14 +145,13 @@ export default function ResetPassword() {
         {/* Content */}
         <div className="relative z-10 flex flex-col justify-between p-12 xl:p-16 text-white">
           {/* Logo */}
-          <Link to="/" className="flex items-center gap-3">
-            <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-white/20 backdrop-blur-sm">
-              <Sparkles className="h-7 w-7 text-white" />
-            </div>
-            <span className="text-2xl font-bold tracking-tight">
-              MyGenAI
-            </span>
-          </Link>
+          <BrandLogo 
+            variant="header" 
+            height="h-12" 
+            linkTo="/" 
+            inverted 
+            textClassName="text-2xl"
+          />
           
           {/* Main Content */}
           <div className="space-y-8">
@@ -185,7 +189,7 @@ export default function ResetPassword() {
           {/* Security Note */}
           <div className="bg-white/10 backdrop-blur-sm rounded-2xl p-6">
             <p className="text-white/90">
-              <span className="font-medium">Security note:</span> Never share your password with anyone. MyGenAI will never ask for your password via email or chat.
+              <span className="font-medium">Security note:</span> Never share your password with anyone. {siteName} will never ask for your password via email or chat.
             </p>
           </div>
         </div>
@@ -195,14 +199,13 @@ export default function ResetPassword() {
       <div className="w-full lg:w-1/2 xl:w-[45%] flex items-center justify-center p-6 sm:p-8 lg:p-12 bg-background">
         <div className="w-full max-w-md space-y-8">
           {/* Mobile Logo */}
-          <Link to="/" className="flex lg:hidden items-center justify-center gap-2 mb-4">
-            <div className="flex h-10 w-10 items-center justify-center rounded-lg gradient-primary">
-              <Sparkles className="h-6 w-6 text-white" />
-            </div>
-            <span className="text-2xl font-bold tracking-tight">
-              MyGen<span className="gradient-text">AI</span>
-            </span>
-          </Link>
+          <BrandLogo 
+            variant="header" 
+            height="h-10" 
+            linkTo="/" 
+            className="lg:hidden justify-center mb-4"
+            textClassName="text-2xl"
+          />
 
           {!isSuccess ? (
             <>

@@ -18,13 +18,13 @@ import {
   FileText, 
   History, 
   CreditCard, 
-  Settings, 
-  Sparkles,
+  Settings,
   Mic,
   FolderOpen,
   Shield,
   LifeBuoy
 } from "lucide-react";
+import { BrandLogo } from "@/components/BrandLogo";
 import { Separator } from "@/components/ui/separator";
 import { useOrganization } from "@/hooks/useOrganization";
 import { useAdminRole } from "@/hooks/useAdminRole";
@@ -99,16 +99,12 @@ export function AppSidebar() {
   return (
     <Sidebar collapsible="icon" className="border-r border-border">
       <SidebarHeader className="border-b border-border p-4">
-        <Link to="/dashboard" className="flex items-center gap-2">
-          <div className="flex h-8 w-8 items-center justify-center rounded-lg gradient-primary flex-shrink-0">
-            <Sparkles className="h-4 w-4 text-white" />
-          </div>
-          {!collapsed && (
-            <span className="text-lg font-bold tracking-tight">
-              MyGen<span className="gradient-text">AI</span>
-            </span>
-          )}
-        </Link>
+        <BrandLogo 
+          variant="header" 
+          height="h-8" 
+          linkTo="/dashboard" 
+          showText={!collapsed}
+        />
       </SidebarHeader>
 
       <SidebarContent className="px-2 py-4">

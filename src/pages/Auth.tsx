@@ -6,8 +6,10 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Separator } from "@/components/ui/separator";
 import { useToast } from "@/hooks/use-toast";
-import { Sparkles, Mail, Lock, User, Loader2, Eye, EyeOff, ArrowRight, ArrowLeft, CheckCircle2 } from "lucide-react";
+import { Mail, Lock, User, Loader2, Eye, EyeOff, ArrowRight, ArrowLeft, CheckCircle2 } from "lucide-react";
 import { z } from "zod";
+import { BrandLogo } from "@/components/BrandLogo";
+import { useSiteSettings } from "@/hooks/useSiteSettings";
 
 const loginSchema = z.object({
   email: z.string().trim().email("Please enter a valid email address"),
@@ -22,6 +24,7 @@ export default function Auth() {
   const navigate = useNavigate();
   const location = useLocation();
   const { toast } = useToast();
+  const { settings } = useSiteSettings();
   
   const isLogin = location.pathname === "/login";
   const [isLoading, setIsLoading] = useState(false);
@@ -32,6 +35,8 @@ export default function Auth() {
   const [password, setPassword] = useState("");
   const [fullName, setFullName] = useState("");
   const [errors, setErrors] = useState<Record<string, string>>({});
+  
+  const siteName = settings?.site_name || "MyGenAI";
 
   // Check if user is already logged in
   useEffect(() => {
@@ -141,7 +146,7 @@ export default function Auth() {
 
         toast({
           title: "Account created!",
-          description: "Welcome to MyGenAI. Let's get started!",
+          description: `Welcome to ${siteName}. Let's get started!`,
         });
       }
     } catch (error) {
@@ -216,14 +221,13 @@ export default function Auth() {
         {/* Content */}
         <div className="relative z-10 flex flex-col justify-between p-12 xl:p-16 text-white">
           {/* Logo */}
-          <Link to="/" className="flex items-center gap-3">
-            <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-white/20 backdrop-blur-sm">
-              <Sparkles className="h-7 w-7 text-white" />
-            </div>
-            <span className="text-2xl font-bold tracking-tight">
-              MyGenAI
-            </span>
-          </Link>
+          <BrandLogo 
+            variant="header" 
+            height="h-12" 
+            linkTo="/" 
+            inverted 
+            textClassName="text-2xl"
+          />
           
           {/* Main Content */}
           <div className="space-y-8">
@@ -257,7 +261,7 @@ export default function Auth() {
           <div className="space-y-4">
             <div className="bg-white/10 backdrop-blur-sm rounded-2xl p-6">
               <p className="text-white/90 italic">
-                "MyGenAI has transformed how we create content. What used to take hours now takes minutes."
+                "{siteName} has transformed how we create content. What used to take hours now takes minutes."
               </p>
               <div className="mt-4 flex items-center gap-3">
                 <div className="h-10 w-10 rounded-full bg-white/20 flex items-center justify-center font-semibold">
@@ -285,14 +289,7 @@ export default function Auth() {
               <ArrowLeft className="h-4 w-4" />
               Home
             </Link>
-            <Link to="/" className="flex items-center gap-2">
-              <div className="flex h-10 w-10 items-center justify-center rounded-lg gradient-primary">
-                <Sparkles className="h-6 w-6 text-white" />
-              </div>
-              <span className="text-xl font-bold tracking-tight">
-                MyGen<span className="gradient-text">AI</span>
-              </span>
-            </Link>
+            <BrandLogo variant="header" height="h-10" linkTo="/" />
           </div>
 
           {/* Header */}
