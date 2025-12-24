@@ -142,7 +142,7 @@ export default function Index() {
   };
 
   return (
-    <div className="min-h-screen bg-background overflow-hidden">
+    <div className="min-h-screen bg-background">
       {/* Floating background shapes */}
       <div className="fixed inset-0 -z-10 overflow-hidden">
         <div className="floating-shape floating-shape-1" />
