@@ -65,10 +65,10 @@ export default {
           border: "hsl(var(--sidebar-border))",
           ring: "hsl(var(--sidebar-ring))",
         },
-        coral: "hsl(var(--coral))",
-        violet: "hsl(var(--violet))",
+        emerald: "hsl(var(--emerald))",
+        teal: "hsl(var(--teal))",
         cyan: "hsl(var(--cyan))",
-        lime: "hsl(var(--lime))",
+        blue: "hsl(var(--blue))",
       },
       fontFamily: {
         sans: ["Outfit", "system-ui", "-apple-system", "sans-serif"],
@@ -83,9 +83,9 @@ export default {
       },
       boxShadow: {
         glow: "var(--shadow-glow)",
-        "glow-cyan": "var(--shadow-glow-cyan)",
-        soft: "0 2px 15px -3px rgba(0, 0, 0, 0.07), 0 10px 20px -2px rgba(0, 0, 0, 0.04)",
-        dreamy: "0 25px 50px -12px rgba(0, 0, 0, 0.15)",
+        "glow-teal": "var(--shadow-glow-teal)",
+        soft: "0 2px 15px -3px rgba(0, 0, 0, 0.05), 0 10px 20px -2px rgba(0, 0, 0, 0.03)",
+        dreamy: "0 25px 50px -12px rgba(0, 0, 0, 0.1)",
       },
       keyframes: {
         "accordion-down": {
