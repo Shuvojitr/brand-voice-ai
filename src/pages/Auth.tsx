@@ -219,20 +219,18 @@ export default function Auth() {
         />
         
         {/* Content */}
-        <div className="relative z-10 flex flex-col items-center justify-center h-full p-12 xl:p-16 text-white text-center">
+        <div className="relative z-10 flex flex-col justify-between p-12 xl:p-16 text-white">
           {/* Logo */}
-          <div className="mb-12">
-            <BrandLogo 
-              variant="header" 
-              height="h-12" 
-              linkTo="/" 
-              inverted 
-              textClassName="text-2xl"
-            />
-          </div>
+          <BrandLogo 
+            variant="header" 
+            height="h-12" 
+            linkTo="/" 
+            inverted 
+            textClassName="text-2xl"
+          />
           
           {/* Main Content */}
-          <div className="space-y-8 max-w-lg">
+          <div className="space-y-8">
             <div className="space-y-4">
               <h1 className="text-4xl xl:text-5xl font-bold leading-tight">
                 {isLogin 
@@ -249,16 +247,15 @@ export default function Auth() {
             </div>
             
             {/* Features */}
-            <div className="space-y-3 inline-block text-left">
+            <div className="space-y-3">
               {features.map((feature, index) => (
                 <div key={index} className="flex items-center gap-3">
-                  <CheckCircle2 className="h-5 w-5 text-white/90 flex-shrink-0" />
+                  <CheckCircle2 className="h-5 w-5 text-white/90" />
                   <span className="text-white/90">{feature}</span>
                 </div>
               ))}
             </div>
           </div>
-          
         </div>
       </div>
       
