@@ -1,7 +1,8 @@
 import { Link } from "react-router-dom";
-import { Sparkles, Twitter, Linkedin, Github, Mail, Facebook, Instagram, Youtube } from "lucide-react";
+import { Twitter, Linkedin, Github, Mail, Facebook, Instagram, Youtube } from "lucide-react";
 import { Separator } from "@/components/ui/separator";
 import { useSiteSettings, SocialLink } from "@/hooks/useSiteSettings";
+import { BrandLogo } from "@/components/BrandLogo";
 
 const socialIconMap: Record<string, React.FC<{ className?: string }>> = {
   twitter: Twitter,
@@ -74,27 +75,7 @@ export function Footer() {
         <div className="grid gap-6 md:gap-8 lg:grid-cols-6">
           {/* Brand Column - Full width on mobile, then responsive */}
           <div className="lg:col-span-2">
-            <Link to="/" className="flex items-center gap-2">
-              {footerLogoUrl ? (
-                <img src={footerLogoUrl} alt={siteName} className="h-10 md:h-12 w-auto max-w-[180px] md:max-w-[200px] object-contain" />
-              ) : (
-                <>
-                  <div className="flex h-8 w-8 md:h-9 md:w-9 items-center justify-center rounded-lg gradient-primary">
-                    <Sparkles className="h-4 w-4 md:h-5 md:w-5 text-white" />
-                  </div>
-                  <span className="text-lg md:text-xl font-bold tracking-tight">
-                    {siteName.includes("AI") ? (
-                      <>
-                        {siteName.replace("AI", "")}
-                        <span className="gradient-text">AI</span>
-                      </>
-                    ) : (
-                      siteName
-                    )}
-                  </span>
-                </>
-              )}
-            </Link>
+            <BrandLogo variant="footer" height="h-10 md:h-12" linkTo="/" />
             <p className="mt-3 md:mt-4 max-w-xs text-sm md:text-sm text-muted-foreground">
               {siteDescription}
             </p>

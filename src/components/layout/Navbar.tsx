@@ -13,7 +13,6 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import {
   Menu,
-  Sparkles,
   FileText,
   Mic,
   CreditCard,
@@ -21,9 +20,11 @@ import {
   LogOut,
   User,
   ChevronDown,
+  Sparkles,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useSiteSettings } from "@/hooks/useSiteSettings";
+import { BrandLogo } from "@/components/BrandLogo";
 
 interface NavbarProps {
   isAuthenticated?: boolean;
@@ -93,31 +94,7 @@ export function Navbar({ isAuthenticated = false, user, credits = 0, onLogout }:
     <header className="sticky top-0 z-50 w-full border-b border-border/40 bg-background/80 backdrop-blur-lg">
       <nav className="container flex h-16 items-center justify-between">
         {/* Logo */}
-        <Link to="/" className="flex items-center gap-2">
-          {settings?.header_logo_url ? (
-            <img 
-              src={settings.header_logo_url} 
-              alt={siteName} 
-              className="h-10 w-auto max-w-[200px] object-contain" 
-            />
-          ) : (
-            <>
-              <div className="flex h-9 w-9 items-center justify-center rounded-lg gradient-primary">
-                <Sparkles className="h-5 w-5 text-white" />
-              </div>
-              <span className="text-xl font-bold tracking-tight">
-                {siteName.includes("AI") ? (
-                  <>
-                    {siteName.replace("AI", "")}
-                    <span className="gradient-text">AI</span>
-                  </>
-                ) : (
-                  siteName
-                )}
-              </span>
-            </>
-          )}
-        </Link>
+        <BrandLogo variant="header" height="h-10" linkTo="/" />
 
         {/* Desktop Navigation */}
         <div className="hidden items-center gap-1 md:flex">

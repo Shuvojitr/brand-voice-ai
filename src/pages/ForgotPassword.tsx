@@ -5,8 +5,10 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useToast } from "@/hooks/use-toast";
-import { Sparkles, Mail, Loader2, ArrowLeft, CheckCircle2 } from "lucide-react";
+import { Mail, Loader2, ArrowLeft, CheckCircle2 } from "lucide-react";
 import { z } from "zod";
+import { BrandLogo } from "@/components/BrandLogo";
+import { useSiteSettings } from "@/hooks/useSiteSettings";
 
 const emailSchema = z.object({
   email: z.string().trim().email("Please enter a valid email address"),
@@ -14,11 +16,14 @@ const emailSchema = z.object({
 
 export default function ForgotPassword() {
   const { toast } = useToast();
+  const { settings } = useSiteSettings();
   
   const [isLoading, setIsLoading] = useState(false);
   const [isSuccess, setIsSuccess] = useState(false);
   const [email, setEmail] = useState("");
   const [error, setError] = useState("");
+  
+  const siteName = settings?.site_name || "MyGenAI";
 
   const validateForm = () => {
     try {
@@ -95,14 +100,13 @@ export default function ForgotPassword() {
         {/* Content */}
         <div className="relative z-10 flex flex-col justify-between p-12 xl:p-16 text-white">
           {/* Logo */}
-          <Link to="/" className="flex items-center gap-3">
-            <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-white/20 backdrop-blur-sm">
-              <Sparkles className="h-7 w-7 text-white" />
-            </div>
-            <span className="text-2xl font-bold tracking-tight">
-              MyGenAI
-            </span>
-          </Link>
+          <BrandLogo 
+            variant="header" 
+            height="h-12" 
+            linkTo="/" 
+            inverted 
+            textClassName="text-2xl"
+          />
           
           {/* Main Content */}
           <div className="space-y-8">
@@ -151,8 +155,8 @@ export default function ForgotPassword() {
           <div className="bg-white/10 backdrop-blur-sm rounded-2xl p-6">
             <p className="text-white/90">
               Still having trouble? Contact our support team at{" "}
-              <a href="mailto:support@mygenai.com" className="font-medium underline">
-                support@mygenai.com
+              <a href={`mailto:support@${siteName.toLowerCase().replace(/\s/g, '')}.com`} className="font-medium underline">
+                support@{siteName.toLowerCase().replace(/\s/g, '')}.com
               </a>
             </p>
           </div>
@@ -163,14 +167,13 @@ export default function ForgotPassword() {
       <div className="w-full lg:w-1/2 xl:w-[45%] flex items-center justify-center p-6 sm:p-8 lg:p-12 bg-background">
         <div className="w-full max-w-md space-y-8">
           {/* Mobile Logo */}
-          <Link to="/" className="flex lg:hidden items-center justify-center gap-2 mb-4">
-            <div className="flex h-10 w-10 items-center justify-center rounded-lg gradient-primary">
-              <Sparkles className="h-6 w-6 text-white" />
-            </div>
-            <span className="text-2xl font-bold tracking-tight">
-              MyGen<span className="gradient-text">AI</span>
-            </span>
-          </Link>
+          <BrandLogo 
+            variant="header" 
+            height="h-10" 
+            linkTo="/" 
+            className="lg:hidden justify-center mb-4"
+            textClassName="text-2xl"
+          />
 
           {/* Back to Login */}
           <Link 
