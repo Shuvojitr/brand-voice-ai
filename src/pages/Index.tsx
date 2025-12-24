@@ -124,19 +124,30 @@ export default function Index() {
       <header className="sticky top-0 z-50 border-b border-border bg-background/80 backdrop-blur-md">
         <div className="container flex h-16 items-center justify-between">
           <Link to="/" className="flex items-center gap-2">
-            <div className="flex h-9 w-9 items-center justify-center rounded-lg gradient-primary">
-              <Sparkles className="h-5 w-5 text-white" />
-            </div>
-            <span className="text-xl font-bold tracking-tight">
-              {siteName.includes("AI") ? (
-                <>
-                  {siteName.replace("AI", "")}
-                  <span className="gradient-text">AI</span>
-                </>
-              ) : (
-                siteName
-              )}
-            </span>
+            {settings?.header_logo_url ? (
+              <img
+                src={settings.header_logo_url}
+                alt={siteName}
+                className="h-10 w-auto max-w-[200px] object-contain"
+                loading="eager"
+              />
+            ) : (
+              <>
+                <div className="flex h-9 w-9 items-center justify-center rounded-lg gradient-primary">
+                  <Sparkles className="h-5 w-5 text-white" />
+                </div>
+                <span className="text-xl font-bold tracking-tight">
+                  {siteName.includes("AI") ? (
+                    <>
+                      {siteName.replace("AI", "")}
+                      <span className="gradient-text">AI</span>
+                    </>
+                  ) : (
+                    siteName
+                  )}
+                </span>
+              </>
+            )}
           </Link>
           <nav className="hidden items-center gap-6 md:flex">
             {publicNavLinks.map((link) => (
