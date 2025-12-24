@@ -31,6 +31,8 @@ import AdminFaqs from "./pages/admin/AdminFaqs";
 import AdminPlans from "./pages/admin/AdminPlans";
 import AdminAppearance from "./pages/admin/AdminAppearance";
 import AdminSettings from "./pages/admin/AdminSettings";
+import AdminThemes from "./pages/admin/AdminThemes";
+import { ThemeProvider } from "@/components/ThemeProvider";
 
 const queryClient = new QueryClient();
 
@@ -67,6 +69,7 @@ function AppContent() {
         <Route path="/admin/faqs" element={<AdminFaqs />} />
         <Route path="/admin/plans" element={<AdminPlans />} />
         <Route path="/admin/appearance" element={<AdminAppearance />} />
+        <Route path="/admin/themes" element={<AdminThemes />} />
         <Route path="/admin/settings" element={<AdminSettings />} />
         {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
         <Route path="*" element={<NotFound />} />
@@ -77,11 +80,13 @@ function AppContent() {
 
 const App = () => (
   <QueryClientProvider client={queryClient}>
-    <TooltipProvider>
-      <Toaster />
-      <Sonner />
-      <AppContent />
-    </TooltipProvider>
+    <ThemeProvider>
+      <TooltipProvider>
+        <Toaster />
+        <Sonner />
+        <AppContent />
+      </TooltipProvider>
+    </ThemeProvider>
   </QueryClientProvider>
 );
 
