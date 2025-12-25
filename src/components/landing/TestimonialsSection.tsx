@@ -12,27 +12,40 @@ function TestimonialCard({ testimonial }: { testimonial: Testimonial }) {
     .slice(0, 2);
 
   return (
-    <div className="flex-shrink-0 w-[350px] p-6 rounded-xl border border-border bg-card/50 backdrop-blur">
-      <div className="flex gap-1 mb-4">
-        {Array.from({ length: testimonial.rating || 5 }).map((_, i) => (
-          <Star key={i} className="h-4 w-4 fill-warning text-warning" />
-        ))}
-      </div>
-      <p className="text-foreground/90 mb-6 leading-relaxed">
-        "{testimonial.review_text}"
-      </p>
-      <div className="flex items-center gap-3">
-        <Avatar className="h-10 w-10">
-          <AvatarImage src={testimonial.user_avatar || undefined} alt={testimonial.user_name} />
-          <AvatarFallback className="bg-primary/10 text-primary text-sm font-medium">
-            {initials}
-          </AvatarFallback>
-        </Avatar>
-        <div>
-          <p className="font-medium text-sm">{testimonial.user_name}</p>
-          {testimonial.user_role && (
-            <p className="text-xs text-muted-foreground">{testimonial.user_role}</p>
-          )}
+    <div className="group relative flex-shrink-0 w-[350px] p-6 rounded-2xl overflow-hidden transition-all duration-300 hover:scale-[1.02] hover:-translate-y-1">
+      {/* Glassmorphism background */}
+      <div className="absolute inset-0 bg-gradient-to-br from-background/80 via-card/60 to-background/40 backdrop-blur-xl" />
+      
+      {/* Subtle gradient overlay */}
+      <div className="absolute inset-0 bg-gradient-to-br from-primary/5 via-transparent to-accent/5 opacity-60 group-hover:opacity-100 transition-opacity duration-300" />
+      
+      {/* Animated border glow */}
+      <div className="absolute inset-0 rounded-2xl border border-border/50 group-hover:border-primary/30 transition-colors duration-300" />
+      <div className="absolute inset-0 rounded-2xl shadow-[inset_0_1px_1px_rgba(255,255,255,0.1)]" />
+      
+      {/* Content */}
+      <div className="relative z-10">
+        <div className="flex gap-1 mb-4">
+          {Array.from({ length: testimonial.rating || 5 }).map((_, i) => (
+            <Star key={i} className="h-4 w-4 fill-warning text-warning drop-shadow-[0_0_3px_hsl(var(--warning)/0.5)]" />
+          ))}
+        </div>
+        <p className="text-foreground/90 mb-6 leading-relaxed">
+          "{testimonial.review_text}"
+        </p>
+        <div className="flex items-center gap-3">
+          <Avatar className="h-10 w-10 ring-2 ring-primary/20 ring-offset-2 ring-offset-background">
+            <AvatarImage src={testimonial.user_avatar || undefined} alt={testimonial.user_name} />
+            <AvatarFallback className="bg-gradient-to-br from-primary/20 to-accent/20 text-primary text-sm font-medium">
+              {initials}
+            </AvatarFallback>
+          </Avatar>
+          <div>
+            <p className="font-medium text-sm">{testimonial.user_name}</p>
+            {testimonial.user_role && (
+              <p className="text-xs text-muted-foreground">{testimonial.user_role}</p>
+            )}
+          </div>
         </div>
       </div>
     </div>
