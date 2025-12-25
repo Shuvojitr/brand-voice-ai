@@ -32,6 +32,7 @@ export interface SiteSettings {
   social_links: SocialLink[];
   copyright_text: string | null;
   bottom_tagline: string | null;
+  is_api_feature_enabled: boolean;
   created_at: string;
   updated_at: string;
 }
@@ -69,6 +70,7 @@ export function useSiteSettings() {
         social_links: (rawData.social_links as SocialLink[]) || [],
         copyright_text: rawData.copyright_text,
         bottom_tagline: rawData.bottom_tagline,
+        is_api_feature_enabled: rawData.is_api_feature_enabled ?? true,
         created_at: rawData.created_at,
         updated_at: rawData.updated_at,
       } as SiteSettings;
@@ -82,22 +84,26 @@ export function useSiteSettings() {
         throw new Error("No settings found to update");
       }
 
+      const updatePayload: Record<string, any> = {
+        updated_at: new Date().toISOString(),
+      };
+
+      if (updates.logo_url !== undefined) updatePayload.logo_url = updates.logo_url;
+      if (updates.header_logo_url !== undefined) updatePayload.header_logo_url = updates.header_logo_url;
+      if (updates.footer_logo_url !== undefined) updatePayload.footer_logo_url = updates.footer_logo_url;
+      if (updates.favicon_url !== undefined) updatePayload.favicon_url = updates.favicon_url;
+      if (updates.site_name !== undefined) updatePayload.site_name = updates.site_name;
+      if (updates.site_description !== undefined) updatePayload.site_description = updates.site_description;
+      if (updates.header_nav !== undefined) updatePayload.header_nav = updates.header_nav as unknown as Json;
+      if (updates.footer_nav !== undefined) updatePayload.footer_nav = updates.footer_nav as unknown as Json;
+      if (updates.social_links !== undefined) updatePayload.social_links = updates.social_links as unknown as Json;
+      if (updates.copyright_text !== undefined) updatePayload.copyright_text = updates.copyright_text;
+      if (updates.bottom_tagline !== undefined) updatePayload.bottom_tagline = updates.bottom_tagline;
+      if (updates.is_api_feature_enabled !== undefined) updatePayload.is_api_feature_enabled = updates.is_api_feature_enabled;
+
       const { data, error } = await supabase
         .from("site_settings")
-        .update({
-          logo_url: updates.logo_url,
-          header_logo_url: updates.header_logo_url,
-          footer_logo_url: updates.footer_logo_url,
-          favicon_url: updates.favicon_url,
-          site_name: updates.site_name,
-          site_description: updates.site_description,
-          header_nav: updates.header_nav as unknown as Json,
-          footer_nav: updates.footer_nav as unknown as Json,
-          social_links: updates.social_links as unknown as Json,
-          copyright_text: updates.copyright_text,
-          bottom_tagline: updates.bottom_tagline,
-          updated_at: new Date().toISOString(),
-        })
+        .update(updatePayload)
         .eq("id", settings.id)
         .select()
         .single();

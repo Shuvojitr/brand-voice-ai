@@ -498,6 +498,7 @@ export type Database = {
           header_logo_url: string | null
           header_nav: Json
           id: string
+          is_api_feature_enabled: boolean
           logo_url: string | null
           site_description: string | null
           site_name: string
@@ -514,6 +515,7 @@ export type Database = {
           header_logo_url?: string | null
           header_nav?: Json
           id?: string
+          is_api_feature_enabled?: boolean
           logo_url?: string | null
           site_description?: string | null
           site_name?: string
@@ -530,6 +532,7 @@ export type Database = {
           header_logo_url?: string | null
           header_nav?: Json
           id?: string
+          is_api_feature_enabled?: boolean
           logo_url?: string | null
           site_description?: string | null
           site_name?: string
