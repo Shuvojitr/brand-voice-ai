@@ -30,6 +30,29 @@ serve(async (req) => {
       );
     }
 
+    // Create Supabase client with service role for database operations
+    const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
+    const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
+    const supabase = createClient(supabaseUrl, supabaseServiceKey);
+
+    // Check if API feature is enabled
+    const { data: siteSettings, error: settingsError } = await supabase
+      .from('site_settings')
+      .select('is_api_feature_enabled')
+      .limit(1)
+      .maybeSingle();
+
+    if (settingsError) {
+      console.error('Error fetching site settings:', settingsError);
+    }
+
+    if (siteSettings && siteSettings.is_api_feature_enabled === false) {
+      return new Response(
+        JSON.stringify({ error: 'API is currently disabled by admin' }),
+        { status: 503, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+
     // Extract API key from Authorization header
     const authHeader = req.headers.get('Authorization');
     if (!authHeader || !authHeader.startsWith('Bearer ')) {
@@ -49,11 +72,6 @@ serve(async (req) => {
 
     // Hash the API key to look it up
     const keyHash = await hashKey(apiKey);
-
-    // Create Supabase client with service role for database operations
-    const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
-    const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
-    const supabase = createClient(supabaseUrl, supabaseServiceKey);
 
     // Look up the API key
     const { data: apiKeyRecord, error: keyError } = await supabase

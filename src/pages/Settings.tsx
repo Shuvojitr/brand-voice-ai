@@ -2,11 +2,15 @@ import { DashboardLayout } from "@/components/dashboard";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { ProfileTab, TeamTab, ApiTab, BrandVoiceManager } from "@/components/settings";
 import { useOrganization } from "@/hooks/useOrganization";
+import { useSiteSettings } from "@/hooks/useSiteSettings";
 import { Skeleton } from "@/components/ui/skeleton";
 import { User, Users, Sparkles, Key } from "lucide-react";
 
 export default function Settings() {
   const { organization, isLoading } = useOrganization();
+  const { settings: siteSettings, isLoading: isSettingsLoading } = useSiteSettings();
+
+  const isApiEnabled = siteSettings?.is_api_feature_enabled ?? true;
 
   return (
     <DashboardLayout>
@@ -18,7 +22,7 @@ export default function Settings() {
           </p>
         </div>
 
-        {isLoading ? (
+        {isLoading || isSettingsLoading ? (
           <div className="space-y-4">
             <Skeleton className="h-10 w-80" />
             <Skeleton className="h-64 w-full" />
@@ -38,10 +42,12 @@ export default function Settings() {
                 <Sparkles className="h-4 w-4" />
                 Brand Voice
               </TabsTrigger>
-              <TabsTrigger value="api" className="gap-2">
-                <Key className="h-4 w-4" />
-                API
-              </TabsTrigger>
+              {isApiEnabled && (
+                <TabsTrigger value="api" className="gap-2">
+                  <Key className="h-4 w-4" />
+                  API
+                </TabsTrigger>
+              )}
             </TabsList>
 
             <TabsContent value="profile">
@@ -64,13 +70,15 @@ export default function Settings() {
               )}
             </TabsContent>
 
-            <TabsContent value="api">
-              {organization ? (
-                <ApiTab organizationId={organization.id} />
-              ) : (
-                <p className="text-muted-foreground">No organization found.</p>
-              )}
-            </TabsContent>
+            {isApiEnabled && (
+              <TabsContent value="api">
+                {organization ? (
+                  <ApiTab organizationId={organization.id} />
+                ) : (
+                  <p className="text-muted-foreground">No organization found.</p>
+                )}
+              </TabsContent>
+            )}
           </Tabs>
         )}
       </div>
