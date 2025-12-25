@@ -6,10 +6,11 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Separator } from "@/components/ui/separator";
 import { useToast } from "@/hooks/use-toast";
-import { Mail, Lock, User, Loader2, Eye, EyeOff, ArrowRight, ArrowLeft, CheckCircle2 } from "lucide-react";
+import { Mail, Lock, User, Loader2, Eye, EyeOff, ArrowRight, ArrowLeft, CheckCircle2, MailCheck } from "lucide-react";
 import { z } from "zod";
 import { BrandLogo } from "@/components/BrandLogo";
 import { useSiteSettings } from "@/hooks/useSiteSettings";
+import { Card, CardContent } from "@/components/ui/card";
 
 const loginSchema = z.object({
   email: z.string().trim().email("Please enter a valid email address"),
@@ -30,6 +31,8 @@ export default function Auth() {
   const [isLoading, setIsLoading] = useState(false);
   const [isGoogleLoading, setIsGoogleLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
+  const [emailSent, setEmailSent] = useState(false);
+  const [signupEmail, setSignupEmail] = useState("");
   
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -87,7 +90,7 @@ export default function Auth() {
 
     try {
       if (isLogin) {
-        const { error } = await supabase.auth.signInWithPassword({
+        const { data, error } = await supabase.auth.signInWithPassword({
           email: email.trim(),
           password,
         });
@@ -97,6 +100,12 @@ export default function Auth() {
             toast({
               title: "Login failed",
               description: "Invalid email or password. Please try again.",
+              variant: "destructive",
+            });
+          } else if (error.message.includes("Email not confirmed")) {
+            toast({
+              title: "Email not verified",
+              description: "Please check your inbox and verify your email before logging in.",
               variant: "destructive",
             });
           } else {
@@ -109,6 +118,17 @@ export default function Auth() {
           return;
         }
 
+        // Check if email is confirmed
+        if (data.user && !data.user.email_confirmed_at) {
+          await supabase.auth.signOut();
+          toast({
+            title: "Email not verified",
+            description: "Please check your inbox and verify your email before logging in.",
+            variant: "destructive",
+          });
+          return;
+        }
+
         toast({
           title: "Welcome back!",
           description: "You've successfully logged in.",
@@ -116,7 +136,7 @@ export default function Auth() {
       } else {
         const redirectUrl = `${window.location.origin}/dashboard`;
         
-        const { error } = await supabase.auth.signUp({
+        const { data, error } = await supabase.auth.signUp({
           email: email.trim(),
           password,
           options: {
@@ -141,6 +161,13 @@ export default function Auth() {
               variant: "destructive",
             });
           }
+          return;
+        }
+
+        // Check if user needs email confirmation
+        if (data.user && !data.user.email_confirmed_at) {
+          setSignupEmail(email.trim());
+          setEmailSent(true);
           return;
         }
 
@@ -189,12 +216,110 @@ export default function Auth() {
     }
   };
 
+  const handleResendVerification = async () => {
+    setIsLoading(true);
+    try {
+      const { error } = await supabase.auth.resend({
+        type: 'signup',
+        email: signupEmail,
+        options: {
+          emailRedirectTo: `${window.location.origin}/dashboard`,
+        },
+      });
+
+      if (error) {
+        toast({
+          title: "Failed to resend",
+          description: error.message,
+          variant: "destructive",
+        });
+      } else {
+        toast({
+          title: "Email sent!",
+          description: "Please check your inbox for the verification link.",
+        });
+      }
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: "Failed to resend verification email.",
+        variant: "destructive",
+      });
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
   const features = [
     "Generate SEO-optimized content in seconds",
     "50+ professional templates",
     "Multiple brand voice support",
     "Export to any format",
   ];
+
+  // Show email verification sent screen
+  if (emailSent) {
+    return (
+      <div className="min-h-screen flex items-center justify-center p-6 bg-background">
+        <Card className="w-full max-w-md">
+          <CardContent className="pt-6 text-center space-y-6">
+            <div className="mx-auto w-16 h-16 rounded-full bg-primary/10 flex items-center justify-center">
+              <MailCheck className="h-8 w-8 text-primary" />
+            </div>
+            
+            <div className="space-y-2">
+              <h2 className="text-2xl font-bold">Check your email</h2>
+              <p className="text-muted-foreground">
+                We've sent a verification link to
+              </p>
+              <p className="font-medium text-foreground">{signupEmail}</p>
+            </div>
+            
+            <p className="text-sm text-muted-foreground">
+              Click the link in your email to verify your account and start using {siteName}.
+            </p>
+            
+            <div className="space-y-3 pt-4">
+              <Button
+                variant="outline"
+                className="w-full"
+                onClick={handleResendVerification}
+                disabled={isLoading}
+              >
+                {isLoading ? (
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                ) : (
+                  <Mail className="mr-2 h-4 w-4" />
+                )}
+                Resend verification email
+              </Button>
+              
+              <Button
+                variant="ghost"
+                className="w-full"
+                onClick={() => {
+                  setEmailSent(false);
+                  setEmail("");
+                  setPassword("");
+                  setFullName("");
+                }}
+              >
+                <ArrowLeft className="mr-2 h-4 w-4" />
+                Back to sign up
+              </Button>
+            </div>
+            
+            <p className="text-xs text-muted-foreground">
+              Already verified?{" "}
+              <Link to="/login" className="font-medium text-primary hover:underline">
+                Sign in
+              </Link>
+            </p>
+          </CardContent>
+        </Card>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen flex">
