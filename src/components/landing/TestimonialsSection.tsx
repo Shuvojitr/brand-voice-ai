@@ -59,7 +59,7 @@ function MarqueeRow({ testimonials, direction = "left" }: { testimonials: Testim
   return (
     <div className="flex overflow-hidden [mask-image:linear-gradient(to_right,transparent,black_10%,black_90%,transparent)]">
       <div 
-        className={`flex gap-6 animate-marquee ${direction === "right" ? "[animation-direction:reverse]" : ""}`}
+        className={`flex gap-6 ${direction === "right" ? "animate-marquee-reverse" : "animate-marquee"}`}
         style={{ 
           animationDuration: `${testimonials.length * 8}s`,
         }}
