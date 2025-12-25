@@ -31,6 +31,7 @@ import AdminFaqs from "./pages/admin/AdminFaqs";
 import AdminPlans from "./pages/admin/AdminPlans";
 import AdminAppearance from "./pages/admin/AdminAppearance";
 import AdminSettings from "./pages/admin/AdminSettings";
+import AdminApiKeys from "./pages/admin/AdminApiKeys";
 
 const queryClient = new QueryClient();
 
@@ -63,6 +64,7 @@ function AppContent() {
         <Route path="/admin" element={<AdminOverview />} />
         <Route path="/admin/users" element={<AdminUsers />} />
         <Route path="/admin/templates" element={<AdminTemplates />} />
+        <Route path="/admin/api-keys" element={<AdminApiKeys />} />
         <Route path="/admin/testimonials" element={<AdminTestimonials />} />
         <Route path="/admin/faqs" element={<AdminFaqs />} />
         <Route path="/admin/plans" element={<AdminPlans />} />
