@@ -48,10 +48,22 @@ export function BrandLogo({
   };
 
   const logoUrl = getLogoUrl();
-  const siteName = settings?.site_name || "MyGenAI";
+  // No hardcoded fallback - only use DB value or empty string
+  const siteName = settings?.site_name || "";
 
-  // Render text fallback with gradient styling for "AI" suffix
+  // Show skeleton during loading - never show any text/logo
+  if (isLoading) {
+    return (
+      <div className={cn("flex items-center gap-2", className)}>
+        <div className={cn(height, "w-24 animate-pulse bg-muted/20 rounded")} />
+      </div>
+    );
+  }
+
+  // Render text fallback with gradient styling for "AI" suffix (only from DB)
   const renderTextLogo = () => {
+    if (!siteName) return null;
+
     if (inverted) {
       return (
         <span className={cn("text-xl font-bold tracking-tight text-white", textClassName)}>
@@ -83,7 +95,7 @@ export function BrandLogo({
       {logoUrl ? (
         <img
           src={logoUrl}
-          alt={siteName}
+          alt={siteName || "Logo"}
           className={cn(
             height,
             "w-auto max-w-[200px] object-contain",
@@ -95,15 +107,6 @@ export function BrandLogo({
       ) : null}
     </>
   );
-
-  // Show nothing during initial load to prevent flicker
-  if (isLoading) {
-    return (
-      <div className={cn("flex items-center gap-2", className)}>
-        <div className={cn(height, "w-24 animate-pulse bg-muted rounded")} />
-      </div>
-    );
-  }
 
   if (linkTo) {
     return (
