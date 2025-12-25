@@ -98,11 +98,11 @@ const steps = [
 
 export default function Index() {
   const { data: plans, isLoading: plansLoading } = usePlans();
-  const { settings } = useSiteSettings();
+  const { settings, isLoading: settingsLoading } = useSiteSettings();
   const [isYearly, setIsYearly] = useState(false);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
-  const siteName = settings?.site_name || "MyGenAI";
+  const siteName = settings?.site_name || "";
   const publicNavLinks = settings?.header_nav?.length ? settings.header_nav : defaultPublicNavLinks;
 
   const handleMobileNavClick = (href: string) => {
@@ -154,30 +154,27 @@ export default function Index() {
       <header className="sticky top-0 z-50 border-b border-border/40 glass">
         <div className="container flex h-16 items-center justify-between">
           <Link to="/" className="flex items-center gap-2 group">
-            {settings?.header_logo_url ? (
+            {settingsLoading ? (
+              <div className="h-10 w-24 animate-pulse bg-muted/20 rounded" />
+            ) : settings?.header_logo_url ? (
               <img
                 src={settings.header_logo_url}
-                alt={siteName}
+                alt={siteName || "Logo"}
                 className="h-10 w-auto max-w-[200px] object-contain"
                 loading="eager"
               />
-            ) : (
-              <>
-                <div className="flex h-10 w-10 items-center justify-center rounded-xl gradient-primary shadow-glow transition-transform group-hover:scale-110">
-                  <Sparkles className="h-5 w-5 text-white" />
-                </div>
-                <span className="text-xl font-display font-bold tracking-tight">
-                  {siteName.includes("AI") ? (
-                    <>
-                      {siteName.replace("AI", "")}
-                      <span className="gradient-text">AI</span>
-                    </>
-                  ) : (
-                    siteName
-                  )}
-                </span>
-              </>
-            )}
+            ) : siteName ? (
+              <span className="text-xl font-display font-bold tracking-tight">
+                {siteName.toUpperCase().endsWith("AI") ? (
+                  <>
+                    {siteName.slice(0, -2)}
+                    <span className="gradient-text">{siteName.slice(-2)}</span>
+                  </>
+                ) : (
+                  siteName
+                )}
+              </span>
+            ) : null}
           </Link>
           
           {/* Desktop Navigation */}
