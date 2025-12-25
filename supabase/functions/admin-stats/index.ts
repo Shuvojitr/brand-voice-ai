@@ -241,6 +241,35 @@ Deno.serve(async (req) => {
           headers: { ...corsHeaders, "Content-Type": "application/json" },
         });
       }
+
+      if (action === "verify-user") {
+        const { userId } = body;
+        if (!userId) {
+          return new Response(JSON.stringify({ error: "userId is required" }), {
+            status: 400,
+            headers: { ...corsHeaders, "Content-Type": "application/json" },
+          });
+        }
+
+        // Manually verify user's email using admin API
+        const { error: verifyError } = await supabaseAdmin.auth.admin.updateUserById(userId, {
+          email_confirm: true,
+        });
+
+        if (verifyError) {
+          console.error("Error verifying user:", verifyError);
+          return new Response(JSON.stringify({ error: verifyError.message }), {
+            status: 500,
+            headers: { ...corsHeaders, "Content-Type": "application/json" },
+          });
+        }
+
+        console.log(`User ${userId} email manually verified by admin ${user.id}`);
+
+        return new Response(JSON.stringify({ success: true }), {
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
     }
 
     // GET requests for fetching data
@@ -316,11 +345,16 @@ Deno.serve(async (req) => {
           )
         `);
 
+      // Get auth users to check email_confirmed_at
+      const { data: authData } = await supabaseAdmin.auth.admin.listUsers();
+      const authUsers = authData?.users || [];
+
       // Combine data
       const users = profiles?.map(profile => {
         const userRole = roles?.find(r => r.user_id === profile.id);
         const membership = memberships?.find(m => m.user_id === profile.id);
         const org = membership?.organizations as any;
+        const authUser = authUsers.find(u => u.id === profile.id);
         
         return {
           ...profile,
@@ -328,6 +362,7 @@ Deno.serve(async (req) => {
           credits_remaining: org ? (org.monthly_credits - org.credits_used) : 0,
           organization_id: org?.id,
           subscription_tier: org?.subscription_tier || "free",
+          email_confirmed_at: authUser?.email_confirmed_at || null,
         };
       }) || [];
 

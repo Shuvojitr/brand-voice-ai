@@ -15,7 +15,7 @@ import { usePlans } from "@/hooks/usePlans";
 import { supabase } from "@/integrations/supabase/client";
 import { useQueryClient } from "@tanstack/react-query";
 import { formatDistanceToNow } from "date-fns";
-import { Search, CreditCard, Ban, UserX, Crown } from "lucide-react";
+import { Search, CreditCard, Ban, UserX, Crown, CheckCircle, MailCheck } from "lucide-react";
 
 type SubscriptionTier = "free" | "starter" | "pro" | "enterprise";
 
@@ -199,6 +199,43 @@ export default function AdminUsers() {
     }
   };
 
+  const handleVerifyUser = async (user: any) => {
+    setIsSubmitting(true);
+    try {
+      const { data: session } = await supabase.auth.getSession();
+      
+      const response = await fetch(
+        `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/admin-stats?action=verify-user`,
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${session.session?.access_token}`,
+          },
+          body: JSON.stringify({ userId: user.id }),
+        }
+      );
+      
+      const data = await response.json();
+      if (!response.ok) throw new Error(data.error || "Failed to verify user");
+
+      toast({
+        title: "User Verified",
+        description: `${user.email} has been verified successfully.`,
+      });
+      
+      queryClient.invalidateQueries({ queryKey: ["admin-all-users"] });
+    } catch (error: any) {
+      toast({
+        title: "Error",
+        description: error.message,
+        variant: "destructive",
+      });
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
   const openPlanDialog = (user: any) => {
     setSelectedUser(user);
     setSelectedPlan(user.subscription_tier || "free");
@@ -253,7 +290,8 @@ export default function AdminUsers() {
                       <TableHead>Plan</TableHead>
                       <TableHead>Credits</TableHead>
                       <TableHead>Joined</TableHead>
-                      <TableHead>Status</TableHead>
+                      <TableHead>Email Status</TableHead>
+                      <TableHead>Account Status</TableHead>
                       <TableHead className="text-right">Actions</TableHead>
                     </TableRow>
                   </TableHeader>
@@ -291,6 +329,18 @@ export default function AdminUsers() {
                             : "—"}
                         </TableCell>
                         <TableCell>
+                          {user.email_confirmed_at ? (
+                            <Badge variant="outline" className="bg-green-500/10 text-green-600 border-green-500/20">
+                              <CheckCircle className="h-3 w-3 mr-1" />
+                              Verified
+                            </Badge>
+                          ) : (
+                            <Badge variant="outline" className="bg-yellow-500/10 text-yellow-600 border-yellow-500/20">
+                              Pending
+                            </Badge>
+                          )}
+                        </TableCell>
+                        <TableCell>
                           {user.is_banned ? (
                             <Badge variant="destructive">Banned</Badge>
                           ) : (
@@ -299,6 +349,17 @@ export default function AdminUsers() {
                         </TableCell>
                         <TableCell className="text-right">
                           <div className="flex items-center justify-end gap-2">
+                            {!user.email_confirmed_at && (
+                              <Button
+                                variant="outline"
+                                size="sm"
+                                onClick={() => handleVerifyUser(user)}
+                                disabled={isSubmitting}
+                              >
+                                <MailCheck className="h-4 w-4 mr-1" />
+                                Verify
+                              </Button>
+                            )}
                             <Button
                               variant="outline"
                               size="sm"
