@@ -3,6 +3,7 @@ import { useNavigate } from "react-router-dom";
 import { useManagerRole } from "@/hooks/useManagerRole";
 import { supabase } from "@/integrations/supabase/client";
 import { Loader2 } from "lucide-react";
+import NotFound from "@/pages/NotFound";
 
 interface ManagerProtectedRouteProps {
   children: ReactNode;
@@ -59,15 +60,11 @@ export function ManagerProtectedRoute({ children }: ManagerProtectedRouteProps) 
   }, [navigate]);
 
   useEffect(() => {
+    // Only redirect to login if not authenticated (keep this behavior)
     if (!authChecking && !isAuthenticated) {
       navigate("/login");
-      return;
     }
-
-    if (!authChecking && !roleLoading && !isManager && isAuthenticated && !isBanned) {
-      navigate("/dashboard");
-    }
-  }, [authChecking, roleLoading, isManager, isAuthenticated, isBanned, navigate]);
+  }, [authChecking, isAuthenticated, navigate]);
 
   if (authChecking || roleLoading) {
     return (
@@ -77,7 +74,12 @@ export function ManagerProtectedRoute({ children }: ManagerProtectedRouteProps) 
     );
   }
 
-  if (!isAuthenticated || !isManager || isBanned) {
+  // Stealth mode: Show 404 if authenticated but not manager/admin (hide existence of manager pages)
+  if (isAuthenticated && !isManager && !isBanned) {
+    return <NotFound />;
+  }
+
+  if (!isAuthenticated || isBanned) {
     return null;
   }
 

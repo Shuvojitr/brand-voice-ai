@@ -3,6 +3,7 @@ import { useNavigate } from "react-router-dom";
 import { useAdminRole } from "@/hooks/useAdminRole";
 import { supabase } from "@/integrations/supabase/client";
 import { Loader2 } from "lucide-react";
+import NotFound from "@/pages/NotFound";
 
 interface AdminProtectedRouteProps {
   children: ReactNode;
@@ -59,15 +60,11 @@ export function AdminProtectedRoute({ children }: AdminProtectedRouteProps) {
   }, [navigate]);
 
   useEffect(() => {
+    // Only redirect to login if not authenticated (keep this behavior)
     if (!authChecking && !isAuthenticated) {
       navigate("/login");
-      return;
     }
-
-    if (!authChecking && !roleLoading && !isAdmin && isAuthenticated && !isBanned) {
-      navigate("/dashboard");
-    }
-  }, [authChecking, roleLoading, isAdmin, isAuthenticated, isBanned, navigate]);
+  }, [authChecking, isAuthenticated, navigate]);
 
   if (authChecking || roleLoading) {
     return (
@@ -77,7 +74,12 @@ export function AdminProtectedRoute({ children }: AdminProtectedRouteProps) {
     );
   }
 
-  if (!isAuthenticated || !isAdmin || isBanned) {
+  // Stealth mode: Show 404 if authenticated but not admin (hide existence of admin pages)
+  if (isAuthenticated && !isAdmin && !isBanned) {
+    return <NotFound />;
+  }
+
+  if (!isAuthenticated || isBanned) {
     return null;
   }
 
