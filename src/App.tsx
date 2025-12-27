@@ -37,6 +37,7 @@ import AdminSettings from "./pages/admin/AdminSettings";
 import AdminApiKeys from "./pages/admin/AdminApiKeys";
 import AdminPages from "./pages/admin/AdminPages";
 import AdminSeo from "./pages/admin/AdminSeo";
+import AdminActivityLog from "./pages/admin/AdminActivityLog";
 
 const queryClient = new QueryClient();
 
@@ -78,6 +79,7 @@ function AppContent() {
         <Route path="/admin/plans" element={<AdminPlans />} />
         <Route path="/admin/appearance" element={<AdminAppearance />} />
         <Route path="/admin/seo" element={<AdminSeo />} />
+        <Route path="/admin/activity" element={<AdminActivityLog />} />
         <Route path="/admin/settings" element={<AdminSettings />} />
         {/* Dynamic static pages - catches any slug not matched above */}
         <Route path="/:slug" element={<StaticPage />} />
