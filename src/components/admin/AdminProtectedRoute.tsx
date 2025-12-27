@@ -59,13 +59,6 @@ export function AdminProtectedRoute({ children }: AdminProtectedRouteProps) {
     return () => subscription.unsubscribe();
   }, [navigate]);
 
-  useEffect(() => {
-    // Only redirect to login if not authenticated (keep this behavior)
-    if (!authChecking && !isAuthenticated) {
-      navigate("/login");
-    }
-  }, [authChecking, isAuthenticated, navigate]);
-
   if (authChecking || roleLoading) {
     return (
       <div className="flex items-center justify-center min-h-screen">
@@ -74,12 +67,17 @@ export function AdminProtectedRoute({ children }: AdminProtectedRouteProps) {
     );
   }
 
-  // Stealth mode: Show 404 if authenticated but not admin (hide existence of admin pages)
-  if (isAuthenticated && !isAdmin && !isBanned) {
+  // Stealth mode: Show 404 for unauthenticated users (hide existence of admin pages)
+  if (!isAuthenticated) {
     return <NotFound />;
   }
 
-  if (!isAuthenticated || isBanned) {
+  // Stealth mode: Show 404 if authenticated but not admin (hide existence of admin pages)
+  if (!isAdmin && !isBanned) {
+    return <NotFound />;
+  }
+
+  if (isBanned) {
     return null;
   }
 
