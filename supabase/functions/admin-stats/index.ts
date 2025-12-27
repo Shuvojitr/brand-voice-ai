@@ -453,6 +453,79 @@ Deno.serve(async (req) => {
           headers: { ...corsHeaders, "Content-Type": "application/json" },
         });
       }
+
+      if (action === "impersonate-user") {
+        const { userId } = body;
+        
+        if (!userId) {
+          return new Response(JSON.stringify({ error: "userId is required" }), {
+            status: 400,
+            headers: { ...corsHeaders, "Content-Type": "application/json" },
+          });
+        }
+
+        // Get target user info for logging
+        const { data: targetProfile } = await supabaseAdmin
+          .from("profiles")
+          .select("email, is_banned")
+          .eq("id", userId)
+          .maybeSingle();
+
+        if (!targetProfile) {
+          return new Response(JSON.stringify({ error: "User not found" }), {
+            status: 404,
+            headers: { ...corsHeaders, "Content-Type": "application/json" },
+          });
+        }
+
+        if (targetProfile.is_banned) {
+          return new Response(JSON.stringify({ error: "Cannot impersonate a banned user" }), {
+            status: 400,
+            headers: { ...corsHeaders, "Content-Type": "application/json" },
+          });
+        }
+
+        // Generate a magic link for the target user
+        const { data: linkData, error: linkError } = await supabaseAdmin.auth.admin.generateLink({
+          type: "magiclink",
+          email: targetProfile.email,
+          options: {
+            redirectTo: `${req.headers.get("origin") || Deno.env.get("SITE_URL") || "http://localhost:5173"}/dashboard`,
+          },
+        });
+
+        if (linkError || !linkData) {
+          console.error("Error generating impersonation link:", linkError);
+          return new Response(JSON.stringify({ error: linkError?.message || "Failed to generate login link" }), {
+            status: 500,
+            headers: { ...corsHeaders, "Content-Type": "application/json" },
+          });
+        }
+
+        console.log(`Admin ${user.id} generated impersonation link for user ${userId}`);
+
+        // Log the activity
+        await logAdminActivity(
+          supabaseAdmin,
+          user.id,
+          "user_impersonated",
+          userId,
+          undefined,
+          { target_email: targetProfile.email },
+          clientIp
+        );
+
+        // Return the hashed token from the link so client can use verifyOtp
+        const tokenHash = linkData.properties?.hashed_token;
+        
+        return new Response(JSON.stringify({ 
+          success: true, 
+          token_hash: tokenHash,
+          email: targetProfile.email,
+        }), {
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
     }
 
     // GET requests for fetching data
