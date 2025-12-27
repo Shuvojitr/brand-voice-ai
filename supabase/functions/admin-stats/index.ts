@@ -371,7 +371,7 @@ Deno.serve(async (req) => {
 
       if (action === "update-role") {
         const { userId, role } = body;
-        const validRoles = ["user", "admin"];
+        const validRoles = ["user", "admin", "manager"];
         
         if (!userId || !role) {
           return new Response(JSON.stringify({ error: "userId and role are required" }), {
@@ -381,7 +381,7 @@ Deno.serve(async (req) => {
         }
 
         if (!validRoles.includes(role)) {
-          return new Response(JSON.stringify({ error: "Invalid role. Must be 'user' or 'admin'" }), {
+          return new Response(JSON.stringify({ error: "Invalid role. Must be 'user', 'manager', or 'admin'" }), {
             status: 400,
             headers: { ...corsHeaders, "Content-Type": "application/json" },
           });
