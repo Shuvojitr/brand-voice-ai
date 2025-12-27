@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { AdminLayout } from "@/components/admin";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -10,9 +10,13 @@ import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, D
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { Alert, AlertDescription } from "@/components/ui/alert";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { Calendar } from "@/components/ui/calendar";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import { formatDistanceToNow, format } from "date-fns";
+import { cn } from "@/lib/utils";
 import { 
   Shield, 
   Ban, 
@@ -24,7 +28,10 @@ import {
   Activity,
   Trash2,
   Clock,
-  Info
+  Info,
+  Filter,
+  X,
+  CalendarIcon
 } from "lucide-react";
 
 interface ActivityLog {
@@ -39,6 +46,29 @@ interface ActivityLog {
   ip_address?: string;
   created_at: string;
 }
+
+interface AdminProfile {
+  id: string;
+  email: string;
+  full_name?: string;
+}
+
+interface Filters {
+  actionType: string;
+  adminId: string;
+  dateFrom: Date | undefined;
+  dateTo: Date | undefined;
+}
+
+const actionTypes = [
+  { value: "user_banned", label: "User Banned" },
+  { value: "user_unbanned", label: "User Unbanned" },
+  { value: "user_verified", label: "Email Verified" },
+  { value: "role_updated", label: "Role Changed" },
+  { value: "plan_updated", label: "Plan Changed" },
+  { value: "credits_updated", label: "Credits Modified" },
+  { value: "logs_cleanup", label: "Logs Cleaned" },
+];
 
 const actionConfig: Record<string, { label: string; icon: React.ReactNode; color: string }> = {
   user_banned: { 
@@ -78,15 +108,26 @@ const actionConfig: Record<string, { label: string; icon: React.ReactNode; color
   },
 };
 
-function useActivityLogs(page: number, limit: number = 20) {
+function useActivityLogs(page: number, filters: Filters, limit: number = 20) {
   return useQuery({
-    queryKey: ["admin-activity-logs", page, limit],
+    queryKey: ["admin-activity-logs", page, limit, filters],
     queryFn: async () => {
       const { data: session } = await supabase.auth.getSession();
       const offset = (page - 1) * limit;
       
+      const params = new URLSearchParams({
+        action: "activity-logs",
+        limit: limit.toString(),
+        offset: offset.toString(),
+      });
+
+      if (filters.actionType) params.append("actionType", filters.actionType);
+      if (filters.adminId) params.append("adminId", filters.adminId);
+      if (filters.dateFrom) params.append("dateFrom", filters.dateFrom.toISOString());
+      if (filters.dateTo) params.append("dateTo", filters.dateTo.toISOString());
+      
       const response = await fetch(
-        `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/admin-stats?action=activity-logs&limit=${limit}&offset=${offset}`,
+        `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/admin-stats?${params.toString()}`,
         {
           headers: {
             Authorization: `Bearer ${session.session?.access_token}`,
@@ -98,7 +139,7 @@ function useActivityLogs(page: number, limit: number = 20) {
         throw new Error("Failed to fetch activity logs");
       }
       
-      return response.json() as Promise<{ logs: ActivityLog[]; total: number }>;
+      return response.json() as Promise<{ logs: ActivityLog[]; total: number; admins: AdminProfile[] }>;
     },
   });
 }
@@ -130,12 +171,38 @@ export default function AdminActivityLog() {
   const [cleanupDialogOpen, setCleanupDialogOpen] = useState(false);
   const [daysToKeep, setDaysToKeep] = useState("30");
   const [isCleaningUp, setIsCleaningUp] = useState(false);
+  const [filters, setFilters] = useState<Filters>({
+    actionType: "",
+    adminId: "",
+    dateFrom: undefined,
+    dateTo: undefined,
+  });
+  
   const limit = 20;
-  const { data, isLoading } = useActivityLogs(page, limit);
+  const { data, isLoading } = useActivityLogs(page, filters, limit);
   const { toast } = useToast();
   const queryClient = useQueryClient();
 
   const totalPages = data ? Math.ceil(data.total / limit) : 1;
+
+  const hasActiveFilters = useMemo(() => {
+    return filters.actionType || filters.adminId || filters.dateFrom || filters.dateTo;
+  }, [filters]);
+
+  const clearFilters = () => {
+    setFilters({
+      actionType: "",
+      adminId: "",
+      dateFrom: undefined,
+      dateTo: undefined,
+    });
+    setPage(1);
+  };
+
+  const updateFilter = (key: keyof Filters, value: any) => {
+    setFilters(prev => ({ ...prev, [key]: value }));
+    setPage(1);
+  };
 
   const handleCleanup = async () => {
     setIsCleaningUp(true);
@@ -211,11 +278,128 @@ export default function AdminActivityLog() {
           </AlertDescription>
         </Alert>
 
+        {/* Filters */}
+        <Card>
+          <CardHeader className="pb-3">
+            <div className="flex items-center justify-between">
+              <CardTitle className="text-base flex items-center gap-2">
+                <Filter className="h-4 w-4" />
+                Filters
+              </CardTitle>
+              {hasActiveFilters && (
+                <Button variant="ghost" size="sm" onClick={clearFilters} className="gap-1">
+                  <X className="h-3 w-3" />
+                  Clear filters
+                </Button>
+              )}
+            </div>
+          </CardHeader>
+          <CardContent>
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+              {/* Action Type Filter */}
+              <div className="space-y-2">
+                <Label>Action Type</Label>
+                <Select 
+                  value={filters.actionType} 
+                  onValueChange={(v) => updateFilter("actionType", v === "all" ? "" : v)}
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder="All actions" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">All actions</SelectItem>
+                    {actionTypes.map((type) => (
+                      <SelectItem key={type.value} value={type.value}>
+                        {type.label}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+
+              {/* Admin Filter */}
+              <div className="space-y-2">
+                <Label>Admin</Label>
+                <Select 
+                  value={filters.adminId} 
+                  onValueChange={(v) => updateFilter("adminId", v === "all" ? "" : v)}
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder="All admins" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">All admins</SelectItem>
+                    {data?.admins?.map((admin) => (
+                      <SelectItem key={admin.id} value={admin.id}>
+                        {admin.full_name || admin.email}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+
+              {/* Date From Filter */}
+              <div className="space-y-2">
+                <Label>From Date</Label>
+                <Popover>
+                  <PopoverTrigger asChild>
+                    <Button
+                      variant="outline"
+                      className={cn(
+                        "w-full justify-start text-left font-normal",
+                        !filters.dateFrom && "text-muted-foreground"
+                      )}
+                    >
+                      <CalendarIcon className="mr-2 h-4 w-4" />
+                      {filters.dateFrom ? format(filters.dateFrom, "PPP") : "Pick a date"}
+                    </Button>
+                  </PopoverTrigger>
+                  <PopoverContent className="w-auto p-0" align="start">
+                    <Calendar
+                      mode="single"
+                      selected={filters.dateFrom}
+                      onSelect={(date) => updateFilter("dateFrom", date)}
+                      initialFocus
+                    />
+                  </PopoverContent>
+                </Popover>
+              </div>
+
+              {/* Date To Filter */}
+              <div className="space-y-2">
+                <Label>To Date</Label>
+                <Popover>
+                  <PopoverTrigger asChild>
+                    <Button
+                      variant="outline"
+                      className={cn(
+                        "w-full justify-start text-left font-normal",
+                        !filters.dateTo && "text-muted-foreground"
+                      )}
+                    >
+                      <CalendarIcon className="mr-2 h-4 w-4" />
+                      {filters.dateTo ? format(filters.dateTo, "PPP") : "Pick a date"}
+                    </Button>
+                  </PopoverTrigger>
+                  <PopoverContent className="w-auto p-0" align="start">
+                    <Calendar
+                      mode="single"
+                      selected={filters.dateTo}
+                      onSelect={(date) => updateFilter("dateTo", date)}
+                      initialFocus
+                    />
+                  </PopoverContent>
+                </Popover>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+
         <Card>
           <CardHeader>
             <CardTitle>Recent Activity</CardTitle>
             <CardDescription>
-              {data?.total || 0} total actions recorded
+              {data?.total || 0} {hasActiveFilters ? "matching" : "total"} actions recorded
             </CardDescription>
           </CardHeader>
           <CardContent>
@@ -318,11 +502,18 @@ export default function AdminActivityLog() {
               <div className="text-center py-12">
                 <Activity className="h-12 w-12 mx-auto text-muted-foreground/50" />
                 <p className="text-muted-foreground mt-4">
-                  No activity recorded yet.
+                  {hasActiveFilters ? "No activity matches your filters." : "No activity recorded yet."}
                 </p>
                 <p className="text-sm text-muted-foreground">
-                  Admin actions will appear here once they are performed.
+                  {hasActiveFilters 
+                    ? "Try adjusting your filter criteria." 
+                    : "Admin actions will appear here once they are performed."}
                 </p>
+                {hasActiveFilters && (
+                  <Button variant="outline" className="mt-4" onClick={clearFilters}>
+                    Clear filters
+                  </Button>
+                )}
               </div>
             )}
           </CardContent>
