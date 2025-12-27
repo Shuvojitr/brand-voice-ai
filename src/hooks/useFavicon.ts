@@ -6,16 +6,16 @@ export function useFavicon() {
 
   useEffect(() => {
     if (settings?.favicon_url) {
-      // Update or create the favicon link element
-      let link: HTMLLinkElement | null = document.querySelector("link[rel~='icon']");
+      // Remove any existing favicon links first
+      const existingLinks = document.querySelectorAll("link[rel*='icon']");
+      existingLinks.forEach(link => link.remove());
       
-      if (!link) {
-        link = document.createElement('link');
-        link.rel = 'icon';
-        document.head.appendChild(link);
-      }
-      
-      link.href = settings.favicon_url;
+      // Create a new favicon link with cache-busting
+      const link = document.createElement('link');
+      link.rel = 'icon';
+      link.type = 'image/png';
+      link.href = `${settings.favicon_url}?v=${Date.now()}`;
+      document.head.appendChild(link);
     }
   }, [settings?.favicon_url]);
 }
