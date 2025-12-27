@@ -33,6 +33,12 @@ export interface SiteSettings {
   copyright_text: string | null;
   bottom_tagline: string | null;
   is_api_feature_enabled: boolean;
+  // SEO fields
+  seo_title: string | null;
+  seo_description: string | null;
+  seo_keywords: string | null;
+  og_image_url: string | null;
+  twitter_handle: string | null;
   created_at: string;
   updated_at: string;
 }
@@ -71,6 +77,12 @@ export function useSiteSettings() {
         copyright_text: rawData.copyright_text,
         bottom_tagline: rawData.bottom_tagline,
         is_api_feature_enabled: rawData.is_api_feature_enabled ?? true,
+        // SEO fields
+        seo_title: rawData.seo_title,
+        seo_description: rawData.seo_description,
+        seo_keywords: rawData.seo_keywords,
+        og_image_url: rawData.og_image_url,
+        twitter_handle: rawData.twitter_handle,
         created_at: rawData.created_at,
         updated_at: rawData.updated_at,
       } as SiteSettings;
@@ -100,6 +112,12 @@ export function useSiteSettings() {
       if (updates.copyright_text !== undefined) updatePayload.copyright_text = updates.copyright_text;
       if (updates.bottom_tagline !== undefined) updatePayload.bottom_tagline = updates.bottom_tagline;
       if (updates.is_api_feature_enabled !== undefined) updatePayload.is_api_feature_enabled = updates.is_api_feature_enabled;
+      // SEO fields
+      if (updates.seo_title !== undefined) updatePayload.seo_title = updates.seo_title;
+      if (updates.seo_description !== undefined) updatePayload.seo_description = updates.seo_description;
+      if (updates.seo_keywords !== undefined) updatePayload.seo_keywords = updates.seo_keywords;
+      if (updates.og_image_url !== undefined) updatePayload.og_image_url = updates.og_image_url;
+      if (updates.twitter_handle !== undefined) updatePayload.twitter_handle = updates.twitter_handle;
 
       const { data, error } = await supabase
         .from("site_settings")

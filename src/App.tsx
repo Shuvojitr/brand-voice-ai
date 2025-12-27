@@ -5,6 +5,7 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
 import { HelmetProvider } from "react-helmet-async";
 import { useFavicon } from "@/hooks/useFavicon";
+import { GlobalSeoHead } from "@/components/GlobalSeoHead";
 import Index from "./pages/Index";
 import Auth from "./pages/Auth";
 import ForgotPassword from "./pages/ForgotPassword";
@@ -35,6 +36,7 @@ import AdminAppearance from "./pages/admin/AdminAppearance";
 import AdminSettings from "./pages/admin/AdminSettings";
 import AdminApiKeys from "./pages/admin/AdminApiKeys";
 import AdminPages from "./pages/admin/AdminPages";
+import AdminSeo from "./pages/admin/AdminSeo";
 
 const queryClient = new QueryClient();
 
@@ -42,7 +44,9 @@ function AppContent() {
   useFavicon();
   
   return (
-    <BrowserRouter>
+    <>
+      <GlobalSeoHead />
+      <BrowserRouter>
       <Routes>
         <Route path="/" element={<Index />} />
         <Route path="/login" element={<Auth />} />
@@ -73,6 +77,7 @@ function AppContent() {
         <Route path="/admin/faqs" element={<AdminFaqs />} />
         <Route path="/admin/plans" element={<AdminPlans />} />
         <Route path="/admin/appearance" element={<AdminAppearance />} />
+        <Route path="/admin/seo" element={<AdminSeo />} />
         <Route path="/admin/settings" element={<AdminSettings />} />
         {/* Dynamic static pages - catches any slug not matched above */}
         <Route path="/:slug" element={<StaticPage />} />
@@ -80,6 +85,7 @@ function AppContent() {
         <Route path="/404" element={<NotFound />} />
       </Routes>
     </BrowserRouter>
+    </>
   );
 }
 
