@@ -557,13 +557,36 @@ Deno.serve(async (req) => {
     if (action === "activity-logs") {
       const limit = parseInt(url.searchParams.get("limit") || "50");
       const offset = parseInt(url.searchParams.get("offset") || "0");
+      const actionFilter = url.searchParams.get("actionType") || "";
+      const adminId = url.searchParams.get("adminId") || "";
+      const dateFrom = url.searchParams.get("dateFrom") || "";
+      const dateTo = url.searchParams.get("dateTo") || "";
 
-      // Get activity logs with admin profile info
-      const { data: logs, error: logsError } = await supabaseAdmin
+      // Build query with filters
+      let query = supabaseAdmin
         .from("admin_activity_logs")
         .select("*")
-        .order("created_at", { ascending: false })
-        .range(offset, offset + limit - 1);
+        .order("created_at", { ascending: false });
+
+      // Apply filters
+      if (actionFilter) {
+        query = query.eq("action", actionFilter);
+      }
+      if (adminId) {
+        query = query.eq("admin_user_id", adminId);
+      }
+      if (dateFrom) {
+        query = query.gte("created_at", dateFrom);
+      }
+      if (dateTo) {
+        // Add one day to include the entire end date
+        const endDate = new Date(dateTo);
+        endDate.setDate(endDate.getDate() + 1);
+        query = query.lt("created_at", endDate.toISOString());
+      }
+
+      // Get paginated logs
+      const { data: logs, error: logsError } = await query.range(offset, offset + limit - 1);
 
       if (logsError) {
         console.error("Error fetching activity logs:", logsError);
@@ -578,7 +601,7 @@ Deno.serve(async (req) => {
       const { data: adminProfiles } = await supabaseAdmin
         .from("profiles")
         .select("id, email, full_name")
-        .in("id", adminIds);
+        .in("id", adminIds.length > 0 ? adminIds : ["00000000-0000-0000-0000-000000000000"]);
 
       // Enrich logs with admin info
       const enrichedLogs = logs?.map(log => ({
@@ -587,14 +610,44 @@ Deno.serve(async (req) => {
         admin_name: adminProfiles?.find(p => p.id === log.admin_user_id)?.full_name,
       })) || [];
 
-      // Get total count
-      const { count } = await supabaseAdmin
+      // Build count query with same filters
+      let countQuery = supabaseAdmin
         .from("admin_activity_logs")
         .select("*", { count: "exact", head: true });
 
+      if (actionFilter) {
+        countQuery = countQuery.eq("action", actionFilter);
+      }
+      if (adminId) {
+        countQuery = countQuery.eq("admin_user_id", adminId);
+      }
+      if (dateFrom) {
+        countQuery = countQuery.gte("created_at", dateFrom);
+      }
+      if (dateTo) {
+        const endDate = new Date(dateTo);
+        endDate.setDate(endDate.getDate() + 1);
+        countQuery = countQuery.lt("created_at", endDate.toISOString());
+      }
+
+      const { count } = await countQuery;
+
+      // Get list of all admins for filter dropdown
+      const { data: allAdminRoles } = await supabaseAdmin
+        .from("user_roles")
+        .select("user_id")
+        .eq("role", "admin");
+
+      const allAdminIds = allAdminRoles?.map(r => r.user_id) || [];
+      const { data: allAdmins } = await supabaseAdmin
+        .from("profiles")
+        .select("id, email, full_name")
+        .in("id", allAdminIds.length > 0 ? allAdminIds : ["00000000-0000-0000-0000-000000000000"]);
+
       return new Response(JSON.stringify({ 
         logs: enrichedLogs, 
-        total: count || 0 
+        total: count || 0,
+        admins: allAdmins || []
       }), {
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
