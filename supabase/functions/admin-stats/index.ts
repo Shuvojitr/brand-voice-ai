@@ -270,6 +270,67 @@ Deno.serve(async (req) => {
           headers: { ...corsHeaders, "Content-Type": "application/json" },
         });
       }
+
+      if (action === "update-role") {
+        const { userId, role } = body;
+        const validRoles = ["user", "admin"];
+        
+        if (!userId || !role) {
+          return new Response(JSON.stringify({ error: "userId and role are required" }), {
+            status: 400,
+            headers: { ...corsHeaders, "Content-Type": "application/json" },
+          });
+        }
+
+        if (!validRoles.includes(role)) {
+          return new Response(JSON.stringify({ error: "Invalid role. Must be 'user' or 'admin'" }), {
+            status: 400,
+            headers: { ...corsHeaders, "Content-Type": "application/json" },
+          });
+        }
+
+        // Check if user already has a role entry
+        const { data: existingRole } = await supabaseAdmin
+          .from("user_roles")
+          .select("id, role")
+          .eq("user_id", userId)
+          .maybeSingle();
+
+        if (existingRole) {
+          // Update existing role
+          const { error: updateError } = await supabaseAdmin
+            .from("user_roles")
+            .update({ role })
+            .eq("user_id", userId);
+
+          if (updateError) {
+            console.error("Error updating role:", updateError);
+            return new Response(JSON.stringify({ error: updateError.message }), {
+              status: 500,
+              headers: { ...corsHeaders, "Content-Type": "application/json" },
+            });
+          }
+        } else {
+          // Insert new role
+          const { error: insertError } = await supabaseAdmin
+            .from("user_roles")
+            .insert({ user_id: userId, role });
+
+          if (insertError) {
+            console.error("Error inserting role:", insertError);
+            return new Response(JSON.stringify({ error: insertError.message }), {
+              status: 500,
+              headers: { ...corsHeaders, "Content-Type": "application/json" },
+            });
+          }
+        }
+
+        console.log(`User ${userId} role updated to ${role} by admin ${user.id}`);
+
+        return new Response(JSON.stringify({ success: true, role }), {
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
     }
 
     // GET requests for fetching data
