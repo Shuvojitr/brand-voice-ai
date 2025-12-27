@@ -15,7 +15,7 @@ import { usePlans } from "@/hooks/usePlans";
 import { supabase } from "@/integrations/supabase/client";
 import { useQueryClient } from "@tanstack/react-query";
 import { formatDistanceToNow } from "date-fns";
-import { Search, CreditCard, Ban, UserX, Crown, CheckCircle, MailCheck } from "lucide-react";
+import { Search, CreditCard, Ban, UserX, Crown, CheckCircle, MailCheck, Shield } from "lucide-react";
 
 type SubscriptionTier = "free" | "starter" | "pro" | "enterprise";
 
@@ -29,10 +29,12 @@ export default function AdminUsers() {
   const [creditsDialogOpen, setCreditsDialogOpen] = useState(false);
   const [banUserOpen, setBanUserOpen] = useState(false);
   const [planDialogOpen, setPlanDialogOpen] = useState(false);
+  const [roleDialogOpen, setRoleDialogOpen] = useState(false);
   const [selectedUser, setSelectedUser] = useState<any>(null);
   const [creditsAmount, setCreditsAmount] = useState("");
   const [creditsMode, setCreditsMode] = useState<"add" | "deduct">("add");
   const [selectedPlan, setSelectedPlan] = useState<SubscriptionTier>("free");
+  const [selectedRole, setSelectedRole] = useState<"user" | "admin">("user");
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   // Build plan details from database plans
@@ -242,6 +244,55 @@ export default function AdminUsers() {
     setPlanDialogOpen(true);
   };
 
+  const openRoleDialog = (user: any) => {
+    setSelectedUser(user);
+    setSelectedRole(user.role || "user");
+    setRoleDialogOpen(true);
+  };
+
+  const handleUpdateRole = async () => {
+    if (!selectedUser) return;
+    
+    setIsSubmitting(true);
+    try {
+      const { data: session } = await supabase.auth.getSession();
+      
+      const response = await fetch(
+        `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/admin-stats?action=update-role`,
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${session.session?.access_token}`,
+          },
+          body: JSON.stringify({
+            userId: selectedUser.id,
+            role: selectedRole,
+          }),
+        }
+      );
+      
+      const data = await response.json();
+      if (!response.ok) throw new Error(data.error || "Failed to update role");
+
+      toast({
+        title: "Role Updated",
+        description: `${selectedUser.email} is now a ${selectedRole}.`,
+      });
+      
+      queryClient.invalidateQueries({ queryKey: ["admin-all-users"] });
+      setRoleDialogOpen(false);
+    } catch (error: any) {
+      toast({
+        title: "Error",
+        description: error.message,
+        variant: "destructive",
+      });
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
   return (
     <AdminLayout>
       <div className="space-y-6">
@@ -301,8 +352,11 @@ export default function AdminUsers() {
                         <TableCell className="font-medium">{user.email}</TableCell>
                         <TableCell>{user.full_name || "—"}</TableCell>
                         <TableCell>
-                          <Badge variant={user.role === "admin" ? "default" : "secondary"}>
-                            {user.role}
+                          <Badge 
+                            variant={user.role === "admin" ? "default" : "secondary"}
+                            className={user.role === "admin" ? "bg-amber-500 hover:bg-amber-600" : ""}
+                          >
+                            {user.role === "admin" ? "Admin" : "User"}
                           </Badge>
                         </TableCell>
                         <TableCell>
@@ -360,6 +414,14 @@ export default function AdminUsers() {
                                 Verify
                               </Button>
                             )}
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              onClick={() => openRoleDialog(user)}
+                            >
+                              <Shield className="h-4 w-4 mr-1" />
+                              Role
+                            </Button>
                             <Button
                               variant="outline"
                               size="sm"
@@ -548,6 +610,54 @@ export default function AdminUsers() {
                 : selectedUser?.is_banned
                 ? "Unban User"
                 : "Ban User"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Change Role Dialog */}
+      <Dialog open={roleDialogOpen} onOpenChange={setRoleDialogOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Change User Role</DialogTitle>
+            <DialogDescription>
+              Update the role for {selectedUser?.email}.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4 py-4">
+            <div className="space-y-2">
+              <Label>Select Role</Label>
+              <Select value={selectedRole} onValueChange={(v) => setSelectedRole(v as "user" | "admin")}>
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="user">User</SelectItem>
+                  <SelectItem value="admin">Admin</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="rounded-lg border p-3 bg-muted/50">
+              <p className="text-sm font-medium">Role Permissions</p>
+              <p className="text-sm text-muted-foreground mt-1">
+                {selectedRole === "admin" 
+                  ? "Admins have full access to the admin dashboard and can manage all users, plans, and settings."
+                  : "Users have standard access to the platform features based on their subscription plan."}
+              </p>
+            </div>
+            <p className="text-sm text-muted-foreground">
+              Current role: <span className="font-medium capitalize">{selectedUser?.role || "user"}</span>
+            </p>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setRoleDialogOpen(false)}>
+              Cancel
+            </Button>
+            <Button 
+              onClick={handleUpdateRole} 
+              disabled={isSubmitting || selectedRole === selectedUser?.role}
+            >
+              {isSubmitting ? "Updating..." : "Update Role"}
             </Button>
           </DialogFooter>
         </DialogContent>
