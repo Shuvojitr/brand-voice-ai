@@ -5,6 +5,31 @@ const corsHeaders = {
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
 };
 
+// Helper function to log admin activity
+async function logAdminActivity(
+  supabaseAdmin: any,
+  adminUserId: string,
+  action: string,
+  targetUserId?: string,
+  targetOrganizationId?: string,
+  details?: Record<string, any>,
+  ipAddress?: string
+) {
+  try {
+    await supabaseAdmin.from("admin_activity_logs").insert({
+      admin_user_id: adminUserId,
+      action,
+      target_user_id: targetUserId || null,
+      target_organization_id: targetOrganizationId || null,
+      details: details || {},
+      ip_address: ipAddress || null,
+    });
+    console.log(`Activity logged: ${action} by admin ${adminUserId}`);
+  } catch (err) {
+    console.error("Failed to log activity:", err);
+  }
+}
+
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") {
     return new Response(null, { headers: corsHeaders });
@@ -53,6 +78,7 @@ Deno.serve(async (req) => {
 
     const url = new URL(req.url);
     const action = url.searchParams.get("action") || "stats";
+    const clientIp = req.headers.get("x-forwarded-for") || req.headers.get("cf-connecting-ip") || undefined;
 
     // Handle POST requests for mutations
     if (req.method === "POST") {
@@ -66,6 +92,13 @@ Deno.serve(async (req) => {
             headers: { ...corsHeaders, "Content-Type": "application/json" },
           });
         }
+
+        // Get target user email for logging
+        const { data: targetProfile } = await supabaseAdmin
+          .from("profiles")
+          .select("email")
+          .eq("id", userId)
+          .maybeSingle();
 
         // Update profile ban status
         const { error: updateError } = await supabaseAdmin
@@ -96,6 +129,17 @@ Deno.serve(async (req) => {
           console.error("Auth ban update failed (non-critical):", authErr);
         }
 
+        // Log the activity
+        await logAdminActivity(
+          supabaseAdmin,
+          user.id,
+          isBanned ? "user_banned" : "user_unbanned",
+          userId,
+          undefined,
+          { target_email: targetProfile?.email },
+          clientIp
+        );
+
         return new Response(JSON.stringify({ success: true, is_banned: isBanned }), {
           headers: { ...corsHeaders, "Content-Type": "application/json" },
         });
@@ -113,7 +157,7 @@ Deno.serve(async (req) => {
         // Get current credits
         const { data: org, error: fetchError } = await supabaseAdmin
           .from("organizations")
-          .select("monthly_credits, credits_used")
+          .select("monthly_credits, credits_used, name")
           .eq("id", organizationId)
           .single();
 
@@ -124,7 +168,8 @@ Deno.serve(async (req) => {
           });
         }
 
-        let newCredits = org.monthly_credits || 0;
+        const previousCredits = org.monthly_credits || 0;
+        let newCredits = previousCredits;
         const parsedAmount = parseInt(amount);
 
         if (mode === "add") {
@@ -150,6 +195,23 @@ Deno.serve(async (req) => {
             headers: { ...corsHeaders, "Content-Type": "application/json" },
           });
         }
+
+        // Log the activity
+        await logAdminActivity(
+          supabaseAdmin,
+          user.id,
+          "credits_updated",
+          undefined,
+          organizationId,
+          { 
+            mode, 
+            amount: parsedAmount, 
+            previous_credits: previousCredits, 
+            new_credits: newCredits,
+            organization_name: org.name
+          },
+          clientIp
+        );
 
         return new Response(JSON.stringify({ 
           success: true, 
@@ -198,7 +260,7 @@ Deno.serve(async (req) => {
         // Get current organization credits
         const { data: org, error: orgError } = await supabaseAdmin
           .from("organizations")
-          .select("monthly_credits, credits_used")
+          .select("monthly_credits, credits_used, subscription_tier, name")
           .eq("id", organizationId)
           .single();
 
@@ -208,6 +270,8 @@ Deno.serve(async (req) => {
             headers: { ...corsHeaders, "Content-Type": "application/json" },
           });
         }
+
+        const previousPlan = org.subscription_tier;
 
         // Calculate remaining credits and add new plan credits
         const remainingCredits = Math.max(0, (org.monthly_credits || 0) - (org.credits_used || 0));
@@ -232,6 +296,22 @@ Deno.serve(async (req) => {
 
         console.log(`Plan updated for org ${organizationId}: ${plan} with ${newPlanCredits} new credits (total: ${newMonthlyCredits})`);
 
+        // Log the activity
+        await logAdminActivity(
+          supabaseAdmin,
+          user.id,
+          "plan_updated",
+          undefined,
+          organizationId,
+          { 
+            previous_plan: previousPlan, 
+            new_plan: plan, 
+            added_credits: newPlanCredits,
+            organization_name: org.name
+          },
+          clientIp
+        );
+
         return new Response(JSON.stringify({ 
           success: true, 
           subscription_tier: plan,
@@ -251,6 +331,13 @@ Deno.serve(async (req) => {
           });
         }
 
+        // Get target user email for logging
+        const { data: targetProfile } = await supabaseAdmin
+          .from("profiles")
+          .select("email")
+          .eq("id", userId)
+          .maybeSingle();
+
         // Manually verify user's email using admin API
         const { error: verifyError } = await supabaseAdmin.auth.admin.updateUserById(userId, {
           email_confirm: true,
@@ -265,6 +352,17 @@ Deno.serve(async (req) => {
         }
 
         console.log(`User ${userId} email manually verified by admin ${user.id}`);
+
+        // Log the activity
+        await logAdminActivity(
+          supabaseAdmin,
+          user.id,
+          "user_verified",
+          userId,
+          undefined,
+          { target_email: targetProfile?.email },
+          clientIp
+        );
 
         return new Response(JSON.stringify({ success: true }), {
           headers: { ...corsHeaders, "Content-Type": "application/json" },
@@ -289,12 +387,21 @@ Deno.serve(async (req) => {
           });
         }
 
+        // Get target user info for logging
+        const { data: targetProfile } = await supabaseAdmin
+          .from("profiles")
+          .select("email")
+          .eq("id", userId)
+          .maybeSingle();
+
         // Check if user already has a role entry
         const { data: existingRole } = await supabaseAdmin
           .from("user_roles")
           .select("id, role")
           .eq("user_id", userId)
           .maybeSingle();
+
+        const previousRole = existingRole?.role || "user";
 
         if (existingRole) {
           // Update existing role
@@ -326,6 +433,21 @@ Deno.serve(async (req) => {
         }
 
         console.log(`User ${userId} role updated to ${role} by admin ${user.id}`);
+
+        // Log the activity
+        await logAdminActivity(
+          supabaseAdmin,
+          user.id,
+          "role_updated",
+          userId,
+          undefined,
+          { 
+            previous_role: previousRole, 
+            new_role: role,
+            target_email: targetProfile?.email
+          },
+          clientIp
+        );
 
         return new Response(JSON.stringify({ success: true, role }), {
           headers: { ...corsHeaders, "Content-Type": "application/json" },
@@ -428,6 +550,52 @@ Deno.serve(async (req) => {
       }) || [];
 
       return new Response(JSON.stringify(users), {
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
+    if (action === "activity-logs") {
+      const limit = parseInt(url.searchParams.get("limit") || "50");
+      const offset = parseInt(url.searchParams.get("offset") || "0");
+
+      // Get activity logs with admin profile info
+      const { data: logs, error: logsError } = await supabaseAdmin
+        .from("admin_activity_logs")
+        .select("*")
+        .order("created_at", { ascending: false })
+        .range(offset, offset + limit - 1);
+
+      if (logsError) {
+        console.error("Error fetching activity logs:", logsError);
+        return new Response(JSON.stringify({ error: logsError.message }), {
+          status: 500,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+
+      // Get admin profiles for the logs
+      const adminIds = [...new Set(logs?.map(l => l.admin_user_id) || [])];
+      const { data: adminProfiles } = await supabaseAdmin
+        .from("profiles")
+        .select("id, email, full_name")
+        .in("id", adminIds);
+
+      // Enrich logs with admin info
+      const enrichedLogs = logs?.map(log => ({
+        ...log,
+        admin_email: adminProfiles?.find(p => p.id === log.admin_user_id)?.email,
+        admin_name: adminProfiles?.find(p => p.id === log.admin_user_id)?.full_name,
+      })) || [];
+
+      // Get total count
+      const { count } = await supabaseAdmin
+        .from("admin_activity_logs")
+        .select("*", { count: "exact", head: true });
+
+      return new Response(JSON.stringify({ 
+        logs: enrichedLogs, 
+        total: count || 0 
+      }), {
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
