@@ -6,12 +6,13 @@
     <!-- Minimal placeholder - will be replaced by React Helmet with dynamic values -->
     <title>Loading...</title>
     <meta name="description" content="" />
-    
-    <!-- Default favicon - will be dynamically updated by useFavicon hook -->
-    <link rel="icon" type="image/x-icon" href="/favicon.ico" />
-    
+
+    <!-- Default favicon (fallback). Updated at runtime by useFavicon hook. -->
+    <link id="app-favicon" rel="icon" href="/favicon.ico" />
+    <link id="app-shortcut-icon" rel="shortcut icon" href="/favicon.ico" />
+
     <link rel="canonical" href="https://mygenai.app" />
-    
+
     <!-- Preconnect to Google Fonts -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
