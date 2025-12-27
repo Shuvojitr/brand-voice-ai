@@ -38,6 +38,12 @@ import AdminApiKeys from "./pages/admin/AdminApiKeys";
 import AdminPages from "./pages/admin/AdminPages";
 import AdminSeo from "./pages/admin/AdminSeo";
 import AdminActivityLog from "./pages/admin/AdminActivityLog";
+import ManagerOverview from "./pages/manager/ManagerOverview";
+import ManagerTemplates from "./pages/manager/ManagerTemplates";
+import ManagerPages from "./pages/manager/ManagerPages";
+import ManagerTestimonials from "./pages/manager/ManagerTestimonials";
+import ManagerFaqs from "./pages/manager/ManagerFaqs";
+import ManagerReports from "./pages/manager/ManagerReports";
 
 const queryClient = new QueryClient();
 
@@ -81,6 +87,13 @@ function AppContent() {
         <Route path="/admin/seo" element={<AdminSeo />} />
         <Route path="/admin/activity" element={<AdminActivityLog />} />
         <Route path="/admin/settings" element={<AdminSettings />} />
+        {/* Manager Routes */}
+        <Route path="/manager" element={<ManagerOverview />} />
+        <Route path="/manager/templates" element={<ManagerTemplates />} />
+        <Route path="/manager/pages" element={<ManagerPages />} />
+        <Route path="/manager/testimonials" element={<ManagerTestimonials />} />
+        <Route path="/manager/faqs" element={<ManagerFaqs />} />
+        <Route path="/manager/reports" element={<ManagerReports />} />
         {/* Dynamic static pages - catches any slug not matched above */}
         <Route path="/:slug" element={<StaticPage />} />
         {/* 404 fallback */}
