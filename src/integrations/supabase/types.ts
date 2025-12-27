@@ -530,9 +530,14 @@ export type Database = {
           id: string
           is_api_feature_enabled: boolean
           logo_url: string | null
+          og_image_url: string | null
+          seo_description: string | null
+          seo_keywords: string | null
+          seo_title: string | null
           site_description: string | null
           site_name: string
           social_links: Json
+          twitter_handle: string | null
           updated_at: string | null
         }
         Insert: {
@@ -547,9 +552,14 @@ export type Database = {
           id?: string
           is_api_feature_enabled?: boolean
           logo_url?: string | null
+          og_image_url?: string | null
+          seo_description?: string | null
+          seo_keywords?: string | null
+          seo_title?: string | null
           site_description?: string | null
           site_name?: string
           social_links?: Json
+          twitter_handle?: string | null
           updated_at?: string | null
         }
         Update: {
@@ -564,9 +574,14 @@ export type Database = {
           id?: string
           is_api_feature_enabled?: boolean
           logo_url?: string | null
+          og_image_url?: string | null
+          seo_description?: string | null
+          seo_keywords?: string | null
+          seo_title?: string | null
           site_description?: string | null
           site_name?: string
           social_links?: Json
+          twitter_handle?: string | null
           updated_at?: string | null
         }
         Relationships: []
