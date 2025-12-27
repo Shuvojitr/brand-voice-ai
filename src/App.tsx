@@ -3,6 +3,7 @@ import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
+import { HelmetProvider } from "react-helmet-async";
 import { useFavicon } from "@/hooks/useFavicon";
 import Index from "./pages/Index";
 import Auth from "./pages/Auth";
@@ -23,6 +24,7 @@ import EmailSupport from "./pages/EmailSupport";
 import GettingStarted from "./pages/GettingStarted";
 import Docs from "./pages/Docs";
 import Banned from "./pages/Banned";
+import StaticPage from "./pages/StaticPage";
 import AdminOverview from "./pages/admin/AdminOverview";
 import AdminUsers from "./pages/admin/AdminUsers";
 import AdminTemplates from "./pages/admin/AdminTemplates";
@@ -32,6 +34,7 @@ import AdminPlans from "./pages/admin/AdminPlans";
 import AdminAppearance from "./pages/admin/AdminAppearance";
 import AdminSettings from "./pages/admin/AdminSettings";
 import AdminApiKeys from "./pages/admin/AdminApiKeys";
+import AdminPages from "./pages/admin/AdminPages";
 
 const queryClient = new QueryClient();
 
@@ -65,26 +68,31 @@ function AppContent() {
         <Route path="/admin/users" element={<AdminUsers />} />
         <Route path="/admin/templates" element={<AdminTemplates />} />
         <Route path="/admin/api-keys" element={<AdminApiKeys />} />
+        <Route path="/admin/pages" element={<AdminPages />} />
         <Route path="/admin/testimonials" element={<AdminTestimonials />} />
         <Route path="/admin/faqs" element={<AdminFaqs />} />
         <Route path="/admin/plans" element={<AdminPlans />} />
         <Route path="/admin/appearance" element={<AdminAppearance />} />
         <Route path="/admin/settings" element={<AdminSettings />} />
-        {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
-        <Route path="*" element={<NotFound />} />
+        {/* Dynamic static pages - catches any slug not matched above */}
+        <Route path="/:slug" element={<StaticPage />} />
+        {/* 404 fallback */}
+        <Route path="/404" element={<NotFound />} />
       </Routes>
     </BrowserRouter>
   );
 }
 
 const App = () => (
-  <QueryClientProvider client={queryClient}>
-    <TooltipProvider>
-      <Toaster />
-      <Sonner />
-      <AppContent />
-    </TooltipProvider>
-  </QueryClientProvider>
+  <HelmetProvider>
+    <QueryClientProvider client={queryClient}>
+      <TooltipProvider>
+        <Toaster />
+        <Sonner />
+        <AppContent />
+      </TooltipProvider>
+    </QueryClientProvider>
+  </HelmetProvider>
 );
 
 export default App;
