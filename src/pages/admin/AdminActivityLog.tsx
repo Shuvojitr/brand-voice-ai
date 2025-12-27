@@ -1,11 +1,16 @@
 import { useState } from "react";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { AdminLayout } from "@/components/admin";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Label } from "@/components/ui/label";
+import { Input } from "@/components/ui/input";
+import { Alert, AlertDescription } from "@/components/ui/alert";
+import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import { formatDistanceToNow, format } from "date-fns";
 import { 
@@ -16,7 +21,10 @@ import {
   Crown, 
   ChevronLeft, 
   ChevronRight,
-  Activity
+  Activity,
+  Trash2,
+  Clock,
+  Info
 } from "lucide-react";
 
 interface ActivityLog {
@@ -63,6 +71,11 @@ const actionConfig: Record<string, { label: string; icon: React.ReactNode; color
     icon: <CreditCard className="h-4 w-4" />, 
     color: "bg-cyan-500/10 text-cyan-600 border-cyan-500/20" 
   },
+  logs_cleanup: { 
+    label: "Logs Cleaned", 
+    icon: <Trash2 className="h-4 w-4" />, 
+    color: "bg-gray-500/10 text-gray-600 border-gray-500/20" 
+  },
 };
 
 function useActivityLogs(page: number, limit: number = 20) {
@@ -105,6 +118,8 @@ function getActionDetails(log: ActivityLog): string {
     case "credits_updated":
       const mode = details.mode === "add" ? "+" : details.mode === "deduct" ? "-" : "";
       return `${details.organization_name || "Organization"}: ${mode}${details.amount} credits`;
+    case "logs_cleanup":
+      return `Deleted ${details.logs_deleted} logs older than ${details.days_kept} days`;
     default:
       return JSON.stringify(details);
   }
@@ -112,23 +127,89 @@ function getActionDetails(log: ActivityLog): string {
 
 export default function AdminActivityLog() {
   const [page, setPage] = useState(1);
+  const [cleanupDialogOpen, setCleanupDialogOpen] = useState(false);
+  const [daysToKeep, setDaysToKeep] = useState("30");
+  const [isCleaningUp, setIsCleaningUp] = useState(false);
   const limit = 20;
   const { data, isLoading } = useActivityLogs(page, limit);
+  const { toast } = useToast();
+  const queryClient = useQueryClient();
 
   const totalPages = data ? Math.ceil(data.total / limit) : 1;
+
+  const handleCleanup = async () => {
+    setIsCleaningUp(true);
+    try {
+      const { data: session } = await supabase.auth.getSession();
+      
+      const response = await fetch(
+        `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/cleanup-activity-logs`,
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${session.session?.access_token}`,
+          },
+          body: JSON.stringify({
+            daysToKeep: parseInt(daysToKeep),
+            manual: true,
+          }),
+        }
+      );
+
+      const result = await response.json();
+
+      if (!response.ok) {
+        throw new Error(result.error || "Failed to cleanup logs");
+      }
+
+      toast({
+        title: "Cleanup Complete",
+        description: `Deleted ${result.deleted_count} logs older than ${daysToKeep} days.`,
+      });
+
+      queryClient.invalidateQueries({ queryKey: ["admin-activity-logs"] });
+      setCleanupDialogOpen(false);
+    } catch (error: any) {
+      toast({
+        title: "Error",
+        description: error.message,
+        variant: "destructive",
+      });
+    } finally {
+      setIsCleaningUp(false);
+    }
+  };
 
   return (
     <AdminLayout>
       <div className="space-y-6">
-        <div>
-          <h1 className="text-3xl font-bold flex items-center gap-2">
-            <Activity className="h-8 w-8" />
-            Activity Log
-          </h1>
-          <p className="text-muted-foreground mt-1">
-            Track all admin actions and changes.
-          </p>
+        <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+          <div>
+            <h1 className="text-3xl font-bold flex items-center gap-2">
+              <Activity className="h-8 w-8" />
+              Activity Log
+            </h1>
+            <p className="text-muted-foreground mt-1">
+              Track all admin actions and changes.
+            </p>
+          </div>
+          <Button 
+            variant="outline" 
+            onClick={() => setCleanupDialogOpen(true)}
+            className="gap-2"
+          >
+            <Trash2 className="h-4 w-4" />
+            Clean Up Old Logs
+          </Button>
         </div>
+
+        <Alert>
+          <Clock className="h-4 w-4" />
+          <AlertDescription>
+            <strong>Auto-cleanup enabled:</strong> Logs older than 30 days are automatically deleted daily.
+          </AlertDescription>
+        </Alert>
 
         <Card>
           <CardHeader>
@@ -247,6 +328,56 @@ export default function AdminActivityLog() {
           </CardContent>
         </Card>
       </div>
+
+      {/* Cleanup Dialog */}
+      <Dialog open={cleanupDialogOpen} onOpenChange={setCleanupDialogOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <Trash2 className="h-5 w-5" />
+              Clean Up Activity Logs
+            </DialogTitle>
+            <DialogDescription>
+              Delete activity logs older than a specified number of days.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4 py-4">
+            <div className="space-y-2">
+              <Label htmlFor="days">Keep logs from the last</Label>
+              <div className="flex items-center gap-2">
+                <Input
+                  id="days"
+                  type="number"
+                  min="1"
+                  max="365"
+                  value={daysToKeep}
+                  onChange={(e) => setDaysToKeep(e.target.value)}
+                  className="w-24"
+                />
+                <span className="text-muted-foreground">days</span>
+              </div>
+            </div>
+            <Alert variant="destructive">
+              <Info className="h-4 w-4" />
+              <AlertDescription>
+                This action cannot be undone. All logs older than {daysToKeep} days will be permanently deleted.
+              </AlertDescription>
+            </Alert>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setCleanupDialogOpen(false)}>
+              Cancel
+            </Button>
+            <Button 
+              variant="destructive" 
+              onClick={handleCleanup}
+              disabled={isCleaningUp || !daysToKeep || parseInt(daysToKeep) < 1}
+            >
+              {isCleaningUp ? "Cleaning up..." : "Delete Old Logs"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </AdminLayout>
   );
 }
