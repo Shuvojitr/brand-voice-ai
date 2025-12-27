@@ -34,7 +34,7 @@ export default function AdminUsers() {
   const [creditsAmount, setCreditsAmount] = useState("");
   const [creditsMode, setCreditsMode] = useState<"add" | "deduct">("add");
   const [selectedPlan, setSelectedPlan] = useState<SubscriptionTier>("free");
-  const [selectedRole, setSelectedRole] = useState<"user" | "admin">("user");
+  const [selectedRole, setSelectedRole] = useState<"user" | "manager" | "admin">("user");
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   // Build plan details from database plans
@@ -353,10 +353,13 @@ export default function AdminUsers() {
                         <TableCell>{user.full_name || "—"}</TableCell>
                         <TableCell>
                           <Badge 
-                            variant={user.role === "admin" ? "default" : "secondary"}
-                            className={user.role === "admin" ? "bg-amber-500 hover:bg-amber-600" : ""}
+                            variant={user.role === "admin" ? "default" : user.role === "manager" ? "default" : "secondary"}
+                            className={
+                              user.role === "admin" ? "bg-amber-500 hover:bg-amber-600" : 
+                              user.role === "manager" ? "bg-emerald-500 hover:bg-emerald-600" : ""
+                            }
                           >
-                            {user.role === "admin" ? "Admin" : "User"}
+                            {user.role === "admin" ? "Admin" : user.role === "manager" ? "Manager" : "User"}
                           </Badge>
                         </TableCell>
                         <TableCell>
@@ -627,12 +630,13 @@ export default function AdminUsers() {
           <div className="space-y-4 py-4">
             <div className="space-y-2">
               <Label>Select Role</Label>
-              <Select value={selectedRole} onValueChange={(v) => setSelectedRole(v as "user" | "admin")}>
+              <Select value={selectedRole} onValueChange={(v) => setSelectedRole(v as "user" | "manager" | "admin")}>
                 <SelectTrigger>
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="user">User</SelectItem>
+                  <SelectItem value="manager">Manager</SelectItem>
                   <SelectItem value="admin">Admin</SelectItem>
                 </SelectContent>
               </Select>
@@ -642,6 +646,8 @@ export default function AdminUsers() {
               <p className="text-sm text-muted-foreground mt-1">
                 {selectedRole === "admin" 
                   ? "Admins have full access to the admin dashboard and can manage all users, plans, and settings."
+                  : selectedRole === "manager"
+                  ? "Managers have elevated access to manage content, templates, and view reports, but cannot manage users or billing."
                   : "Users have standard access to the platform features based on their subscription plan."}
               </p>
             </div>
