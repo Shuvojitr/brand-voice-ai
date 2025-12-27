@@ -15,7 +15,7 @@ import { usePlans } from "@/hooks/usePlans";
 import { supabase } from "@/integrations/supabase/client";
 import { useQueryClient } from "@tanstack/react-query";
 import { formatDistanceToNow } from "date-fns";
-import { Search, CreditCard, Ban, UserX, Crown, CheckCircle, MailCheck, Shield } from "lucide-react";
+import { Search, CreditCard, Ban, UserX, Crown, CheckCircle, MailCheck, Shield, LogIn } from "lucide-react";
 
 type SubscriptionTier = "free" | "starter" | "pro" | "enterprise";
 
@@ -293,6 +293,58 @@ export default function AdminUsers() {
     }
   };
 
+  const handleImpersonateUser = async (user: any) => {
+    if (user.is_banned) {
+      toast({
+        title: "Cannot Impersonate",
+        description: "This user is banned and cannot be impersonated.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    setIsSubmitting(true);
+    try {
+      const { data: session } = await supabase.auth.getSession();
+      
+      const response = await fetch(
+        `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/admin-stats?action=impersonate-user`,
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${session.session?.access_token}`,
+          },
+          body: JSON.stringify({ userId: user.id }),
+        }
+      );
+      
+      const data = await response.json();
+      if (!response.ok) throw new Error(data.error || "Failed to impersonate user");
+
+      // Use the token hash to verify and sign in as the user
+      const { error: verifyError } = await supabase.auth.verifyOtp({
+        token_hash: data.token_hash,
+        type: "magiclink",
+      });
+
+      if (verifyError) {
+        throw new Error(verifyError.message);
+      }
+
+      // Redirect to dashboard after successful impersonation
+      window.location.href = "/dashboard";
+    } catch (error: any) {
+      toast({
+        title: "Error",
+        description: error.message,
+        variant: "destructive",
+      });
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
   return (
     <AdminLayout>
       <div className="space-y-6">
@@ -406,6 +458,16 @@ export default function AdminUsers() {
                         </TableCell>
                         <TableCell className="text-right">
                           <div className="flex items-center justify-end gap-2">
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              onClick={() => handleImpersonateUser(user)}
+                              disabled={isSubmitting || user.is_banned}
+                              title="Login as this user"
+                            >
+                              <LogIn className="h-4 w-4 mr-1" />
+                              Login As
+                            </Button>
                             {!user.email_confirmed_at && (
                               <Button
                                 variant="outline"
