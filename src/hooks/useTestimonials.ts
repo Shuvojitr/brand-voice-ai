@@ -9,19 +9,24 @@ export interface Testimonial {
   review_text: string;
   rating: number | null;
   is_featured: boolean | null;
+  is_active: boolean | null;
   sort_order: number | null;
 }
 
-export function useTestimonials() {
+export function useTestimonials(includeInactive = false) {
   return useQuery({
-    queryKey: ["testimonials"],
+    queryKey: ["testimonials", includeInactive],
     queryFn: async () => {
-      const { data, error } = await supabase
+      let query = supabase
         .from("testimonials")
         .select("*")
-        .eq("is_active", true)
         .order("sort_order", { ascending: true });
 
+      if (!includeInactive) {
+        query = query.eq("is_active", true);
+      }
+
+      const { data, error } = await query;
       if (error) throw error;
       return data as Testimonial[];
     },
