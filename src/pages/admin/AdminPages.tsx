@@ -2,7 +2,7 @@ import { useState } from "react";
 import { AdminLayout } from "@/components/admin";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Textarea } from "@/components/ui/textarea";
+import { RichTextEditor } from "@/components/ui/rich-text-editor";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
 import {
@@ -268,18 +268,13 @@ export default function AdminPages() {
             </div>
             <div className="space-y-2">
               <Label htmlFor="content">Content</Label>
-              <Textarea
-                id="content"
-                value={formData.content}
-                onChange={(e) =>
-                  setFormData((prev) => ({ ...prev, content: e.target.value }))
+              <RichTextEditor
+                content={formData.content || ""}
+                onChange={(content) =>
+                  setFormData((prev) => ({ ...prev, content }))
                 }
-                placeholder="Write your page content here... You can use HTML or Markdown."
-                className="min-h-[300px] font-mono text-sm"
+                placeholder="Start writing your page content..."
               />
-              <p className="text-xs text-muted-foreground">
-                You can use HTML or Markdown for formatting.
-              </p>
             </div>
             <div className="flex items-center gap-2">
               <Switch
