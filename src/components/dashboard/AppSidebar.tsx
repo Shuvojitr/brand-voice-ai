@@ -22,12 +22,14 @@ import {
   Mic,
   FolderOpen,
   Shield,
-  LifeBuoy
+  LifeBuoy,
+  Users
 } from "lucide-react";
 import { BrandLogo } from "@/components/BrandLogo";
 import { Separator } from "@/components/ui/separator";
 import { useOrganization } from "@/hooks/useOrganization";
 import { useAdminRole } from "@/hooks/useAdminRole";
+import { useManagerRole } from "@/hooks/useManagerRole";
 import { useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
 
@@ -57,6 +59,7 @@ export function AppSidebar() {
   const location = useLocation();
   const { organization, invalidate } = useOrganization();
   const { isAdmin } = useAdminRole();
+  const { isManager } = useManagerRole();
 
   const creditsUsed = organization?.credits_used || 0;
   const monthlyCredits = organization?.monthly_credits || 1000;
@@ -164,6 +167,30 @@ export function AppSidebar() {
             </SidebarMenu>
           </SidebarGroupContent>
         </SidebarGroup>
+
+        {isManager && (
+          <SidebarGroup className="mt-4">
+            <SidebarGroupLabel className={collapsed ? "sr-only" : ""}>
+              Management
+            </SidebarGroupLabel>
+            <SidebarGroupContent>
+              <SidebarMenu>
+                <SidebarMenuItem>
+                  <SidebarMenuButton asChild tooltip="Manager Dashboard">
+                    <NavLink 
+                      to="/manager"
+                      className="flex items-center gap-3 text-amber-600"
+                      activeClassName="bg-amber-500/10 text-amber-600 font-medium"
+                    >
+                      <Users className="h-4 w-4 flex-shrink-0" />
+                      <span>Manager Dashboard</span>
+                    </NavLink>
+                  </SidebarMenuButton>
+                </SidebarMenuItem>
+              </SidebarMenu>
+            </SidebarGroupContent>
+          </SidebarGroup>
+        )}
 
         {isAdmin && (
           <SidebarGroup className="mt-4">
