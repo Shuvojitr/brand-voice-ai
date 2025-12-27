@@ -9,15 +9,20 @@ interface GlobalSeoHeadProps {
 }
 
 export function GlobalSeoHead({ title, description, image, noIndex }: GlobalSeoHeadProps) {
-  const { settings } = useSiteSettings();
+  const { settings, isLoading } = useSiteSettings();
 
-  // Use provided values or fall back to site settings
-  const seoTitle = title || settings?.seo_title || settings?.site_name || "MyGenAI";
-  const seoDescription = description || settings?.seo_description || settings?.site_description || "AI-powered content creation platform";
-  const seoKeywords = settings?.seo_keywords || "AI, content generator, writing assistant";
+  // Don't render anything until settings are loaded to prevent flicker
+  if (isLoading) {
+    return null;
+  }
+
+  // Use provided values or fall back to site settings (NO hardcoded brand names)
+  const seoTitle = title || settings?.seo_title || settings?.site_name || "AI App";
+  const seoDescription = description || settings?.seo_description || settings?.site_description || "AI-powered application";
+  const seoKeywords = settings?.seo_keywords || "";
   const ogImage = image || settings?.og_image_url;
-  const twitterHandle = settings?.twitter_handle || "@MyGenAI";
-  const siteName = settings?.site_name || "MyGenAI";
+  const twitterHandle = settings?.twitter_handle || "";
+  const siteName = settings?.site_name || "AI App";
 
   // Generate title with template if not overridden
   const fullTitle = title && settings?.site_name 
@@ -29,7 +34,7 @@ export function GlobalSeoHead({ title, description, image, noIndex }: GlobalSeoH
       {/* Basic Meta Tags */}
       <title>{fullTitle}</title>
       <meta name="description" content={seoDescription} />
-      <meta name="keywords" content={seoKeywords} />
+      {seoKeywords && <meta name="keywords" content={seoKeywords} />}
       
       {noIndex && <meta name="robots" content="noindex, nofollow" />}
 
