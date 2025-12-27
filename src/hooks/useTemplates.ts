@@ -27,20 +27,24 @@ export function getFormFields(template: DatabaseTemplate): TemplateInputField[] 
   return template.form_schema_json as unknown as TemplateInputField[];
 }
 
-export function useTemplates() {
+export function useTemplates(includeInactive = false) {
   return useQuery({
-    queryKey: ["templates"],
+    queryKey: ["templates", includeInactive],
     queryFn: async () => {
-      const { data, error } = await supabase
+      let query = supabase
         .from("templates")
         .select("*")
-        .eq("is_active", true)
         .order("sort_order", { ascending: true });
 
+      if (!includeInactive) {
+        query = query.eq("is_active", true);
+      }
+
+      const { data, error } = await query;
       if (error) throw error;
       return data as DatabaseTemplate[];
     },
-    staleTime: 5 * 60 * 1000, // Cache for 5 minutes
+    staleTime: 5 * 60 * 1000,
   });
 }
 
