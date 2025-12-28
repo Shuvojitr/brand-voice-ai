@@ -22,19 +22,10 @@ import {
   Loader2,
   Menu,
   Star,
-  MousePointerClick,
-  Palette,
-  Globe,
-  Shield
+  MousePointerClick
 } from "lucide-react";
 import { usePlans, Plan } from "@/hooks/usePlans";
 import { useSiteSettings } from "@/hooks/useSiteSettings";
-import { useHomepageContent, FeaturesContent, HowItWorksContent, CtaContent, HeroContent } from "@/hooks/useHomepageContent";
-
-// Icon mapping for dynamic features
-const iconMap: Record<string, React.ComponentType<{ className?: string }>> = {
-  Globe2, Search, FileText, Zap, Users, PenTool, Sparkles, Wand2, Download, Palette, Globe, Shield, Star: Star
-};
 
 const defaultPublicNavLinks = [
   { href: "/", label: "Home" },
@@ -42,74 +33,77 @@ const defaultPublicNavLinks = [
   { href: "#pricing", label: "Pricing" },
 ];
 
-const defaultFeatures = [
+const features = [
   {
-    icon: "Globe2",
+    icon: Globe2,
     title: "Multi-language Support",
     description: "Generate content in 25+ languages including Bangla, Hindi, Spanish, and more.",
+    color: "coral",
   },
   {
-    icon: "Search",
+    icon: Search,
     title: "SEO Mode",
     description: "Built-in SEO optimization with keyword suggestions and readability scoring.",
+    color: "violet",
   },
   {
-    icon: "FileText",
+    icon: FileText,
     title: "50+ Templates",
     description: "Blog posts, social media, ads, emails, product descriptions and more.",
+    color: "cyan",
   },
   {
-    icon: "Zap",
+    icon: Zap,
     title: "Lightning Fast",
     description: "Generate high-quality content in seconds, not hours. Real-time streaming.",
+    color: "coral",
   },
   {
-    icon: "Users",
+    icon: Users,
     title: "Team Collaboration",
     description: "Share brand voices, templates, and documents across your entire team.",
+    color: "violet",
   },
   {
-    icon: "PenTool",
+    icon: PenTool,
     title: "Brand Voice AI",
     description: "Train the AI to write in your unique style and tone for consistent messaging.",
+    color: "cyan",
   },
 ];
 
-const defaultSteps = [
+const steps = [
   {
-    step: "01",
+    number: "01",
+    icon: FileText,
     title: "Choose a Template",
     description: "Select from 50+ professionally crafted templates for any content type.",
+    emoji: "📝",
   },
   {
-    step: "02",
+    number: "02",
+    icon: Wand2,
     title: "Customize & Generate",
     description: "Add your inputs, select your brand voice, and let AI create magic.",
+    emoji: "✨",
   },
   {
-    step: "03",
+    number: "03",
+    icon: Download,
     title: "Edit & Export",
     description: "Polish your content in our rich editor and export to any format.",
+    emoji: "🚀",
   },
 ];
-
-const stepEmojis = ["📝", "✨", "🚀"];
 
 export default function Index() {
   const { data: plans, isLoading: plansLoading } = usePlans();
   const { settings, isLoading: settingsLoading } = useSiteSettings();
-  const { hero, features: featuresContent, howItWorks, cta, isLoading: contentLoading } = useHomepageContent();
   const [isYearly, setIsYearly] = useState(false);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
   const siteName = settings?.site_name || "";
   const publicNavLinks = settings?.header_nav?.length ? settings.header_nav : defaultPublicNavLinks;
-
-  // Use dynamic content or fallbacks
-  const heroData = hero as HeroContent | null;
-  const featuresData = (featuresContent as FeaturesContent | null)?.items || defaultFeatures;
-  const howItWorksData = (howItWorks as HowItWorksContent | null)?.steps || defaultSteps;
-  const ctaData = cta as CtaContent | null;
 
   const handleMobileNavClick = (href: string) => {
     setMobileMenuOpen(false);
@@ -262,23 +256,24 @@ export default function Index() {
           <div className="mx-auto max-w-4xl text-center">
             <Badge variant="gradient" className="mb-6 animate-fade-in px-4 py-2">
               <Sparkles className="mr-2 h-4 w-4" />
-              {heroData?.badge || "Powered by GPT-4 & Claude"}
+              Powered by GPT-4 & Claude
             </Badge>
             
             <h1 className="mb-6 font-display text-5xl font-bold tracking-tight md:text-7xl lg:text-8xl animate-slide-up">
-              {heroData?.title?.replace(heroData?.highlight || "", "").trim() || "Create Content"}
+              Create Content
               <br />
-              <span className="gradient-text">{heroData?.highlight || "10x Faster"}</span>
+              <span className="gradient-text">10x Faster</span>
             </h1>
             
             <p className="mx-auto mb-10 max-w-2xl text-lg text-muted-foreground md:text-xl animate-slide-up" style={{ animationDelay: "0.1s" }}>
-              {heroData?.description || "The AI-powered content generator that helps you write blog posts, social media content, ads, and emails in seconds."}
+              The AI-powered content generator that helps you write blog posts, 
+              social media content, ads, and emails in seconds.
             </p>
             
             <div className="flex flex-col items-center justify-center gap-4 sm:flex-row animate-slide-up" style={{ animationDelay: "0.2s" }}>
               <Button size="xl" variant="glow" asChild className="group">
                 <Link to="/signup">
-                  {heroData?.primaryCta || "Start for Free"}
+                  Start for Free
                   <ArrowRight className="ml-2 h-5 w-5 transition-transform group-hover:translate-x-1" />
                 </Link>
               </Button>
@@ -292,7 +287,7 @@ export default function Index() {
                 }}
               >
                 <MousePointerClick className="mr-2 h-5 w-5" />
-                {heroData?.secondaryCta || "View Pricing"}
+                View Pricing
               </Button>
             </div>
             
@@ -372,44 +367,38 @@ export default function Index() {
               Features
             </Badge>
             <h2 className="font-display text-4xl font-bold tracking-tight md:text-5xl mb-4">
-              {(featuresContent as FeaturesContent | null)?.title || "Everything You Need"}
+              Everything You Need
               <br />
-              <span className="gradient-text">{(featuresContent as FeaturesContent | null)?.highlight || "To Create Magic"}</span>
+              <span className="gradient-text">To Create Magic</span>
             </h2>
             <p className="text-muted-foreground text-lg">
-              {(featuresContent as FeaturesContent | null)?.description || "Powerful features designed to help you write better content, faster."}
+              Powerful features designed to help you write better content, faster.
             </p>
           </div>
           
           <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3 stagger-children">
-            {featuresData.map((feature, index) => {
-              const colors = ['coral', 'violet', 'cyan'];
-              const color = colors[index % 3];
-              const IconComponent = iconMap[feature.icon] || Sparkles;
-              
-              return (
-                <Card 
-                  key={feature.title} 
-                  className="group card-interactive border-border/50 bg-card/50 backdrop-blur hover:border-primary/50"
-                >
-                  <CardHeader>
-                    <div className={`mb-3 flex h-14 w-14 items-center justify-center rounded-2xl transition-all duration-300 ${
-                      color === 'coral' ? 'bg-coral/10 text-coral group-hover:bg-coral group-hover:text-white' :
-                      color === 'violet' ? 'bg-violet/10 text-violet group-hover:bg-violet group-hover:text-white' :
-                      'bg-cyan/10 text-cyan group-hover:bg-cyan group-hover:text-white'
-                    }`}>
-                      <IconComponent className="h-7 w-7" />
-                    </div>
-                    <CardTitle className="text-xl">{feature.title}</CardTitle>
-                  </CardHeader>
-                  <CardContent>
-                    <CardDescription className="text-base">
-                      {feature.description}
-                    </CardDescription>
-                  </CardContent>
-                </Card>
-              );
-            })}
+            {features.map((feature) => (
+              <Card 
+                key={feature.title} 
+                className="group card-interactive border-border/50 bg-card/50 backdrop-blur hover:border-primary/50"
+              >
+                <CardHeader>
+                  <div className={`mb-3 flex h-14 w-14 items-center justify-center rounded-2xl transition-all duration-300 ${
+                    feature.color === 'coral' ? 'bg-coral/10 text-coral group-hover:bg-coral group-hover:text-white' :
+                    feature.color === 'violet' ? 'bg-violet/10 text-violet group-hover:bg-violet group-hover:text-white' :
+                    'bg-cyan/10 text-cyan group-hover:bg-cyan group-hover:text-white'
+                  }`}>
+                    <feature.icon className="h-7 w-7" />
+                  </div>
+                  <CardTitle className="text-xl">{feature.title}</CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <CardDescription className="text-base">
+                    {feature.description}
+                  </CardDescription>
+                </CardContent>
+              </Card>
+            ))}
           </div>
         </div>
       </section>
@@ -425,20 +414,20 @@ export default function Index() {
           <div className="mx-auto max-w-2xl text-center mb-16">
             <Badge variant="outline" className="mb-4">How It Works</Badge>
             <h2 className="font-display text-4xl font-bold tracking-tight md:text-5xl mb-4">
-              {(howItWorks as HowItWorksContent | null)?.title || "Create Content in"}
+              Create Content in
               <br />
               <span className="gradient-text">3 Simple Steps</span>
             </h2>
             <p className="text-muted-foreground text-lg">
-              {(howItWorks as HowItWorksContent | null)?.description || "Go from idea to polished content in minutes, not hours."}
+              Go from idea to polished content in minutes, not hours.
             </p>
           </div>
           
           <div className="grid gap-8 md:grid-cols-3">
-            {howItWorksData.map((step, index) => (
+            {steps.map((step, index) => (
               <div key={step.title} className="relative text-center group">
                 {/* Connector line */}
-                {index < howItWorksData.length - 1 && (
+                {index < steps.length - 1 && (
                   <div className="absolute left-1/2 top-16 hidden h-0.5 w-full bg-gradient-to-r from-coral via-violet to-cyan opacity-30 md:block" />
                 )}
                 
@@ -449,11 +438,11 @@ export default function Index() {
                   <div className="absolute inset-2 rounded-2xl bg-card border border-border/50 shadow-soft" />
                   
                   {/* Emoji */}
-                  <span className="relative text-5xl">{stepEmojis[index] || "📝"}</span>
+                  <span className="relative text-5xl">{step.emoji}</span>
                   
                   {/* Step number */}
                   <span className="absolute -right-2 -top-2 flex h-10 w-10 items-center justify-center rounded-full gradient-primary text-sm font-bold text-white shadow-glow">
-                    {step.step}
+                    {step.number}
                   </span>
                 </div>
                 
@@ -590,22 +579,20 @@ export default function Index() {
           <div className="mx-auto max-w-3xl text-center">
             <span className="text-6xl mb-6 block">🚀</span>
             <h2 className="font-display text-4xl font-bold tracking-tight md:text-5xl mb-6">
-              {ctaData?.title?.split("?")[0] || "Ready to Create"}
+              Ready to Create
               <br />
               <span className="gradient-text">Amazing Content?</span>
             </h2>
             <p className="text-muted-foreground text-lg mb-10 max-w-xl mx-auto">
-              {ctaData?.description || `Join thousands of content creators, marketers, and businesses who trust ${siteName} for their content needs.`}
+              Join thousands of content creators, marketers, and businesses 
+              who trust {siteName} for their content needs.
             </p>
             <Button size="xl" variant="glow" asChild className="group">
               <Link to="/signup">
-                {ctaData?.buttonText || "Get Started for Free"}
+                Get Started for Free
                 <ArrowRight className="ml-2 h-5 w-5 transition-transform group-hover:translate-x-1" />
               </Link>
             </Button>
-            {ctaData?.subtext && (
-              <p className="mt-4 text-sm text-muted-foreground">{ctaData.subtext}</p>
-            )}
           </div>
         </div>
       </section>

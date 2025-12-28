@@ -28,7 +28,6 @@ import Banned from "./pages/Banned";
 import StaticPage from "./pages/StaticPage";
 import AdminOverview from "./pages/admin/AdminOverview";
 import AdminUsers from "./pages/admin/AdminUsers";
-import AdminHomepage from "./pages/admin/AdminHomepage";
 import AdminTemplates from "./pages/admin/AdminTemplates";
 import AdminTestimonials from "./pages/admin/AdminTestimonials";
 import AdminFaqs from "./pages/admin/AdminFaqs";
@@ -40,7 +39,6 @@ import AdminPages from "./pages/admin/AdminPages";
 import AdminSeo from "./pages/admin/AdminSeo";
 import AdminActivityLog from "./pages/admin/AdminActivityLog";
 import ManagerOverview from "./pages/manager/ManagerOverview";
-import ManagerHomepage from "./pages/manager/ManagerHomepage";
 import ManagerTemplates from "./pages/manager/ManagerTemplates";
 import ManagerPages from "./pages/manager/ManagerPages";
 import ManagerTestimonials from "./pages/manager/ManagerTestimonials";
@@ -79,7 +77,6 @@ function AppContent() {
         {/* Admin Routes */}
         <Route path="/admin" element={<AdminOverview />} />
         <Route path="/admin/users" element={<AdminUsers />} />
-        <Route path="/admin/homepage" element={<AdminHomepage />} />
         <Route path="/admin/templates" element={<AdminTemplates />} />
         <Route path="/admin/api-keys" element={<AdminApiKeys />} />
         <Route path="/admin/pages" element={<AdminPages />} />
@@ -92,7 +89,6 @@ function AppContent() {
         <Route path="/admin/settings" element={<AdminSettings />} />
         {/* Manager Routes */}
         <Route path="/manager" element={<ManagerOverview />} />
-        <Route path="/manager/homepage" element={<ManagerHomepage />} />
         <Route path="/manager/templates" element={<ManagerTemplates />} />
         <Route path="/manager/pages" element={<ManagerPages />} />
         <Route path="/manager/testimonials" element={<ManagerTestimonials />} />
