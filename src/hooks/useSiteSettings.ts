@@ -19,12 +19,20 @@ export interface SocialLink {
   visible?: boolean;
 }
 
+export interface FaviconSizes {
+  "16"?: string;
+  "32"?: string;
+  "48"?: string;
+  "180"?: string;
+}
+
 export interface SiteSettings {
   id: string;
   logo_url: string | null;
   header_logo_url: string | null;
   footer_logo_url: string | null;
   favicon_url: string | null;
+  favicon_sizes: FaviconSizes | null;
   site_name: string;
   site_description: string | null;
   header_nav: NavLink[];
@@ -69,6 +77,7 @@ export function useSiteSettings() {
         header_logo_url: rawData.header_logo_url,
         footer_logo_url: rawData.footer_logo_url,
         favicon_url: rawData.favicon_url,
+        favicon_sizes: (rawData.favicon_sizes as FaviconSizes) || null,
         site_name: rawData.site_name,
         site_description: rawData.site_description,
         header_nav: (rawData.header_nav as NavLink[]) || [],
@@ -104,6 +113,7 @@ export function useSiteSettings() {
       if (updates.header_logo_url !== undefined) updatePayload.header_logo_url = updates.header_logo_url;
       if (updates.footer_logo_url !== undefined) updatePayload.footer_logo_url = updates.footer_logo_url;
       if (updates.favicon_url !== undefined) updatePayload.favicon_url = updates.favicon_url;
+      if ((updates as any).favicon_sizes !== undefined) updatePayload.favicon_sizes = (updates as any).favicon_sizes;
       if (updates.site_name !== undefined) updatePayload.site_name = updates.site_name;
       if (updates.site_description !== undefined) updatePayload.site_description = updates.site_description;
       if (updates.header_nav !== undefined) updatePayload.header_nav = updates.header_nav as unknown as Json;

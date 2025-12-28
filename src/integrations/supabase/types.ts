@@ -555,6 +555,7 @@ export type Database = {
           bottom_tagline: string | null
           copyright_text: string | null
           created_at: string | null
+          favicon_sizes: Json | null
           favicon_url: string | null
           footer_logo_url: string | null
           footer_nav: Json
@@ -577,6 +578,7 @@ export type Database = {
           bottom_tagline?: string | null
           copyright_text?: string | null
           created_at?: string | null
+          favicon_sizes?: Json | null
           favicon_url?: string | null
           footer_logo_url?: string | null
           footer_nav?: Json
@@ -599,6 +601,7 @@ export type Database = {
           bottom_tagline?: string | null
           copyright_text?: string | null
           created_at?: string | null
+          favicon_sizes?: Json | null
           favicon_url?: string | null
           footer_logo_url?: string | null
           footer_nav?: Json

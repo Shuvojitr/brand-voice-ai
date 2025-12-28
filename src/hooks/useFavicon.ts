@@ -10,32 +10,53 @@ export function useFavicon() {
   const { settings } = useSiteSettings();
 
   useEffect(() => {
-    if (!settings?.favicon_url) return;
+    const faviconSizes = settings?.favicon_sizes;
+    const faviconUrl = settings?.favicon_url;
 
-    const href = withCacheBusting(settings.favicon_url);
+    // If no favicon data, skip
+    if (!faviconSizes && !faviconUrl) return;
 
-    const icon = document.querySelector<HTMLLinkElement>("#app-favicon");
-    const shortcut = document.querySelector<HTMLLinkElement>("#app-shortcut-icon");
+    // Update or create favicon links for each size
+    const updateFaviconLink = (id: string, rel: string, sizes: string | null, href: string) => {
+      let link = document.querySelector<HTMLLinkElement>(`#${id}`);
+      
+      if (!link) {
+        link = document.createElement("link");
+        link.id = id;
+        document.head.appendChild(link);
+      }
 
-    if (icon) {
-      icon.rel = "icon";
-      icon.type = "image/png";
-      icon.href = href;
-    }
-
-    if (shortcut) {
-      shortcut.rel = "shortcut icon";
-      shortcut.type = "image/png";
-      shortcut.href = href;
-    }
-
-    // Fallback: if the IDs don't exist for some reason, ensure at least one icon tag is present.
-    if (!icon && !shortcut) {
-      const link = document.createElement("link");
-      link.rel = "icon";
+      link.rel = rel;
       link.type = "image/png";
-      link.href = href;
-      document.head.appendChild(link);
+      if (sizes) link.setAttribute("sizes", sizes);
+      link.href = withCacheBusting(href);
+    };
+
+    // If we have multi-size favicons, use them
+    if (faviconSizes) {
+      if (faviconSizes["16"]) {
+        updateFaviconLink("favicon-16", "icon", "16x16", faviconSizes["16"]);
+      }
+      if (faviconSizes["32"]) {
+        updateFaviconLink("favicon-32", "icon", "32x32", faviconSizes["32"]);
+      }
+      if (faviconSizes["48"]) {
+        updateFaviconLink("favicon-48", "icon", "48x48", faviconSizes["48"]);
+      }
+      if (faviconSizes["180"]) {
+        updateFaviconLink("apple-touch-icon", "apple-touch-icon", "180x180", faviconSizes["180"]);
+      }
+
+      // Also set the default favicon to 32px version (most common)
+      const defaultUrl = faviconSizes["32"] || faviconSizes["16"] || faviconUrl;
+      if (defaultUrl) {
+        updateFaviconLink("app-favicon", "icon", null, defaultUrl);
+        updateFaviconLink("app-shortcut-icon", "shortcut icon", null, defaultUrl);
+      }
+    } else if (faviconUrl) {
+      // Fallback to single favicon URL
+      updateFaviconLink("app-favicon", "icon", null, faviconUrl);
+      updateFaviconLink("app-shortcut-icon", "shortcut icon", null, faviconUrl);
     }
-  }, [settings?.favicon_url]);
+  }, [settings?.favicon_url, settings?.favicon_sizes]);
 }
