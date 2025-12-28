@@ -494,15 +494,27 @@ export default function AdminHomepage() {
                             </div>
                             <div className="space-y-2">
                               <Label>Color</Label>
-                              <select
-                                value={item.color}
-                                onChange={(e) => updateFeatureItem(index, "color", e.target.value)}
-                                className="w-full h-10 rounded-md border border-input bg-background px-3 py-2 text-sm"
-                              >
-                                <option value="coral">Coral</option>
-                                <option value="violet">Violet</option>
-                                <option value="cyan">Cyan</option>
-                              </select>
+                              <div className="flex gap-2">
+                                {[
+                                  { value: "coral", bg: "bg-coral", label: "Coral" },
+                                  { value: "violet", bg: "bg-violet", label: "Violet" },
+                                  { value: "cyan", bg: "bg-cyan", label: "Cyan" },
+                                ].map((color) => (
+                                  <button
+                                    key={color.value}
+                                    type="button"
+                                    onClick={() => updateFeatureItem(index, "color", color.value)}
+                                    className={`flex items-center gap-2 px-3 py-2 rounded-lg border-2 transition-all ${
+                                      item.color === color.value
+                                        ? "border-primary ring-2 ring-primary/20"
+                                        : "border-border hover:border-primary/50"
+                                    }`}
+                                  >
+                                    <div className={`h-4 w-4 rounded-full ${color.bg}`} />
+                                    <span className="text-sm">{color.label}</span>
+                                  </button>
+                                ))}
+                              </div>
                             </div>
                           </div>
                           <div className="space-y-2">
