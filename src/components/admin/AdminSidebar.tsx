@@ -1,4 +1,4 @@
-import { LayoutDashboard, Users, FileText, Settings, ArrowLeft, DollarSign, Palette, MessageSquareQuote, HelpCircle, Key, FileStack, Search, Activity } from "lucide-react";
+import { LayoutDashboard, Users, FileText, Settings, ArrowLeft, DollarSign, Palette, MessageSquareQuote, HelpCircle, Key, FileStack, Search, Activity, Home } from "lucide-react";
 import { NavLink } from "@/components/NavLink";
 import { useLocation } from "react-router-dom";
 import {
@@ -20,6 +20,7 @@ import { Link } from "react-router-dom";
 const adminNavItems = [
   { title: "Overview", url: "/admin", icon: LayoutDashboard },
   { title: "Users", url: "/admin/users", icon: Users },
+  { title: "Homepage", url: "/admin/homepage", icon: Home },
   { title: "Templates", url: "/admin/templates", icon: FileText },
   { title: "Pages", url: "/admin/pages", icon: FileStack },
   { title: "API Keys", url: "/admin/api-keys", icon: Key },
