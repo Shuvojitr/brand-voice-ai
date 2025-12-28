@@ -28,6 +28,7 @@ import Banned from "./pages/Banned";
 import StaticPage from "./pages/StaticPage";
 import AdminOverview from "./pages/admin/AdminOverview";
 import AdminUsers from "./pages/admin/AdminUsers";
+import AdminHomepage from "./pages/admin/AdminHomepage";
 import AdminTemplates from "./pages/admin/AdminTemplates";
 import AdminTestimonials from "./pages/admin/AdminTestimonials";
 import AdminFaqs from "./pages/admin/AdminFaqs";
@@ -77,6 +78,7 @@ function AppContent() {
         {/* Admin Routes */}
         <Route path="/admin" element={<AdminOverview />} />
         <Route path="/admin/users" element={<AdminUsers />} />
+        <Route path="/admin/homepage" element={<AdminHomepage />} />
         <Route path="/admin/templates" element={<AdminTemplates />} />
         <Route path="/admin/api-keys" element={<AdminApiKeys />} />
         <Route path="/admin/pages" element={<AdminPages />} />

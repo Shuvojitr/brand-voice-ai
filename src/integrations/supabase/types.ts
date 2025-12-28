@@ -334,6 +334,36 @@ export type Database = {
         }
         Relationships: []
       }
+      homepage_content: {
+        Row: {
+          content: Json
+          created_at: string | null
+          id: string
+          is_active: boolean | null
+          section_key: string
+          sort_order: number | null
+          updated_at: string | null
+        }
+        Insert: {
+          content?: Json
+          created_at?: string | null
+          id?: string
+          is_active?: boolean | null
+          section_key: string
+          sort_order?: number | null
+          updated_at?: string | null
+        }
+        Update: {
+          content?: Json
+          created_at?: string | null
+          id?: string
+          is_active?: boolean | null
+          section_key?: string
+          sort_order?: number | null
+          updated_at?: string | null
+        }
+        Relationships: []
+      }
       organization_members: {
         Row: {
           id: string
