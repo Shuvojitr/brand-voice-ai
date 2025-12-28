@@ -40,6 +40,7 @@ import AdminPages from "./pages/admin/AdminPages";
 import AdminSeo from "./pages/admin/AdminSeo";
 import AdminActivityLog from "./pages/admin/AdminActivityLog";
 import ManagerOverview from "./pages/manager/ManagerOverview";
+import ManagerHomepage from "./pages/manager/ManagerHomepage";
 import ManagerTemplates from "./pages/manager/ManagerTemplates";
 import ManagerPages from "./pages/manager/ManagerPages";
 import ManagerTestimonials from "./pages/manager/ManagerTestimonials";
@@ -91,6 +92,7 @@ function AppContent() {
         <Route path="/admin/settings" element={<AdminSettings />} />
         {/* Manager Routes */}
         <Route path="/manager" element={<ManagerOverview />} />
+        <Route path="/manager/homepage" element={<ManagerHomepage />} />
         <Route path="/manager/templates" element={<ManagerTemplates />} />
         <Route path="/manager/pages" element={<ManagerPages />} />
         <Route path="/manager/testimonials" element={<ManagerTestimonials />} />
