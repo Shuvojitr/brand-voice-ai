@@ -7,7 +7,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Switch } from "@/components/ui/switch";
-import { useSiteSettings, NavLink, FooterColumn, SocialLink } from "@/hooks/useSiteSettings";
+import { useSiteSettings, NavLink, FooterColumn, SocialLink, FaviconSizes } from "@/hooks/useSiteSettings";
 import { Plus, Trash2, GripVertical, Save, Loader2, Twitter, Linkedin, Github, Mail, Facebook, Instagram, Youtube, Upload, X } from "lucide-react";
 import { Skeleton } from "@/components/ui/skeleton";
 import { supabase } from "@/integrations/supabase/client";
@@ -33,6 +33,7 @@ export default function AdminAppearance() {
   const [headerLogoUrl, setHeaderLogoUrl] = useState("");
   const [footerLogoUrl, setFooterLogoUrl] = useState("");
   const [faviconUrl, setFaviconUrl] = useState("");
+  const [faviconSizes, setFaviconSizes] = useState<FaviconSizes | null>(null);
   const [siteName, setSiteName] = useState("");
   const [siteDescription, setSiteDescription] = useState("");
   const [isUploadingHeader, setIsUploadingHeader] = useState(false);
@@ -55,6 +56,7 @@ export default function AdminAppearance() {
       setHeaderLogoUrl(settings.header_logo_url || "");
       setFooterLogoUrl(settings.footer_logo_url || "");
       setFaviconUrl(settings.favicon_url || "");
+      setFaviconSizes(settings.favicon_sizes || null);
       setSiteName(settings.site_name || "");
       setSiteDescription(settings.site_description || "");
       setHeaderNav(settings.header_nav || []);
@@ -111,11 +113,32 @@ export default function AdminAppearance() {
       } else if (type === "footer") {
         setFooterLogoUrl(publicUrl);
       } else {
+        // For favicon, generate multi-size versions
         setFaviconUrl(publicUrl);
+        
+        // Call the edge function to generate multi-size favicons
+        try {
+          const { data: sessionData } = await supabase.auth.getSession();
+          const response = await supabase.functions.invoke("resize-favicon", {
+            body: { imageUrl: publicUrl, originalPath: filePath },
+          });
+
+          if (response.data?.faviconSizes) {
+            setFaviconSizes(response.data.faviconSizes);
+            toast.success("Favicon uploaded and resized to multiple sizes (16x16, 32x32, 48x48, 180x180)");
+          } else {
+            toast.success("Favicon uploaded successfully");
+          }
+        } catch (resizeError) {
+          console.error("Failed to resize favicon:", resizeError);
+          toast.success("Favicon uploaded (resize failed, using original)");
+        }
       }
       
-      const typeLabel = type === "header" ? "Header logo" : type === "footer" ? "Footer logo" : "Favicon";
-      toast.success(`${typeLabel} uploaded successfully`);
+      if (type !== "favicon") {
+        const typeLabel = type === "header" ? "Header logo" : "Footer logo";
+        toast.success(`${typeLabel} uploaded successfully`);
+      }
     } catch (error: any) {
       toast.error(error.message || "Failed to upload");
     } finally {
@@ -139,6 +162,7 @@ export default function AdminAppearance() {
 
   const handleRemoveFavicon = () => {
     setFaviconUrl("");
+    setFaviconSizes(null);
   };
 
   const handleSave = () => {
@@ -147,13 +171,14 @@ export default function AdminAppearance() {
       header_logo_url: headerLogoUrl || null,
       footer_logo_url: footerLogoUrl || null,
       favicon_url: faviconUrl || null,
+      favicon_sizes: faviconSizes,
       site_name: siteName,
       site_description: siteDescription || null,
       header_nav: headerNav,
       footer_nav: footerNav,
       copyright_text: copyrightText || null,
       social_links: socialLinks,
-    });
+    } as any);
   };
 
   // Header nav handlers
@@ -400,24 +425,37 @@ export default function AdminAppearance() {
                 <div className="space-y-2">
                   <Label>Favicon</Label>
                   <p className="text-xs text-muted-foreground mb-2">
-                    The small icon shown in browser tabs. Recommended size: 32x32 or 64x64 pixels.
+                    Upload an image and it will be automatically resized to multiple sizes (16x16, 32x32, 48x48, and 180x180 for Apple devices).
                   </p>
                   <div className="flex items-start gap-4">
                     {faviconUrl ? (
-                      <div className="relative">
-                        <img 
-                          src={faviconUrl} 
-                          alt="Favicon" 
-                          className="h-12 w-12 rounded-lg object-contain border bg-background p-1"
-                        />
-                        <Button
-                          variant="destructive"
-                          size="icon"
-                          className="absolute -top-2 -right-2 h-6 w-6"
-                          onClick={handleRemoveFavicon}
-                        >
-                          <X className="h-3 w-3" />
-                        </Button>
+                      <div className="space-y-2">
+                        <div className="relative">
+                          <img 
+                            src={faviconUrl} 
+                            alt="Favicon" 
+                            className="h-12 w-12 rounded-lg object-contain border bg-background p-1"
+                          />
+                          <Button
+                            variant="destructive"
+                            size="icon"
+                            className="absolute -top-2 -right-2 h-6 w-6"
+                            onClick={handleRemoveFavicon}
+                          >
+                            <X className="h-3 w-3" />
+                          </Button>
+                        </div>
+                        {faviconSizes && (
+                          <div className="flex gap-1 items-center">
+                            <span className="text-xs text-green-600 dark:text-green-400">✓ Multi-size:</span>
+                            <div className="flex gap-1">
+                              {faviconSizes["16"] && <span className="text-xs bg-muted px-1 rounded">16px</span>}
+                              {faviconSizes["32"] && <span className="text-xs bg-muted px-1 rounded">32px</span>}
+                              {faviconSizes["48"] && <span className="text-xs bg-muted px-1 rounded">48px</span>}
+                              {faviconSizes["180"] && <span className="text-xs bg-muted px-1 rounded">180px</span>}
+                            </div>
+                          </div>
+                        )}
                       </div>
                     ) : (
                       <div className="flex h-12 w-12 items-center justify-center rounded-lg border-2 border-dashed border-muted-foreground/25 bg-muted/50">
@@ -429,7 +467,7 @@ export default function AdminAppearance() {
                         type="file"
                         ref={faviconFileInputRef}
                         onChange={(e) => handleLogoUpload(e, "favicon")}
-                        accept="image/png,image/x-icon,image/svg+xml"
+                        accept="image/png,image/x-icon,image/svg+xml,image/jpeg"
                         className="hidden"
                       />
                       <Button
@@ -440,7 +478,7 @@ export default function AdminAppearance() {
                         {isUploadingFavicon ? (
                           <>
                             <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                            Uploading...
+                            Uploading & Resizing...
                           </>
                         ) : (
                           <>
@@ -450,7 +488,7 @@ export default function AdminAppearance() {
                         )}
                       </Button>
                       <p className="text-xs text-muted-foreground">
-                        PNG, ICO or SVG. Max 2MB.
+                        PNG, JPG, ICO or SVG. Max 2MB. Will auto-generate sizes for all devices.
                       </p>
                     </div>
                   </div>
