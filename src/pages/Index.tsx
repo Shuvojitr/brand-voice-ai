@@ -439,7 +439,7 @@ export default function Index() {
       <UseCasesSection />
 
       {/* Features Grid */}
-      <section id="features" className="py-24 md:py-32">
+      <section id="features" className="py-24 md:py-32 bg-muted/30">
         <div className="container">
           <div className="mx-auto max-w-2xl text-center mb-16">
             <Badge variant="outline" className="mb-4">
@@ -456,30 +456,26 @@ export default function Index() {
             </p>
           </div>
           
-          <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3 stagger-children">
+          <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
             {features.map((feature: any) => {
               const IconComponent = iconMap[feature.icon] || Star;
               return (
-                <Card 
+                <div 
                   key={feature.title} 
-                  className="group card-interactive border-border/50 bg-card/50 backdrop-blur hover:border-primary/50"
+                  className="rounded-2xl bg-background p-8 shadow-sm hover:shadow-md transition-shadow"
                 >
-                  <CardHeader>
-                    <div className={`mb-3 flex h-14 w-14 items-center justify-center rounded-2xl transition-all duration-300 ${
-                      feature.color === 'coral' ? 'bg-coral/10 text-coral group-hover:bg-coral group-hover:text-white' :
-                      feature.color === 'violet' ? 'bg-violet/10 text-violet group-hover:bg-violet group-hover:text-white' :
-                      'bg-cyan/10 text-cyan group-hover:bg-cyan group-hover:text-white'
-                    }`}>
-                      <IconComponent className="h-7 w-7" />
-                    </div>
-                    <CardTitle className="text-xl">{feature.title}</CardTitle>
-                  </CardHeader>
-                  <CardContent>
-                    <CardDescription className="text-base">
-                      {feature.description}
-                    </CardDescription>
-                  </CardContent>
-                </Card>
+                  <div className={`mb-6 flex h-14 w-14 items-center justify-center rounded-full ${
+                    feature.color === 'coral' ? 'bg-coral/10 text-coral' :
+                    feature.color === 'violet' ? 'bg-violet/10 text-violet' :
+                    'bg-cyan/10 text-cyan'
+                  }`}>
+                    <IconComponent className="h-6 w-6" />
+                  </div>
+                  <h3 className="mb-3 text-xl font-semibold">{feature.title}</h3>
+                  <p className="text-muted-foreground leading-relaxed">
+                    {feature.description}
+                  </p>
+                </div>
               );
             })}
           </div>
