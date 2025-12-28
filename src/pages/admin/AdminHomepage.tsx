@@ -9,11 +9,13 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
-import { Save, Plus, Trash2, GripVertical, Sparkles, Layout, Zap, ListOrdered, MousePointerClick } from "lucide-react";
+import { Save, Plus, Trash2, Sparkles, Layout, Zap, ListOrdered, MousePointerClick, Eye } from "lucide-react";
 import { useHomepageContent, HeroContent, UseCasesContent, FeaturesContent, HowItWorksContent, CtaContent } from "@/hooks/useHomepageContent";
+import { HomepagePreview } from "@/components/homepage";
 
 export default function AdminHomepage() {
   const { sections, isLoading, updateSection, hero, useCases, features, howItWorks, cta } = useHomepageContent();
+  const [activeTab, setActiveTab] = useState("hero");
 
   // Local state for editing
   const [heroForm, setHeroForm] = useState<HeroContent | null>(null);
@@ -80,29 +82,31 @@ export default function AdminHomepage() {
           <p className="text-muted-foreground">Manage all sections of your landing page</p>
         </div>
 
-        <Tabs defaultValue="hero" className="space-y-6">
-          <TabsList className="grid w-full grid-cols-5">
-            <TabsTrigger value="hero" className="gap-2">
-              <Sparkles className="h-4 w-4" />
-              Hero
-            </TabsTrigger>
-            <TabsTrigger value="usecases" className="gap-2">
-              <Layout className="h-4 w-4" />
-              Use Cases
-            </TabsTrigger>
-            <TabsTrigger value="features" className="gap-2">
-              <Zap className="h-4 w-4" />
-              Features
-            </TabsTrigger>
-            <TabsTrigger value="howitworks" className="gap-2">
-              <ListOrdered className="h-4 w-4" />
-              How It Works
-            </TabsTrigger>
-            <TabsTrigger value="cta" className="gap-2">
-              <MousePointerClick className="h-4 w-4" />
-              CTA
-            </TabsTrigger>
-          </TabsList>
+        <div className="grid gap-6 lg:grid-cols-[1fr,400px]">
+          {/* Editor Panel */}
+          <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
+            <TabsList className="grid w-full grid-cols-5">
+              <TabsTrigger value="hero" className="gap-2">
+                <Sparkles className="h-4 w-4" />
+                <span className="hidden sm:inline">Hero</span>
+              </TabsTrigger>
+              <TabsTrigger value="usecases" className="gap-2">
+                <Layout className="h-4 w-4" />
+                <span className="hidden sm:inline">Use Cases</span>
+              </TabsTrigger>
+              <TabsTrigger value="features" className="gap-2">
+                <Zap className="h-4 w-4" />
+                <span className="hidden sm:inline">Features</span>
+              </TabsTrigger>
+              <TabsTrigger value="howitworks" className="gap-2">
+                <ListOrdered className="h-4 w-4" />
+                <span className="hidden sm:inline">How It Works</span>
+              </TabsTrigger>
+              <TabsTrigger value="cta" className="gap-2">
+                <MousePointerClick className="h-4 w-4" />
+                <span className="hidden sm:inline">CTA</span>
+              </TabsTrigger>
+            </TabsList>
 
           {/* Hero Section */}
           <TabsContent value="hero">
@@ -577,7 +581,23 @@ export default function AdminHomepage() {
               </CardContent>
             </Card>
           </TabsContent>
-        </Tabs>
+          </Tabs>
+
+          {/* Live Preview Panel */}
+          <div className="hidden lg:block sticky top-6">
+            <div className="flex items-center gap-2 mb-3">
+              <Eye className="h-4 w-4 text-muted-foreground" />
+              <span className="text-sm font-medium">Live Preview</span>
+            </div>
+            <HomepagePreview
+              heroForm={heroForm}
+              featuresForm={featuresForm}
+              howItWorksForm={howItWorksForm}
+              ctaForm={ctaForm}
+              activeTab={activeTab}
+            />
+          </div>
+        </div>
       </div>
     </AdminLayout>
   );

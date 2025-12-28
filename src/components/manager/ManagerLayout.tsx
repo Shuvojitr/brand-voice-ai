@@ -16,6 +16,7 @@ export function ManagerLayout({ children }: ManagerLayoutProps) {
   const getPageTitle = () => {
     const path = location.pathname;
     if (path === "/manager") return "Overview";
+    if (path.includes("/homepage")) return "Homepage";
     if (path.includes("/templates")) return "Templates";
     if (path.includes("/pages")) return "Pages";
     if (path.includes("/testimonials")) return "Testimonials";

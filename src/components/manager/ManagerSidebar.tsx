@@ -1,4 +1,4 @@
-import { LayoutDashboard, FileText, ArrowLeft, MessageSquareQuote, HelpCircle, FileStack, BarChart3 } from "lucide-react";
+import { LayoutDashboard, FileText, ArrowLeft, MessageSquareQuote, HelpCircle, FileStack, BarChart3, Home } from "lucide-react";
 import { NavLink } from "@/components/NavLink";
 import { useLocation } from "react-router-dom";
 import {
@@ -19,6 +19,7 @@ import { Link } from "react-router-dom";
 
 const managerNavItems = [
   { title: "Overview", url: "/manager", icon: LayoutDashboard },
+  { title: "Homepage", url: "/manager/homepage", icon: Home },
   { title: "Templates", url: "/manager/templates", icon: FileText },
   { title: "Pages", url: "/manager/pages", icon: FileStack },
   { title: "Testimonials", url: "/manager/testimonials", icon: MessageSquareQuote },
