@@ -494,6 +494,49 @@ export default function AdminAppearance() {
                   </div>
                 </div>
 
+                {/* Browser Tab Preview */}
+                <div className="space-y-2">
+                  <Label>Browser Tab Preview</Label>
+                  <p className="text-xs text-muted-foreground mb-2">
+                    Preview how your site appears in a browser tab
+                  </p>
+                  <div className="inline-flex items-center gap-0 rounded-t-lg border border-b-0 bg-muted/50 overflow-hidden">
+                    {/* Tab */}
+                    <div className="flex items-center gap-2 px-3 py-2 bg-background border-r max-w-[200px]">
+                      {faviconUrl ? (
+                        <img 
+                          src={faviconSizes?.["16"] || faviconUrl} 
+                          alt="Favicon" 
+                          className="h-4 w-4 shrink-0 object-contain"
+                        />
+                      ) : (
+                        <div className="h-4 w-4 shrink-0 rounded bg-muted-foreground/20" />
+                      )}
+                      <span className="text-xs truncate font-medium">
+                        {siteName || "Site Name"}
+                      </span>
+                      <X className="h-3 w-3 shrink-0 text-muted-foreground" />
+                    </div>
+                    {/* New tab button */}
+                    <div className="px-2 py-2">
+                      <div className="h-4 w-4 rounded-sm bg-muted-foreground/10 flex items-center justify-center">
+                        <span className="text-xs text-muted-foreground">+</span>
+                      </div>
+                    </div>
+                  </div>
+                  {/* Address bar mock */}
+                  <div className="flex items-center gap-2 px-3 py-1.5 bg-muted/30 rounded border text-xs text-muted-foreground max-w-[300px]">
+                    <div className="flex gap-1">
+                      <div className="h-2 w-2 rounded-full bg-muted-foreground/30" />
+                      <div className="h-2 w-2 rounded-full bg-muted-foreground/30" />
+                      <div className="h-2 w-2 rounded-full bg-muted-foreground/30" />
+                    </div>
+                    <div className="flex-1 bg-background rounded px-2 py-0.5 text-foreground/70">
+                      mygenai.app
+                    </div>
+                  </div>
+                </div>
+
                 <div className="space-y-2">
                   <Label htmlFor="siteName">Site Name</Label>
                   <Input
