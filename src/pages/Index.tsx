@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import { Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
@@ -22,10 +22,12 @@ import {
   Loader2,
   Menu,
   Star,
-  MousePointerClick
+  MousePointerClick,
+  LucideIcon
 } from "lucide-react";
 import { usePlans, Plan } from "@/hooks/usePlans";
 import { useSiteSettings } from "@/hooks/useSiteSettings";
+import { useHomepageContent } from "@/hooks/useHomepageContent";
 
 const defaultPublicNavLinks = [
   { href: "/", label: "Home" },
@@ -33,77 +35,152 @@ const defaultPublicNavLinks = [
   { href: "#pricing", label: "Pricing" },
 ];
 
-const features = [
+// Icon mapping for dynamic features
+const iconMap: Record<string, LucideIcon> = {
+  Globe2,
+  Search,
+  FileText,
+  Zap,
+  Users,
+  PenTool,
+  Wand2,
+  Download,
+  Star,
+  Sparkles,
+};
+
+const defaultFeatures = [
   {
-    icon: Globe2,
+    icon: "Globe2",
     title: "Multi-language Support",
     description: "Generate content in 25+ languages including Bangla, Hindi, Spanish, and more.",
     color: "coral",
   },
   {
-    icon: Search,
+    icon: "Search",
     title: "SEO Mode",
     description: "Built-in SEO optimization with keyword suggestions and readability scoring.",
     color: "violet",
   },
   {
-    icon: FileText,
+    icon: "FileText",
     title: "50+ Templates",
     description: "Blog posts, social media, ads, emails, product descriptions and more.",
     color: "cyan",
   },
   {
-    icon: Zap,
+    icon: "Zap",
     title: "Lightning Fast",
     description: "Generate high-quality content in seconds, not hours. Real-time streaming.",
     color: "coral",
   },
   {
-    icon: Users,
+    icon: "Users",
     title: "Team Collaboration",
     description: "Share brand voices, templates, and documents across your entire team.",
     color: "violet",
   },
   {
-    icon: PenTool,
+    icon: "PenTool",
     title: "Brand Voice AI",
     description: "Train the AI to write in your unique style and tone for consistent messaging.",
     color: "cyan",
   },
 ];
 
-const steps = [
+const defaultSteps = [
   {
     number: "01",
-    icon: FileText,
     title: "Choose a Template",
     description: "Select from 50+ professionally crafted templates for any content type.",
     emoji: "📝",
   },
   {
     number: "02",
-    icon: Wand2,
     title: "Customize & Generate",
     description: "Add your inputs, select your brand voice, and let AI create magic.",
     emoji: "✨",
   },
   {
     number: "03",
-    icon: Download,
     title: "Edit & Export",
     description: "Polish your content in our rich editor and export to any format.",
     emoji: "🚀",
   },
 ];
 
+const defaultHero = {
+  badge_text: "Powered by GPT-4 & Claude",
+  headline_1: "Create Content",
+  headline_2: "10x Faster",
+  subheadline: "The AI-powered content generator that helps you write blog posts, social media content, ads, and emails in seconds.",
+  cta_primary_text: "Start for Free",
+  cta_primary_link: "/signup",
+  cta_secondary_text: "View Pricing",
+  cta_secondary_link: "#pricing",
+  trust_text_1: "No credit card required",
+  trust_text_2: "5,000 words free",
+  social_proof_text: "Loved by 10,000+ content creators",
+};
+
+const defaultCta = {
+  headline_1: "Ready to Create",
+  headline_2: "Amazing Content?",
+  subheadline: "Join thousands of content creators, marketers, and businesses who trust us for their content needs.",
+  cta_text: "Get Started for Free",
+  cta_link: "/signup",
+};
+
 export default function Index() {
   const { data: plans, isLoading: plansLoading } = usePlans();
   const { settings, isLoading: settingsLoading } = useSiteSettings();
+  const { data: homepageContent } = useHomepageContent();
   const [isYearly, setIsYearly] = useState(false);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
   const siteName = settings?.site_name || "";
   const publicNavLinks = settings?.header_nav?.length ? settings.header_nav : defaultPublicNavLinks;
+
+  // Get dynamic content from database with fallbacks
+  const hero = useMemo(() => {
+    const section = homepageContent?.find(s => s.section_key === "hero");
+    return section?.content ? { ...defaultHero, ...section.content } : defaultHero;
+  }, [homepageContent]);
+
+  const features = useMemo(() => {
+    const section = homepageContent?.find(s => s.section_key === "features");
+    return section?.content?.items || defaultFeatures;
+  }, [homepageContent]);
+
+  const featuresHeader = useMemo(() => {
+    const section = homepageContent?.find(s => s.section_key === "features");
+    return {
+      badge_text: section?.content?.badge_text || "Features",
+      headline_1: section?.content?.headline_1 || "Everything You Need",
+      headline_2: section?.content?.headline_2 || "To Create Magic",
+      subheadline: section?.content?.subheadline || "Powerful features designed to help you write better content, faster.",
+    };
+  }, [homepageContent]);
+
+  const steps = useMemo(() => {
+    const section = homepageContent?.find(s => s.section_key === "steps");
+    return section?.content?.items || defaultSteps;
+  }, [homepageContent]);
+
+  const stepsHeader = useMemo(() => {
+    const section = homepageContent?.find(s => s.section_key === "steps");
+    return {
+      badge_text: section?.content?.badge_text || "How It Works",
+      headline_1: section?.content?.headline_1 || "Create Content in",
+      headline_2: section?.content?.headline_2 || "3 Simple Steps",
+      subheadline: section?.content?.subheadline || "Go from idea to polished content in minutes, not hours.",
+    };
+  }, [homepageContent]);
+
+  const ctaContent = useMemo(() => {
+    const section = homepageContent?.find(s => s.section_key === "cta");
+    return section?.content ? { ...defaultCta, ...section.content } : defaultCta;
+  }, [homepageContent]);
 
   const handleMobileNavClick = (href: string) => {
     setMobileMenuOpen(false);
@@ -256,24 +333,23 @@ export default function Index() {
           <div className="mx-auto max-w-4xl text-center">
             <Badge variant="gradient" className="mb-6 animate-fade-in px-4 py-2">
               <Sparkles className="mr-2 h-4 w-4" />
-              Powered by GPT-4 & Claude
+              {hero.badge_text}
             </Badge>
             
             <h1 className="mb-6 font-display text-5xl font-bold tracking-tight md:text-7xl lg:text-8xl animate-slide-up">
-              Create Content
+              {hero.headline_1}
               <br />
-              <span className="gradient-text">10x Faster</span>
+              <span className="gradient-text">{hero.headline_2}</span>
             </h1>
             
             <p className="mx-auto mb-10 max-w-2xl text-lg text-muted-foreground md:text-xl animate-slide-up" style={{ animationDelay: "0.1s" }}>
-              The AI-powered content generator that helps you write blog posts, 
-              social media content, ads, and emails in seconds.
+              {hero.subheadline}
             </p>
             
             <div className="flex flex-col items-center justify-center gap-4 sm:flex-row animate-slide-up" style={{ animationDelay: "0.2s" }}>
               <Button size="xl" variant="glow" asChild className="group">
-                <Link to="/signup">
-                  Start for Free
+                <Link to={hero.cta_primary_link}>
+                  {hero.cta_primary_text}
                   <ArrowRight className="ml-2 h-5 w-5 transition-transform group-hover:translate-x-1" />
                 </Link>
               </Button>
@@ -282,23 +358,27 @@ export default function Index() {
                 variant="outline" 
                 className="group"
                 onClick={() => {
-                  const element = document.getElementById('pricing');
-                  if (element) element.scrollIntoView({ behavior: 'smooth' });
+                  if (hero.cta_secondary_link.startsWith('#')) {
+                    const element = document.getElementById(hero.cta_secondary_link.slice(1));
+                    if (element) element.scrollIntoView({ behavior: 'smooth' });
+                  } else {
+                    window.location.href = hero.cta_secondary_link;
+                  }
                 }}
               >
                 <MousePointerClick className="mr-2 h-5 w-5" />
-                View Pricing
+                {hero.cta_secondary_text}
               </Button>
             </div>
             
             <div className="mt-6 flex items-center justify-center gap-6 text-sm text-muted-foreground animate-fade-in" style={{ animationDelay: "0.3s" }}>
               <span className="flex items-center gap-2">
                 <Check className="h-4 w-4 text-success" />
-                No credit card required
+                {hero.trust_text_1}
               </span>
               <span className="flex items-center gap-2">
                 <Check className="h-4 w-4 text-success" />
-                5,000 words free
+                {hero.trust_text_2}
               </span>
             </div>
           </div>
@@ -349,7 +429,7 @@ export default function Index() {
               ))}
             </div>
             <p className="text-sm text-muted-foreground">
-              Loved by <span className="font-semibold text-foreground">10,000+</span> content creators
+              {hero.social_proof_text}
             </p>
           </div>
         </div>
@@ -364,41 +444,44 @@ export default function Index() {
           <div className="mx-auto max-w-2xl text-center mb-16">
             <Badge variant="outline" className="mb-4">
               <Zap className="mr-1 h-3 w-3" />
-              Features
+              {featuresHeader.badge_text}
             </Badge>
             <h2 className="font-display text-4xl font-bold tracking-tight md:text-5xl mb-4">
-              Everything You Need
+              {featuresHeader.headline_1}
               <br />
-              <span className="gradient-text">To Create Magic</span>
+              <span className="gradient-text">{featuresHeader.headline_2}</span>
             </h2>
             <p className="text-muted-foreground text-lg">
-              Powerful features designed to help you write better content, faster.
+              {featuresHeader.subheadline}
             </p>
           </div>
           
           <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3 stagger-children">
-            {features.map((feature) => (
-              <Card 
-                key={feature.title} 
-                className="group card-interactive border-border/50 bg-card/50 backdrop-blur hover:border-primary/50"
-              >
-                <CardHeader>
-                  <div className={`mb-3 flex h-14 w-14 items-center justify-center rounded-2xl transition-all duration-300 ${
-                    feature.color === 'coral' ? 'bg-coral/10 text-coral group-hover:bg-coral group-hover:text-white' :
-                    feature.color === 'violet' ? 'bg-violet/10 text-violet group-hover:bg-violet group-hover:text-white' :
-                    'bg-cyan/10 text-cyan group-hover:bg-cyan group-hover:text-white'
-                  }`}>
-                    <feature.icon className="h-7 w-7" />
-                  </div>
-                  <CardTitle className="text-xl">{feature.title}</CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <CardDescription className="text-base">
-                    {feature.description}
-                  </CardDescription>
-                </CardContent>
-              </Card>
-            ))}
+            {features.map((feature: any) => {
+              const IconComponent = iconMap[feature.icon] || Star;
+              return (
+                <Card 
+                  key={feature.title} 
+                  className="group card-interactive border-border/50 bg-card/50 backdrop-blur hover:border-primary/50"
+                >
+                  <CardHeader>
+                    <div className={`mb-3 flex h-14 w-14 items-center justify-center rounded-2xl transition-all duration-300 ${
+                      feature.color === 'coral' ? 'bg-coral/10 text-coral group-hover:bg-coral group-hover:text-white' :
+                      feature.color === 'violet' ? 'bg-violet/10 text-violet group-hover:bg-violet group-hover:text-white' :
+                      'bg-cyan/10 text-cyan group-hover:bg-cyan group-hover:text-white'
+                    }`}>
+                      <IconComponent className="h-7 w-7" />
+                    </div>
+                    <CardTitle className="text-xl">{feature.title}</CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <CardDescription className="text-base">
+                      {feature.description}
+                    </CardDescription>
+                  </CardContent>
+                </Card>
+              );
+            })}
           </div>
         </div>
       </section>
@@ -412,19 +495,19 @@ export default function Index() {
       <section className="py-24 md:py-32">
         <div className="container">
           <div className="mx-auto max-w-2xl text-center mb-16">
-            <Badge variant="outline" className="mb-4">How It Works</Badge>
+            <Badge variant="outline" className="mb-4">{stepsHeader.badge_text}</Badge>
             <h2 className="font-display text-4xl font-bold tracking-tight md:text-5xl mb-4">
-              Create Content in
+              {stepsHeader.headline_1}
               <br />
-              <span className="gradient-text">3 Simple Steps</span>
+              <span className="gradient-text">{stepsHeader.headline_2}</span>
             </h2>
             <p className="text-muted-foreground text-lg">
-              Go from idea to polished content in minutes, not hours.
+              {stepsHeader.subheadline}
             </p>
           </div>
           
           <div className="grid gap-8 md:grid-cols-3">
-            {steps.map((step, index) => (
+            {steps.map((step: any, index: number) => (
               <div key={step.title} className="relative text-center group">
                 {/* Connector line */}
                 {index < steps.length - 1 && (
@@ -579,17 +662,18 @@ export default function Index() {
           <div className="mx-auto max-w-3xl text-center">
             <span className="text-6xl mb-6 block">🚀</span>
             <h2 className="font-display text-4xl font-bold tracking-tight md:text-5xl mb-6">
-              Ready to Create
+              {ctaContent.headline_1}
               <br />
-              <span className="gradient-text">Amazing Content?</span>
+              <span className="gradient-text">{ctaContent.headline_2}</span>
             </h2>
             <p className="text-muted-foreground text-lg mb-10 max-w-xl mx-auto">
-              Join thousands of content creators, marketers, and businesses 
-              who trust {siteName} for their content needs.
+              {ctaContent.subheadline.includes('{siteName}') 
+                ? ctaContent.subheadline.replace('{siteName}', siteName)
+                : ctaContent.subheadline}
             </p>
             <Button size="xl" variant="glow" asChild className="group">
-              <Link to="/signup">
-                Get Started for Free
+              <Link to={ctaContent.cta_link}>
+                {ctaContent.cta_text}
                 <ArrowRight className="ml-2 h-5 w-5 transition-transform group-hover:translate-x-1" />
               </Link>
             </Button>
