@@ -130,6 +130,9 @@ export function LiveChatSettingsForm() {
                 </div>
               ))}
             </div>
+            <p className="text-xs text-muted-foreground">
+              Tip: if you leave all days unchecked, chat will be considered available every day (no day restriction).
+            </p>
           </div>
 
           <div className="space-y-2">

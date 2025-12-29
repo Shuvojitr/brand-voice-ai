@@ -65,7 +65,9 @@ export function isWithinBusinessHours(settings: LiveChatSettings): boolean {
   const currentDay = jsDay === 0 ? 7 : jsDay; // Convert to 1-7 format
   
   // Check if today is a business day
-  if (!settings.business_days.includes(currentDay)) {
+  // If no days are selected, treat it as "all days" (no day restriction)
+  const businessDays = settings.business_days ?? [];
+  if (businessDays.length > 0 && !businessDays.includes(currentDay)) {
     return false;
   }
 
