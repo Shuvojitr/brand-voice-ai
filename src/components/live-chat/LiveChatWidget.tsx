@@ -14,6 +14,8 @@ import {
 } from "@/hooks/useLiveChat";
 import { supabase } from "@/integrations/supabase/client";
 import { format } from "date-fns";
+import { useTypingIndicator } from "@/hooks/useTypingIndicator";
+import { TypingIndicator } from "./TypingIndicator";
 
 interface LiveChatWidgetProps {
   userName: string;
@@ -30,6 +32,10 @@ export function LiveChatWidget({ userName, userEmail, onClose }: LiveChatWidgetP
   const createChat = useCreateLiveChat();
   const sendMessage = useSendLiveChatMessage();
   const updateStatus = useUpdateLiveChatStatus();
+  const { otherUserTyping, handleInputChange, stopTyping } = useTypingIndicator(
+    activeChat?.status === "active" ? activeChat.id : null,
+    false
+  );
 
   useEffect(() => {
     if (scrollRef.current) {
@@ -45,12 +51,19 @@ export function LiveChatWidget({ userName, userEmail, onClose }: LiveChatWidgetP
     e.preventDefault();
     if (!message.trim() || !activeChat) return;
 
+    stopTyping();
     await sendMessage.mutateAsync({
       chatId: activeChat.id,
       message: message.trim(),
       isAdminMessage: false,
     });
     setMessage("");
+  };
+
+  const handleMessageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const value = e.target.value;
+    setMessage(value);
+    handleInputChange(value);
   };
 
   const handleEndChat = async () => {
@@ -180,6 +193,14 @@ export function LiveChatWidget({ userName, userEmail, onClose }: LiveChatWidgetP
             </div>
           ))}
 
+          {otherUserTyping && (
+            <div className="flex justify-start">
+              <div className="bg-muted rounded-lg px-3 py-2">
+                <TypingIndicator label="Agent is typing" />
+              </div>
+            </div>
+          )}
+
           {activeChat.status === "ended" && (
             <div className="text-center py-4 text-muted-foreground text-sm">
               This chat has ended. Thank you for contacting us!
@@ -193,7 +214,7 @@ export function LiveChatWidget({ userName, userEmail, onClose }: LiveChatWidgetP
           <Input
             placeholder="Type a message..."
             value={message}
-            onChange={(e) => setMessage(e.target.value)}
+            onChange={handleMessageChange}
             disabled={sendMessage.isPending}
           />
           <Button 

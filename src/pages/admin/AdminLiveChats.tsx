@@ -27,6 +27,8 @@ import { supabase } from "@/integrations/supabase/client";
 import { format } from "date-fns";
 import { useQueryClient } from "@tanstack/react-query";
 import { useNotificationSound } from "@/hooks/useNotificationSound";
+import { useTypingIndicator } from "@/hooks/useTypingIndicator";
+import { TypingIndicator } from "@/components/live-chat";
 
 export default function AdminLiveChats() {
   const [selectedChat, setSelectedChat] = useState<LiveChat | null>(null);
@@ -43,6 +45,10 @@ export default function AdminLiveChats() {
   const { data: messages = [], isLoading: messagesLoading } = useLiveChatMessages(selectedChat?.id || null);
   const sendMessage = useSendLiveChatMessage();
   const updateStatus = useUpdateLiveChatStatus();
+  const { otherUserTyping, handleInputChange, stopTyping } = useTypingIndicator(
+    selectedChat?.status === "active" ? selectedChat.id : null,
+    true
+  );
 
   // Subscribe to real-time updates for chat status and play sound for new waiting chats
   useEffect(() => {
@@ -136,12 +142,19 @@ export default function AdminLiveChats() {
     e.preventDefault();
     if (!message.trim() || !selectedChat) return;
 
+    stopTyping();
     await sendMessage.mutateAsync({
       chatId: selectedChat.id,
       message: message.trim(),
       isAdminMessage: true,
     });
     setMessage("");
+  };
+
+  const handleMessageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const value = e.target.value;
+    setMessage(value);
+    handleInputChange(value);
   };
 
   const getStatusBadge = (status: string) => {
@@ -342,6 +355,14 @@ export default function AdminLiveChats() {
                         </div>
                       ))
                     )}
+                    
+                    {otherUserTyping && (
+                      <div className="flex justify-start">
+                        <div className="bg-muted rounded-lg px-3 py-2">
+                          <TypingIndicator label="User is typing" />
+                        </div>
+                      </div>
+                    )}
                   </div>
                 </ScrollArea>
 
@@ -350,7 +371,7 @@ export default function AdminLiveChats() {
                     <Input
                       placeholder="Type a message..."
                       value={message}
-                      onChange={(e) => setMessage(e.target.value)}
+                      onChange={handleMessageChange}
                       disabled={sendMessage.isPending}
                     />
                     <Button 
