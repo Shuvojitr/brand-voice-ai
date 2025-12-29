@@ -23,7 +23,8 @@ import {
   ArrowRight,
   Plus,
   Trash2,
-  GripVertical
+  GripVertical,
+  icons
 } from "lucide-react";
 import { useHomepageContent, useUpsertHomepageSection, HomepageSection } from "@/hooks/useHomepageContent";
 import { toast } from "@/hooks/use-toast";
@@ -473,12 +474,20 @@ export default function AdminHomepage() {
                   </div>
 
                   <Accordion type="multiple" className="space-y-2">
-                    {features.items.map((item, index) => (
+                    {features.items.map((item, index) => {
+                      const IconComponent = icons[item.icon as keyof typeof icons];
+                      return (
                       <AccordionItem key={index} value={`feature-${index}`} className="border rounded-lg px-4">
                         <AccordionTrigger className="hover:no-underline">
                           <div className="flex items-center gap-3">
                             <GripVertical className="h-4 w-4 text-muted-foreground" />
-                            <Badge variant="outline">{item.icon}</Badge>
+                            <div className={`flex items-center justify-center h-8 w-8 rounded-md bg-${item.color}/10`}>
+                              {IconComponent ? (
+                                <IconComponent className={`h-4 w-4 text-${item.color}`} />
+                              ) : (
+                                <span className="text-xs text-muted-foreground">?</span>
+                              )}
+                            </div>
                             <span>{item.title}</span>
                           </div>
                         </AccordionTrigger>
@@ -542,7 +551,8 @@ export default function AdminHomepage() {
                           </Button>
                         </AccordionContent>
                       </AccordionItem>
-                    ))}
+                      );
+                    })}
                   </Accordion>
                 </div>
               </CardContent>
