@@ -10,7 +10,9 @@ import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, D
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Skeleton } from "@/components/ui/skeleton";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useSupportTickets, SupportTicket } from "@/hooks/useSupportTickets";
+import { TicketConversation } from "@/components/tickets/TicketConversation";
 import { Ticket, Search, Filter, Eye, Trash2, Clock, CheckCircle, AlertCircle, MessageSquare } from "lucide-react";
 import { format } from "date-fns";
 
@@ -281,7 +283,7 @@ export default function AdminSupportTickets() {
 
         {/* Ticket Detail Dialog */}
         <Dialog open={!!selectedTicket} onOpenChange={(open) => !open && setSelectedTicket(null)}>
-          <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+          <DialogContent className="max-w-3xl max-h-[90vh] flex flex-col">
             {selectedTicket && (
               <>
                 <DialogHeader>
@@ -291,107 +293,116 @@ export default function AdminSupportTickets() {
                   </DialogDescription>
                 </DialogHeader>
 
-                <div className="space-y-6">
-                  {/* Contact Info */}
-                  <div className="grid gap-4 sm:grid-cols-2">
-                    <div>
-                      <label className="text-sm font-medium text-muted-foreground">Name</label>
-                      <p className="mt-1">{selectedTicket.name}</p>
+                <Tabs defaultValue="conversation" className="flex-1 flex flex-col overflow-hidden">
+                  <TabsList className="grid w-full grid-cols-2">
+                    <TabsTrigger value="conversation">Conversation</TabsTrigger>
+                    <TabsTrigger value="details">Details & Notes</TabsTrigger>
+                  </TabsList>
+                  
+                  <TabsContent value="conversation" className="flex-1 overflow-hidden mt-4">
+                    <div className="h-[50vh]">
+                      <TicketConversation
+                        ticketId={selectedTicket.id}
+                        initialMessage={selectedTicket.message}
+                        initialMessageDate={selectedTicket.created_at}
+                        isAdmin={true}
+                      />
                     </div>
+                  </TabsContent>
+                  
+                  <TabsContent value="details" className="space-y-6 mt-4 overflow-y-auto max-h-[50vh]">
+                    {/* Contact Info */}
+                    <div className="grid gap-4 sm:grid-cols-2">
+                      <div>
+                        <label className="text-sm font-medium text-muted-foreground">Name</label>
+                        <p className="mt-1">{selectedTicket.name}</p>
+                      </div>
+                      <div>
+                        <label className="text-sm font-medium text-muted-foreground">Email</label>
+                        <p className="mt-1">
+                          <a href={`mailto:${selectedTicket.email}`} className="text-primary hover:underline">
+                            {selectedTicket.email}
+                          </a>
+                        </p>
+                      </div>
+                    </div>
+
+                    {/* Status & Priority */}
+                    <div className="grid gap-4 sm:grid-cols-2">
+                      <div>
+                        <label className="text-sm font-medium text-muted-foreground mb-2 block">Status</label>
+                        <Select
+                          value={selectedTicket.status}
+                          onValueChange={(value) => handleUpdateTicket({ status: value })}
+                        >
+                          <SelectTrigger>
+                            <SelectValue />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="open">Open</SelectItem>
+                            <SelectItem value="in-progress">In Progress</SelectItem>
+                            <SelectItem value="resolved">Resolved</SelectItem>
+                            <SelectItem value="closed">Closed</SelectItem>
+                          </SelectContent>
+                        </Select>
+                      </div>
+                      <div>
+                        <label className="text-sm font-medium text-muted-foreground mb-2 block">Priority</label>
+                        <Select
+                          value={selectedTicket.priority}
+                          onValueChange={(value) => handleUpdateTicket({ priority: value })}
+                        >
+                          <SelectTrigger>
+                            <SelectValue />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="low">Low</SelectItem>
+                            <SelectItem value="normal">Normal</SelectItem>
+                            <SelectItem value="high">High</SelectItem>
+                            <SelectItem value="urgent">Urgent</SelectItem>
+                          </SelectContent>
+                        </Select>
+                      </div>
+                    </div>
+
+                    {/* Category */}
                     <div>
-                      <label className="text-sm font-medium text-muted-foreground">Email</label>
+                      <label className="text-sm font-medium text-muted-foreground">Category</label>
                       <p className="mt-1">
-                        <a href={`mailto:${selectedTicket.email}`} className="text-primary hover:underline">
-                          {selectedTicket.email}
-                        </a>
+                        <Badge variant="outline">
+                          {categoryLabels[selectedTicket.category] || selectedTicket.category}
+                        </Badge>
                       </p>
                     </div>
-                  </div>
 
-                  {/* Status & Priority */}
-                  <div className="grid gap-4 sm:grid-cols-2">
+                    {/* Admin Notes */}
                     <div>
-                      <label className="text-sm font-medium text-muted-foreground mb-2 block">Status</label>
-                      <Select
-                        value={selectedTicket.status}
-                        onValueChange={(value) => handleUpdateTicket({ status: value })}
+                      <label className="text-sm font-medium text-muted-foreground mb-2 block">Admin Notes (Internal)</label>
+                      <Textarea
+                        value={adminNotes}
+                        onChange={(e) => setAdminNotes(e.target.value)}
+                        placeholder="Add internal notes about this ticket..."
+                        rows={4}
+                      />
+                      <Button 
+                        onClick={handleSaveNotes} 
+                        disabled={updateTicket.isPending}
+                        className="mt-2"
+                        size="sm"
                       >
-                        <SelectTrigger>
-                          <SelectValue />
-                        </SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value="open">Open</SelectItem>
-                          <SelectItem value="in-progress">In Progress</SelectItem>
-                          <SelectItem value="resolved">Resolved</SelectItem>
-                          <SelectItem value="closed">Closed</SelectItem>
-                        </SelectContent>
-                      </Select>
+                        Save Notes
+                      </Button>
                     </div>
-                    <div>
-                      <label className="text-sm font-medium text-muted-foreground mb-2 block">Priority</label>
-                      <Select
-                        value={selectedTicket.priority}
-                        onValueChange={(value) => handleUpdateTicket({ priority: value })}
-                      >
-                        <SelectTrigger>
-                          <SelectValue />
-                        </SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value="low">Low</SelectItem>
-                          <SelectItem value="normal">Normal</SelectItem>
-                          <SelectItem value="high">High</SelectItem>
-                          <SelectItem value="urgent">Urgent</SelectItem>
-                        </SelectContent>
-                      </Select>
-                    </div>
-                  </div>
 
-                  {/* Category */}
-                  <div>
-                    <label className="text-sm font-medium text-muted-foreground">Category</label>
-                    <p className="mt-1">
-                      <Badge variant="outline">
-                        {categoryLabels[selectedTicket.category] || selectedTicket.category}
-                      </Badge>
-                    </p>
-                  </div>
-
-                  {/* Message */}
-                  <div>
-                    <label className="text-sm font-medium text-muted-foreground">Message</label>
-                    <div className="mt-2 p-4 rounded-lg bg-muted/50 whitespace-pre-wrap">
-                      {selectedTicket.message}
-                    </div>
-                  </div>
-
-                  {/* Admin Notes */}
-                  <div>
-                    <label className="text-sm font-medium text-muted-foreground mb-2 block">Admin Notes</label>
-                    <Textarea
-                      value={adminNotes}
-                      onChange={(e) => setAdminNotes(e.target.value)}
-                      placeholder="Add internal notes about this ticket..."
-                      rows={4}
-                    />
-                  </div>
-
-                  {/* Resolved At */}
-                  {selectedTicket.resolved_at && (
-                    <div className="flex items-center gap-2 text-sm text-green-600">
-                      <CheckCircle className="h-4 w-4" />
-                      Resolved on {format(new Date(selectedTicket.resolved_at), "MMMM d, yyyy 'at' h:mm a")}
-                    </div>
-                  )}
-                </div>
-
-                <DialogFooter>
-                  <Button variant="outline" onClick={() => setSelectedTicket(null)}>
-                    Close
-                  </Button>
-                  <Button onClick={handleSaveNotes} disabled={updateTicket.isPending}>
-                    Save Notes
-                  </Button>
-                </DialogFooter>
+                    {/* Resolved At */}
+                    {selectedTicket.resolved_at && (
+                      <div className="flex items-center gap-2 text-sm text-green-600">
+                        <CheckCircle className="h-4 w-4" />
+                        Resolved on {format(new Date(selectedTicket.resolved_at), "MMMM d, yyyy 'at' h:mm a")}
+                      </div>
+                    )}
+                  </TabsContent>
+                </Tabs>
               </>
             )}
           </DialogContent>
