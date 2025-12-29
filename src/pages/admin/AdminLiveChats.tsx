@@ -26,6 +26,7 @@ import {
 import { supabase } from "@/integrations/supabase/client";
 import { format } from "date-fns";
 import { useQueryClient } from "@tanstack/react-query";
+import { useNotificationSound } from "@/hooks/useNotificationSound";
 
 export default function AdminLiveChats() {
   const [selectedChat, setSelectedChat] = useState<LiveChat | null>(null);
@@ -33,6 +34,8 @@ export default function AdminLiveChats() {
   const [activeTab, setActiveTab] = useState("waiting");
   const scrollRef = useRef<HTMLDivElement>(null);
   const queryClient = useQueryClient();
+  const { playMessageSound, playNewChatSound } = useNotificationSound();
+  const prevWaitingCountRef = useRef<number>(0);
 
   const { data: waitingChats = [], isLoading: waitingLoading } = useLiveChats("waiting");
   const { data: activeChats = [], isLoading: activeLoading } = useLiveChats("active");
@@ -41,14 +44,26 @@ export default function AdminLiveChats() {
   const sendMessage = useSendLiveChatMessage();
   const updateStatus = useUpdateLiveChatStatus();
 
-  // Subscribe to real-time updates for chat status
+  // Subscribe to real-time updates for chat status and play sound for new waiting chats
   useEffect(() => {
     const channel = supabase
       .channel("admin-live-chats")
       .on(
         "postgres_changes",
         {
-          event: "*",
+          event: "INSERT",
+          schema: "public",
+          table: "live_chats",
+        },
+        () => {
+          playNewChatSound();
+          queryClient.invalidateQueries({ queryKey: ["live-chats"] });
+        }
+      )
+      .on(
+        "postgres_changes",
+        {
+          event: "UPDATE",
           schema: "public",
           table: "live_chats",
         },
@@ -61,7 +76,36 @@ export default function AdminLiveChats() {
     return () => {
       supabase.removeChannel(channel);
     };
-  }, [queryClient]);
+  }, [queryClient, playNewChatSound]);
+
+  // Subscribe to new messages in selected chat and play sound
+  useEffect(() => {
+    if (!selectedChat) return;
+
+    const channel = supabase
+      .channel(`admin-chat-messages-${selectedChat.id}`)
+      .on(
+        "postgres_changes",
+        {
+          event: "INSERT",
+          schema: "public",
+          table: "live_chat_messages",
+          filter: `chat_id=eq.${selectedChat.id}`,
+        },
+        (payload) => {
+          // Only play sound for user messages (not admin's own messages)
+          if (!(payload.new as any).is_admin_message) {
+            playMessageSound();
+          }
+          queryClient.invalidateQueries({ queryKey: ["live-chat-messages", selectedChat.id] });
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [selectedChat, queryClient, playMessageSound]);
 
   useEffect(() => {
     if (scrollRef.current) {
