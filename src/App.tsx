@@ -44,6 +44,7 @@ import AdminActivityLog from "./pages/admin/AdminActivityLog";
 import AdminSupportPage from "./pages/admin/AdminSupportPage";
 import AdminSupportTickets from "./pages/admin/AdminSupportTickets";
 import AdminLiveChats from "./pages/admin/AdminLiveChats";
+import AdminAiSettings from "./pages/admin/AdminAiSettings";
 import ManagerOverview from "./pages/manager/ManagerOverview";
 import ManagerTemplates from "./pages/manager/ManagerTemplates";
 import ManagerPages from "./pages/manager/ManagerPages";
@@ -94,6 +95,7 @@ function AppContent() {
         <Route path="/admin/support" element={<AdminSupportPage />} />
         <Route path="/admin/tickets" element={<AdminSupportTickets />} />
         <Route path="/admin/live-chats" element={<AdminLiveChats />} />
+        <Route path="/admin/ai-settings" element={<AdminAiSettings />} />
         <Route path="/admin/testimonials" element={<AdminTestimonials />} />
         <Route path="/admin/faqs" element={<AdminFaqs />} />
         <Route path="/admin/plans" element={<AdminPlans />} />

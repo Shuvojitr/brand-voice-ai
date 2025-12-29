@@ -18,6 +18,97 @@ interface GenerateRequest {
   skipCreditDeduction?: boolean;
 }
 
+interface AiProviderSettings {
+  provider_slug: string;
+  api_key_encrypted: string | null;
+  api_endpoint: string | null;
+  default_model: string | null;
+}
+
+async function callAnthropicApi(
+  apiKey: string,
+  endpoint: string,
+  model: string,
+  messages: { role: string; content: string }[],
+  temperature: number,
+  stream: boolean
+) {
+  // Anthropic has a different API format
+  const systemMessage = messages.find(m => m.role === 'system');
+  const userMessages = messages.filter(m => m.role !== 'system');
+
+  const response = await fetch(endpoint, {
+    method: 'POST',
+    headers: {
+      'x-api-key': apiKey,
+      'Content-Type': 'application/json',
+      'anthropic-version': '2023-06-01',
+    },
+    body: JSON.stringify({
+      model,
+      max_tokens: 4096,
+      system: systemMessage?.content || '',
+      messages: userMessages.map(m => ({
+        role: m.role === 'user' ? 'user' : 'assistant',
+        content: m.content,
+      })),
+      stream,
+    }),
+  });
+
+  return response;
+}
+
+async function callOpenAICompatibleApi(
+  apiKey: string,
+  endpoint: string,
+  model: string,
+  messages: { role: string; content: string }[],
+  temperature: number,
+  stream: boolean
+) {
+  const response = await fetch(endpoint, {
+    method: 'POST',
+    headers: {
+      'Authorization': `Bearer ${apiKey}`,
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify({
+      model,
+      messages,
+      temperature,
+      stream,
+    }),
+  });
+
+  return response;
+}
+
+async function callBytezApi(
+  apiKey: string,
+  endpoint: string,
+  model: string,
+  messages: { role: string; content: string }[],
+  temperature: number,
+  stream: boolean
+) {
+  // Bytez has a different endpoint format
+  const response = await fetch(`${endpoint}/${model}`, {
+    method: 'POST',
+    headers: {
+      'Authorization': `Bearer ${apiKey}`,
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify({
+      messages,
+      params: { temperature },
+      stream,
+    }),
+  });
+
+  return response;
+}
+
 serve(async (req) => {
   // Handle CORS preflight
   if (req.method === 'OPTIONS') {
@@ -81,12 +172,34 @@ serve(async (req) => {
       brandVoiceId, 
       language = 'en', 
       organizationId,
-      model = 'google/gemini-2.5-flash',
       temperature = 0.7,
       stream = true,
     } = body;
 
     console.log(`[generate-content] User: ${user.id}, Template: ${templateId}, Org: ${organizationId}`);
+
+    // Fetch active AI provider settings
+    const { data: activeProvider, error: providerError } = await supabase
+      .from('ai_provider_settings')
+      .select('provider_slug, api_key_encrypted, api_endpoint, default_model')
+      .eq('is_active', true)
+      .single();
+
+    if (providerError) {
+      console.error('[generate-content] Failed to fetch AI provider settings:', providerError);
+    }
+
+    const provider: AiProviderSettings = activeProvider || {
+      provider_slug: 'lovable',
+      api_key_encrypted: null,
+      api_endpoint: 'https://ai.gateway.lovable.dev/v1/chat/completions',
+      default_model: 'google/gemini-2.5-flash',
+    };
+
+    // Use request model or fall back to provider default
+    const model = body.model || provider.default_model || 'google/gemini-2.5-flash';
+
+    console.log(`[generate-content] Using provider: ${provider.provider_slug}, model: ${model}`);
 
     // Fetch template from database
     const { data: template, error: templateError } = await supabase
@@ -227,31 +340,49 @@ You are a helpful assistant. Your ENTIRE output MUST be in Bengali language (ব
       },
     ];
 
-    console.log(`[generate-content] Calling Lovable AI with model: ${model}`);
+    // Determine API key and endpoint based on provider
+    let apiKey: string;
+    let endpoint: string;
 
-    // Call Lovable AI Gateway
-    const LOVABLE_API_KEY = Deno.env.get('LOVABLE_API_KEY');
-    if (!LOVABLE_API_KEY) {
-      throw new Error('LOVABLE_API_KEY is not configured');
+    if (provider.provider_slug === 'lovable') {
+      // Use Lovable AI Gateway
+      apiKey = Deno.env.get('LOVABLE_API_KEY') || '';
+      endpoint = 'https://ai.gateway.lovable.dev/v1/chat/completions';
+    } else {
+      // Use configured provider
+      if (!provider.api_key_encrypted) {
+        return new Response(JSON.stringify({ 
+          error: `No API key configured for ${provider.provider_slug}. Please configure it in Admin > AI Settings.` 
+        }), {
+          status: 400,
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        });
+      }
+      apiKey = provider.api_key_encrypted;
+      endpoint = provider.api_endpoint || '';
     }
 
-    const aiResponse = await fetch('https://ai.gateway.lovable.dev/v1/chat/completions', {
-      method: 'POST',
-      headers: {
-        'Authorization': `Bearer ${LOVABLE_API_KEY}`,
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({
-        model,
-        messages,
-        temperature,
-        stream,
-      }),
-    });
+    if (!apiKey) {
+      throw new Error('AI API key is not configured');
+    }
+
+    console.log(`[generate-content] Calling ${provider.provider_slug} API with model: ${model}`);
+
+    // Call the appropriate API based on provider
+    let aiResponse: Response;
+
+    if (provider.provider_slug === 'anthropic') {
+      aiResponse = await callAnthropicApi(apiKey, endpoint, model, messages, temperature, stream);
+    } else if (provider.provider_slug === 'bytez') {
+      aiResponse = await callBytezApi(apiKey, endpoint, model, messages, temperature, stream);
+    } else {
+      // OpenAI-compatible API (OpenAI, Google, DeepSeek, OpenRouter, Mistral, Lovable)
+      aiResponse = await callOpenAICompatibleApi(apiKey, endpoint, model, messages, temperature, stream);
+    }
 
     if (!aiResponse.ok) {
       const errorText = await aiResponse.text();
-      console.error(`[generate-content] AI Gateway error: ${aiResponse.status}`, errorText);
+      console.error(`[generate-content] AI API error: ${aiResponse.status}`, errorText);
       
       if (aiResponse.status === 429) {
         return new Response(JSON.stringify({ error: 'Rate limit exceeded. Please try again later.' }), {
@@ -260,20 +391,25 @@ You are a helpful assistant. Your ENTIRE output MUST be in Bengali language (ব
         });
       }
       if (aiResponse.status === 402) {
-        return new Response(JSON.stringify({ error: 'AI credits exhausted. Please contact support.' }), {
+        return new Response(JSON.stringify({ error: 'AI credits exhausted. Please check your API key or contact support.' }), {
           status: 402,
           headers: { ...corsHeaders, 'Content-Type': 'application/json' },
         });
       }
+      if (aiResponse.status === 401) {
+        return new Response(JSON.stringify({ error: 'Invalid API key. Please check your AI provider configuration.' }), {
+          status: 401,
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        });
+      }
       
-      throw new Error(`AI Gateway error: ${aiResponse.status}`);
+      throw new Error(`AI API error: ${aiResponse.status} - ${errorText}`);
     }
 
     // NOTE: Credit deduction is now handled by the frontend calling report-word-count
-    // This ensures the word count matches exactly what the editor displays
     console.log(`[generate-content] Content generation started. Credits will be deducted by frontend after editor renders.`);
 
-    // Handle streaming response - we need to collect content while streaming to client
+    // Handle streaming response
     if (stream) {
       const reader = aiResponse.body?.getReader();
       if (!reader) {
@@ -283,7 +419,6 @@ You are a helpful assistant. Your ENTIRE output MUST be in Bengali language (ব
       let fullContent = '';
       const decoder = new TextDecoder();
 
-      // Create a ReadableStream that processes content and deducts credits at end
       const transformedStream = new ReadableStream({
         async start(controller) {
           try {
@@ -291,10 +426,8 @@ You are a helpful assistant. Your ENTIRE output MUST be in Bengali language (ব
               const { done, value } = await reader.read();
               if (done) break;
 
-              // Forward the chunk to the client
               controller.enqueue(value);
 
-              // Also parse to collect full content
               const text = decoder.decode(value, { stream: true });
               const lines = text.split('\n');
               for (const line of lines) {
@@ -304,7 +437,10 @@ You are a helpful assistant. Your ENTIRE output MUST be in Bengali language (ব
                 if (jsonStr === '[DONE]') continue;
                 try {
                   const parsed = JSON.parse(jsonStr);
-                  const content = parsed.choices?.[0]?.delta?.content;
+                  // Handle both OpenAI and Anthropic formats
+                  const content = parsed.choices?.[0]?.delta?.content || 
+                                  parsed.delta?.text ||
+                                  parsed.content_block?.text;
                   if (content) {
                     fullContent += content;
                   }
@@ -315,8 +451,6 @@ You are a helpful assistant. Your ENTIRE output MUST be in Bengali language (ব
             }
             
             controller.close();
-            
-            // Credits are now deducted by the frontend via report-word-count endpoint
             console.log(`[generate-content] Stream complete. Content length: ${fullContent.length} chars`);
           } catch (error) {
             console.error('[generate-content] Stream processing error:', error);
@@ -337,9 +471,11 @@ You are a helpful assistant. Your ENTIRE output MUST be in Bengali language (ব
 
     // Non-streaming response
     const data = await aiResponse.json();
-    const content = data.choices?.[0]?.message?.content || '';
+    // Handle both OpenAI and Anthropic response formats
+    const content = data.choices?.[0]?.message?.content || 
+                    data.content?.[0]?.text || 
+                    '';
     
-    // Credits are now deducted by the frontend via report-word-count endpoint
     console.log(`[generate-content] Non-streaming complete. Content length: ${content.length} chars`);
 
     return new Response(JSON.stringify({ 
