@@ -6,6 +6,7 @@ import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Settings } from "lucide-react";
 import { Skeleton } from "@/components/ui/skeleton";
 import { 
   MessageCircle, 
@@ -28,12 +29,13 @@ import { format } from "date-fns";
 import { useQueryClient } from "@tanstack/react-query";
 import { useNotificationSound } from "@/hooks/useNotificationSound";
 import { useTypingIndicator } from "@/hooks/useTypingIndicator";
-import { TypingIndicator } from "@/components/live-chat";
+import { TypingIndicator, LiveChatSettingsForm } from "@/components/live-chat";
 
 export default function AdminLiveChats() {
   const [selectedChat, setSelectedChat] = useState<LiveChat | null>(null);
   const [message, setMessage] = useState("");
   const [activeTab, setActiveTab] = useState("waiting");
+  const [mainTab, setMainTab] = useState<"chats" | "settings">("chats");
   const scrollRef = useRef<HTMLDivElement>(null);
   const queryClient = useQueryClient();
   const { playMessageSound, playNewChatSound } = useNotificationSound();
@@ -215,14 +217,31 @@ export default function AdminLiveChats() {
   return (
     <AdminLayout>
       <div className="space-y-6">
-        <div>
-          <h1 className="text-2xl font-bold tracking-tight">Live Chats</h1>
-          <p className="text-muted-foreground">
-            Manage and respond to live chat conversations.
-          </p>
+        <div className="flex items-center justify-between flex-wrap gap-4">
+          <div>
+            <h1 className="text-2xl font-bold tracking-tight">Live Chats</h1>
+            <p className="text-muted-foreground">
+              Manage and respond to live chat conversations.
+            </p>
+          </div>
+          <Tabs value={mainTab} onValueChange={(v) => setMainTab(v as "chats" | "settings")}>
+            <TabsList>
+              <TabsTrigger value="chats">
+                <MessageCircle className="h-4 w-4 mr-2" />
+                Chats
+              </TabsTrigger>
+              <TabsTrigger value="settings">
+                <Settings className="h-4 w-4 mr-2" />
+                Settings
+              </TabsTrigger>
+            </TabsList>
+          </Tabs>
         </div>
 
-        <div className="grid gap-6 lg:grid-cols-3">
+        {mainTab === "settings" ? (
+          <LiveChatSettingsForm />
+        ) : (
+          <div className="grid gap-6 lg:grid-cols-3">
           {/* Chat List */}
           <div className="lg:col-span-1">
             <Card>
@@ -412,6 +431,7 @@ export default function AdminLiveChats() {
             )}
           </div>
         </div>
+        )}
       </div>
     </AdminLayout>
   );

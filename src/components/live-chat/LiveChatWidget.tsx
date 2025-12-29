@@ -4,7 +4,8 @@ import { Input } from "@/components/ui/input";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { MessageCircle, Send, X, Loader2 } from "lucide-react";
+import { Alert, AlertDescription } from "@/components/ui/alert";
+import { MessageCircle, Send, X, Loader2, Clock, AlertCircle } from "lucide-react";
 import { 
   useUserActiveChat, 
   useLiveChatMessages, 
@@ -16,6 +17,8 @@ import { supabase } from "@/integrations/supabase/client";
 import { format } from "date-fns";
 import { useTypingIndicator } from "@/hooks/useTypingIndicator";
 import { TypingIndicator } from "./TypingIndicator";
+import { useLiveChatSettings, isWithinBusinessHours } from "@/hooks/useLiveChatSettings";
+import { Link } from "react-router-dom";
 
 interface LiveChatWidgetProps {
   userName: string;
@@ -25,8 +28,11 @@ interface LiveChatWidgetProps {
 
 export function LiveChatWidget({ userName, userEmail, onClose }: LiveChatWidgetProps) {
   const [message, setMessage] = useState("");
+  const [showAutoReply, setShowAutoReply] = useState(false);
   const scrollRef = useRef<HTMLDivElement>(null);
+  const autoReplyTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   
+  const { data: settings, isLoading: settingsLoading } = useLiveChatSettings();
   const { data: activeChat, isLoading: chatLoading } = useUserActiveChat();
   const { data: messages = [], isLoading: messagesLoading } = useLiveChatMessages(activeChat?.id || null);
   const createChat = useCreateLiveChat();
@@ -36,6 +42,28 @@ export function LiveChatWidget({ userName, userEmail, onClose }: LiveChatWidgetP
     activeChat?.status === "active" ? activeChat.id : null,
     false
   );
+
+  // Auto-reply timer for waiting status
+  useEffect(() => {
+    if (activeChat?.status === "waiting" && settings?.auto_reply_enabled && !showAutoReply) {
+      autoReplyTimeoutRef.current = setTimeout(() => {
+        setShowAutoReply(true);
+      }, (settings.auto_reply_delay_seconds || 120) * 1000);
+    }
+
+    return () => {
+      if (autoReplyTimeoutRef.current) {
+        clearTimeout(autoReplyTimeoutRef.current);
+      }
+    };
+  }, [activeChat?.status, settings?.auto_reply_enabled, settings?.auto_reply_delay_seconds, showAutoReply]);
+
+  // Reset auto-reply when chat becomes active
+  useEffect(() => {
+    if (activeChat?.status === "active") {
+      setShowAutoReply(false);
+    }
+  }, [activeChat?.status]);
 
   useEffect(() => {
     if (scrollRef.current) {
@@ -84,7 +112,7 @@ export function LiveChatWidget({ userName, userEmail, onClose }: LiveChatWidgetP
     }
   };
 
-  if (chatLoading) {
+  if (chatLoading || settingsLoading) {
     return (
       <Card className="w-full max-w-md">
         <CardContent className="flex items-center justify-center py-12">
@@ -94,8 +122,46 @@ export function LiveChatWidget({ userName, userEmail, onClose }: LiveChatWidgetP
     );
   }
 
-  // No active chat - show start chat button
+  // Check if live chat is enabled and within business hours
+  const isOnline = settings ? isWithinBusinessHours(settings) : true;
+  const isEnabled = settings?.is_enabled ?? true;
+
+  // No active chat - show start chat button or offline message
   if (!activeChat) {
+    // Show offline message if outside business hours
+    if (!isEnabled || !isOnline) {
+      return (
+        <Card className="w-full max-w-md">
+          <CardHeader className="flex flex-row items-center justify-between">
+            <CardTitle className="flex items-center gap-2 text-lg">
+              <MessageCircle className="h-5 w-5" />
+              Live Chat
+            </CardTitle>
+            {onClose && (
+              <Button variant="ghost" size="icon" onClick={onClose}>
+                <X className="h-4 w-4" />
+              </Button>
+            )}
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <Alert>
+              <Clock className="h-4 w-4" />
+              <AlertDescription>
+                {settings?.offline_message || "Our support team is currently offline. Please submit a support ticket and we will get back to you as soon as possible."}
+              </AlertDescription>
+            </Alert>
+            <div className="text-center">
+              <Link to="/dashboard/support">
+                <Button variant="outline" className="w-full">
+                  Submit a Support Ticket
+                </Button>
+              </Link>
+            </div>
+          </CardContent>
+        </Card>
+      );
+    }
+
     return (
       <Card className="w-full max-w-md">
         <CardHeader className="flex flex-row items-center justify-between">
@@ -169,6 +235,20 @@ export function LiveChatWidget({ userName, userEmail, onClose }: LiveChatWidgetP
               <Loader2 className="h-6 w-6 animate-spin mx-auto mb-2" />
               <p className="text-sm">Waiting for a support agent...</p>
             </div>
+          )}
+
+          {showAutoReply && activeChat.status === "waiting" && (
+            <Alert className="bg-amber-50 border-amber-200">
+              <AlertCircle className="h-4 w-4 text-amber-600" />
+              <AlertDescription className="text-amber-800">
+                {settings?.auto_reply_message || "Thank you for waiting. Our team is currently busy. You can also submit a support ticket for faster assistance."}
+                <div className="mt-2">
+                  <Link to="/dashboard/support" className="text-primary hover:underline text-sm font-medium">
+                    Submit a Support Ticket →
+                  </Link>
+                </div>
+              </AlertDescription>
+            </Alert>
           )}
 
           {messages.map((msg) => (
