@@ -399,6 +399,51 @@ export type Database = {
           },
         ]
       }
+      live_chat_settings: {
+        Row: {
+          auto_reply_delay_seconds: number
+          auto_reply_enabled: boolean
+          auto_reply_message: string
+          business_days: number[]
+          business_hours_end: string
+          business_hours_start: string
+          created_at: string
+          id: string
+          is_enabled: boolean
+          offline_message: string
+          timezone: string
+          updated_at: string
+        }
+        Insert: {
+          auto_reply_delay_seconds?: number
+          auto_reply_enabled?: boolean
+          auto_reply_message?: string
+          business_days?: number[]
+          business_hours_end?: string
+          business_hours_start?: string
+          created_at?: string
+          id?: string
+          is_enabled?: boolean
+          offline_message?: string
+          timezone?: string
+          updated_at?: string
+        }
+        Update: {
+          auto_reply_delay_seconds?: number
+          auto_reply_enabled?: boolean
+          auto_reply_message?: string
+          business_days?: number[]
+          business_hours_end?: string
+          business_hours_start?: string
+          created_at?: string
+          id?: string
+          is_enabled?: boolean
+          offline_message?: string
+          timezone?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       live_chats: {
         Row: {
           assigned_to: string | null
