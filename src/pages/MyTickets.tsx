@@ -1,16 +1,19 @@
+import { useState } from "react";
 import { DashboardLayout } from "@/components/dashboard/DashboardLayout";
-import { useSupportTickets } from "@/hooks/useSupportTickets";
+import { useSupportTickets, SupportTicket } from "@/hooks/useSupportTickets";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
-import { MessageSquare, Plus, Clock, CheckCircle, AlertCircle } from "lucide-react";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { TicketConversation } from "@/components/tickets/TicketConversation";
+import { MessageSquare, Plus, Clock, CheckCircle, AlertCircle, MessageCircle } from "lucide-react";
 import { Link } from "react-router-dom";
 import { format } from "date-fns";
 
 const statusConfig: Record<string, { label: string; variant: "default" | "secondary" | "destructive" | "outline"; icon: typeof Clock }> = {
   open: { label: "Open", variant: "destructive", icon: AlertCircle },
-  in_progress: { label: "In Progress", variant: "default", icon: Clock },
+  "in-progress": { label: "In Progress", variant: "default", icon: Clock },
   resolved: { label: "Resolved", variant: "secondary", icon: CheckCircle },
   closed: { label: "Closed", variant: "outline", icon: CheckCircle },
 };
@@ -24,6 +27,7 @@ const priorityConfig: Record<string, { label: string; variant: "default" | "seco
 
 export default function MyTickets() {
   const { tickets, isLoading } = useSupportTickets();
+  const [selectedTicket, setSelectedTicket] = useState<SupportTicket | null>(null);
 
   return (
     <DashboardLayout>
@@ -81,7 +85,11 @@ export default function MyTickets() {
               const StatusIcon = status.icon;
 
               return (
-                <Card key={ticket.id} className="hover:shadow-md transition-shadow">
+                <Card 
+                  key={ticket.id} 
+                  className="hover:shadow-md transition-shadow cursor-pointer"
+                  onClick={() => setSelectedTicket(ticket)}
+                >
                   <CardHeader className="pb-3">
                     <div className="flex items-start justify-between gap-4">
                       <div className="space-y-1 flex-1">
@@ -107,11 +115,19 @@ export default function MyTickets() {
                     <p className="text-sm text-muted-foreground line-clamp-2">
                       {ticket.message}
                     </p>
-                    {ticket.resolved_at && (
-                      <p className="text-xs text-muted-foreground mt-3 pt-3 border-t">
-                        Resolved on {format(new Date(ticket.resolved_at), "MMM d, yyyy 'at' h:mm a")}
-                      </p>
-                    )}
+                    <div className="flex items-center justify-between mt-3 pt-3 border-t">
+                      {ticket.resolved_at ? (
+                        <p className="text-xs text-muted-foreground">
+                          Resolved on {format(new Date(ticket.resolved_at), "MMM d, yyyy 'at' h:mm a")}
+                        </p>
+                      ) : (
+                        <span />
+                      )}
+                      <Button variant="ghost" size="sm" className="text-primary">
+                        <MessageCircle className="h-4 w-4 mr-1" />
+                        View Conversation
+                      </Button>
+                    </div>
                   </CardContent>
                 </Card>
               );
@@ -119,6 +135,35 @@ export default function MyTickets() {
           </div>
         )}
       </div>
+
+      {/* Ticket Conversation Dialog */}
+      <Dialog open={!!selectedTicket} onOpenChange={(open) => !open && setSelectedTicket(null)}>
+        <DialogContent className="max-w-2xl h-[80vh] flex flex-col">
+          {selectedTicket && (
+            <>
+              <DialogHeader>
+                <DialogTitle className="pr-8">{selectedTicket.subject}</DialogTitle>
+                <div className="flex items-center gap-2 pt-2">
+                  <Badge variant={statusConfig[selectedTicket.status]?.variant || "outline"}>
+                    {statusConfig[selectedTicket.status]?.label || selectedTicket.status}
+                  </Badge>
+                  <Badge variant={priorityConfig[selectedTicket.priority]?.variant || "outline"}>
+                    {priorityConfig[selectedTicket.priority]?.label || selectedTicket.priority}
+                  </Badge>
+                </div>
+              </DialogHeader>
+              <div className="flex-1 overflow-hidden">
+                <TicketConversation
+                  ticketId={selectedTicket.id}
+                  initialMessage={selectedTicket.message}
+                  initialMessageDate={selectedTicket.created_at}
+                  isAdmin={false}
+                />
+              </div>
+            </>
+          )}
+        </DialogContent>
+      </Dialog>
     </DashboardLayout>
   );
 }
