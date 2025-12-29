@@ -2,6 +2,7 @@ import { DashboardLayout } from "@/components/dashboard";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { useFaqs } from "@/hooks/useFaqs";
+import { useSupportContent } from "@/hooks/useSupportContent";
 import { Skeleton } from "@/components/ui/skeleton";
 import { 
   Zap, 
@@ -15,35 +16,18 @@ import {
 } from "lucide-react";
 import { Link } from "react-router-dom";
 
-export default function Support() {
-  const { data: faqs, isLoading } = useFaqs();
+const iconMap: Record<string, React.ComponentType<{ className?: string }>> = {
+  BookOpen,
+  HelpCircle,
+  FileText,
+  MessageCircle,
+  Mail,
+  Zap,
+};
 
-  const resources = [
-    {
-      icon: BookOpen,
-      title: "Getting Started Guide",
-      description: "Learn the basics of using MyGenAI and create your first content.",
-      buttonText: "Read Guide",
-      href: "/dashboard/getting-started",
-      isInternal: true,
-    },
-    {
-      icon: HelpCircle,
-      title: "FAQs",
-      description: "Find answers to the most commonly asked questions.",
-      buttonText: "View FAQs",
-      href: "#faqs",
-      isInternal: false,
-    },
-    {
-      icon: FileText,
-      title: "API Documentation",
-      description: "Integrate MyGenAI into your own applications.",
-      buttonText: "View Docs",
-      href: "/docs",
-      isInternal: true,
-    },
-  ];
+export default function Support() {
+  const { data: faqs, isLoading: faqsLoading } = useFaqs();
+  const { data: supportContent, isLoading: contentLoading } = useSupportContent();
 
   const scrollToFaqs = (e: React.MouseEvent<HTMLAnchorElement>, href: string) => {
     if (href === "#faqs") {
@@ -51,6 +35,27 @@ export default function Support() {
       document.getElementById("faqs")?.scrollIntoView({ behavior: "smooth" });
     }
   };
+
+  const isLoading = faqsLoading || contentLoading;
+
+  if (isLoading) {
+    return (
+      <DashboardLayout>
+        <div className="space-y-8">
+          <div>
+            <Skeleton className="h-8 w-48 mb-2" />
+            <Skeleton className="h-4 w-72" />
+          </div>
+          <Skeleton className="h-20 w-full" />
+          <div className="grid gap-4 md:grid-cols-3">
+            {[...Array(3)].map((_, i) => (
+              <Skeleton key={i} className="h-40 w-full" />
+            ))}
+          </div>
+        </div>
+      </DashboardLayout>
+    );
+  }
 
   return (
     <DashboardLayout>
@@ -64,108 +69,132 @@ export default function Support() {
         </div>
 
         {/* Pro Tip Banner */}
-        <div className="rounded-lg bg-gradient-to-r from-primary/10 via-primary/5 to-transparent border border-primary/20 p-4">
-          <div className="flex items-center gap-3">
-            <div className="h-10 w-10 rounded-full bg-primary/20 flex items-center justify-center flex-shrink-0">
-              <Zap className="h-5 w-5 text-primary" />
-            </div>
-            <div>
-              <p className="font-medium text-sm">Pro Tip</p>
-              <p className="text-sm text-muted-foreground">
-                Use keyboard shortcut <kbd className="px-1.5 py-0.5 text-xs font-mono bg-muted rounded">⌘K</kbd> to quickly search for any tool.
-              </p>
+        {supportContent?.proTip && (
+          <div className="rounded-lg bg-gradient-to-r from-primary/10 via-primary/5 to-transparent border border-primary/20 p-4">
+            <div className="flex items-center gap-3">
+              <div className="h-10 w-10 rounded-full bg-primary/20 flex items-center justify-center flex-shrink-0">
+                <Zap className="h-5 w-5 text-primary" />
+              </div>
+              <div>
+                <p className="font-medium text-sm">{supportContent.proTip.title}</p>
+                <p className="text-sm text-muted-foreground">
+                  {supportContent.proTip.shortcut ? (
+                    <>
+                      {supportContent.proTip.description.replace(supportContent.proTip.shortcut, "")}
+                      <kbd className="px-1.5 py-0.5 text-xs font-mono bg-muted rounded">
+                        {supportContent.proTip.shortcut}
+                      </kbd>
+                    </>
+                  ) : (
+                    supportContent.proTip.description
+                  )}
+                </p>
+              </div>
             </div>
           </div>
-        </div>
+        )}
 
         {/* Resources Section */}
-        <div className="space-y-4">
-          <h2 className="text-lg font-semibold">Resources</h2>
-          <div className="grid gap-4 md:grid-cols-3">
-            {resources.map((resource) => (
-              <Card key={resource.title} className="hover:shadow-md transition-shadow">
-                <CardHeader className="pb-3">
-                  <div className="h-10 w-10 rounded-lg bg-primary/10 flex items-center justify-center mb-3">
-                    <resource.icon className="h-5 w-5 text-primary" />
-                  </div>
-                  <CardTitle className="text-base">{resource.title}</CardTitle>
-                  <CardDescription className="text-sm">
-                    {resource.description}
-                  </CardDescription>
-                </CardHeader>
-                <CardContent className="pt-0">
-                  {resource.isInternal ? (
-                    <Button asChild variant="outline" className="w-full">
-                      <Link to={resource.href}>
-                        {resource.buttonText}
-                        <ExternalLink className="ml-2 h-4 w-4" />
-                      </Link>
-                    </Button>
-                  ) : (
-                    <Button asChild variant="outline" className="w-full">
-                      <a href={resource.href} onClick={(e) => scrollToFaqs(e, resource.href)}>
-                        {resource.buttonText}
-                        <ExternalLink className="ml-2 h-4 w-4" />
-                      </a>
-                    </Button>
-                  )}
-                </CardContent>
-              </Card>
-            ))}
+        {supportContent?.resources && supportContent.resources.length > 0 && (
+          <div className="space-y-4">
+            <h2 className="text-lg font-semibold">Resources</h2>
+            <div className="grid gap-4 md:grid-cols-3">
+              {supportContent.resources.map((resource) => {
+                const IconComponent = iconMap[resource.icon] || FileText;
+                return (
+                  <Card key={resource.id} className="hover:shadow-md transition-shadow">
+                    <CardHeader className="pb-3">
+                      <div className="h-10 w-10 rounded-lg bg-primary/10 flex items-center justify-center mb-3">
+                        <IconComponent className="h-5 w-5 text-primary" />
+                      </div>
+                      <CardTitle className="text-base">{resource.title}</CardTitle>
+                      <CardDescription className="text-sm">
+                        {resource.description}
+                      </CardDescription>
+                    </CardHeader>
+                    <CardContent className="pt-0">
+                      {resource.isInternal ? (
+                        <Button asChild variant="outline" className="w-full">
+                          <Link to={resource.href}>
+                            {resource.buttonText}
+                            <ExternalLink className="ml-2 h-4 w-4" />
+                          </Link>
+                        </Button>
+                      ) : (
+                        <Button asChild variant="outline" className="w-full">
+                          <a href={resource.href} onClick={(e) => scrollToFaqs(e, resource.href)}>
+                            {resource.buttonText}
+                            <ExternalLink className="ml-2 h-4 w-4" />
+                          </a>
+                        </Button>
+                      )}
+                    </CardContent>
+                  </Card>
+                );
+              })}
+            </div>
           </div>
-        </div>
+        )}
 
         {/* Contact Support Section */}
-        <div className="space-y-4">
-          <h2 className="text-lg font-semibold">Contact Support</h2>
-          <div className="grid gap-4 md:grid-cols-2">
-            <Card className="hover:shadow-md transition-shadow">
-              <CardContent className="p-4">
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-3">
-                    <div className="h-10 w-10 rounded-full bg-primary/10 flex items-center justify-center flex-shrink-0">
-                      <MessageCircle className="h-5 w-5 text-primary" />
+        {supportContent?.contact && (
+          <div className="space-y-4">
+            <h2 className="text-lg font-semibold">Contact Support</h2>
+            <div className="grid gap-4 md:grid-cols-2">
+              {supportContent.contact.liveChat.enabled && (
+                <Card className="hover:shadow-md transition-shadow">
+                  <CardContent className="p-4">
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-3">
+                        <div className="h-10 w-10 rounded-full bg-primary/10 flex items-center justify-center flex-shrink-0">
+                          <MessageCircle className="h-5 w-5 text-primary" />
+                        </div>
+                        <div>
+                          <p className="font-medium">{supportContent.contact.liveChat.title}</p>
+                          <p className="text-sm text-muted-foreground">
+                            {supportContent.contact.liveChat.description}
+                          </p>
+                        </div>
+                      </div>
+                      <Button size="sm">{supportContent.contact.liveChat.buttonText}</Button>
                     </div>
-                    <div>
-                      <p className="font-medium">Live Chat</p>
-                      <p className="text-sm text-muted-foreground">
-                        Chat with our support team in real-time.
-                      </p>
-                    </div>
-                  </div>
-                  <Button size="sm">Start Chat</Button>
-                </div>
-              </CardContent>
-            </Card>
+                  </CardContent>
+                </Card>
+              )}
 
-            <Card className="hover:shadow-md transition-shadow">
-              <CardContent className="p-4">
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-3">
-                    <div className="h-10 w-10 rounded-full bg-primary/10 flex items-center justify-center flex-shrink-0">
-                      <Mail className="h-5 w-5 text-primary" />
+              {supportContent.contact.email.enabled && (
+                <Card className="hover:shadow-md transition-shadow">
+                  <CardContent className="p-4">
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-3">
+                        <div className="h-10 w-10 rounded-full bg-primary/10 flex items-center justify-center flex-shrink-0">
+                          <Mail className="h-5 w-5 text-primary" />
+                        </div>
+                        <div>
+                          <p className="font-medium">{supportContent.contact.email.title}</p>
+                          <p className="text-sm text-muted-foreground">
+                            {supportContent.contact.email.description}
+                          </p>
+                        </div>
+                      </div>
+                      <Button asChild size="sm">
+                        <Link to={supportContent.contact.email.href}>
+                          {supportContent.contact.email.buttonText}
+                        </Link>
+                      </Button>
                     </div>
-                    <div>
-                      <p className="font-medium">Email Support</p>
-                      <p className="text-sm text-muted-foreground">
-                        Send us an email and we'll get back to you within 24 hours.
-                      </p>
-                    </div>
-                  </div>
-                  <Button asChild size="sm">
-                    <Link to="/dashboard/support/email">Send Email</Link>
-                  </Button>
-                </div>
-              </CardContent>
-            </Card>
+                  </CardContent>
+                </Card>
+              )}
+            </div>
           </div>
-        </div>
+        )}
 
         {/* FAQs Section */}
         <div id="faqs" className="space-y-4 scroll-mt-8">
           <h2 className="text-lg font-semibold">Frequently Asked Questions</h2>
           
-          {isLoading ? (
+          {faqsLoading ? (
             <div className="space-y-3">
               {[...Array(5)].map((_, i) => (
                 <Skeleton key={i} className="h-14 w-full rounded-lg" />
@@ -201,22 +230,24 @@ export default function Support() {
         </div>
 
         {/* System Status */}
-        <Card className="bg-muted/30">
-          <CardContent className="p-4">
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-2">
-                <CheckCircle className="h-4 w-4 text-green-500" />
-                <span className="text-sm">All systems operational</span>
+        {supportContent?.status?.enabled && (
+          <Card className="bg-muted/30">
+            <CardContent className="p-4">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <CheckCircle className="h-4 w-4 text-green-500" />
+                  <span className="text-sm">{supportContent.status.text}</span>
+                </div>
+                <Button asChild variant="ghost" size="sm" className="text-muted-foreground">
+                  <a href={supportContent.status.statusUrl} target="_blank" rel="noopener noreferrer">
+                    View Status Page
+                    <ExternalLink className="ml-2 h-3 w-3" />
+                  </a>
+                </Button>
               </div>
-              <Button asChild variant="ghost" size="sm" className="text-muted-foreground">
-                <a href="https://status.mygenai.com" target="_blank" rel="noopener noreferrer">
-                  View Status Page
-                  <ExternalLink className="ml-2 h-3 w-3" />
-                </a>
-              </Button>
-            </div>
-          </CardContent>
-        </Card>
+            </CardContent>
+          </Card>
+        )}
       </div>
     </DashboardLayout>
   );

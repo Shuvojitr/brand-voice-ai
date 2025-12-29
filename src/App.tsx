@@ -39,6 +39,7 @@ import AdminPages from "./pages/admin/AdminPages";
 import AdminHomepage from "./pages/admin/AdminHomepage";
 import AdminSeo from "./pages/admin/AdminSeo";
 import AdminActivityLog from "./pages/admin/AdminActivityLog";
+import AdminSupportPage from "./pages/admin/AdminSupportPage";
 import ManagerOverview from "./pages/manager/ManagerOverview";
 import ManagerTemplates from "./pages/manager/ManagerTemplates";
 import ManagerPages from "./pages/manager/ManagerPages";
@@ -82,6 +83,7 @@ function AppContent() {
         <Route path="/admin/api-keys" element={<AdminApiKeys />} />
         <Route path="/admin/pages" element={<AdminPages />} />
         <Route path="/admin/homepage" element={<AdminHomepage />} />
+        <Route path="/admin/support" element={<AdminSupportPage />} />
         <Route path="/admin/testimonials" element={<AdminTestimonials />} />
         <Route path="/admin/faqs" element={<AdminFaqs />} />
         <Route path="/admin/plans" element={<AdminPlans />} />
