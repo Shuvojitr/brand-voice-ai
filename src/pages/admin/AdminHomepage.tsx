@@ -24,7 +24,11 @@ import {
   Plus,
   Trash2,
   GripVertical,
-  icons
+  icons,
+  MessageSquareQuote,
+  HelpCircle,
+  Headphones,
+  ExternalLink
 } from "lucide-react";
 import { useHomepageContent, useUpsertHomepageSection, HomepageSection } from "@/hooks/useHomepageContent";
 import { toast } from "@/hooks/use-toast";
@@ -270,7 +274,7 @@ export default function AdminHomepage() {
 
         {/* Tabs */}
         <Tabs value={activeTab} onValueChange={setActiveTab}>
-          <TabsList className="grid w-full grid-cols-4">
+          <TabsList className="grid w-full grid-cols-7">
             <TabsTrigger value="hero" className="gap-2">
               <Sparkles className="h-4 w-4" />
               <span className="hidden sm:inline">Hero</span>
@@ -286,6 +290,18 @@ export default function AdminHomepage() {
             <TabsTrigger value="cta" className="gap-2">
               <ArrowRight className="h-4 w-4" />
               <span className="hidden sm:inline">CTA</span>
+            </TabsTrigger>
+            <TabsTrigger value="testimonials" className="gap-2">
+              <MessageSquareQuote className="h-4 w-4" />
+              <span className="hidden sm:inline">Testimonials</span>
+            </TabsTrigger>
+            <TabsTrigger value="faqs" className="gap-2">
+              <HelpCircle className="h-4 w-4" />
+              <span className="hidden sm:inline">FAQs</span>
+            </TabsTrigger>
+            <TabsTrigger value="support" className="gap-2">
+              <Headphones className="h-4 w-4" />
+              <span className="hidden sm:inline">Support</span>
             </TabsTrigger>
           </TabsList>
 
@@ -750,6 +766,75 @@ export default function AdminHomepage() {
                     placeholder="No credit card required, Cancel anytime, 24/7 support"
                   />
                 </div>
+              </CardContent>
+            </Card>
+          </TabsContent>
+
+          {/* Testimonials Section */}
+          <TabsContent value="testimonials" className="space-y-6">
+            <Card>
+              <CardHeader className="flex flex-row items-center justify-between">
+                <div>
+                  <CardTitle>Testimonials Section</CardTitle>
+                  <CardDescription>Manage customer testimonials displayed on the homepage</CardDescription>
+                </div>
+                <Button asChild>
+                  <Link to="/admin/testimonials">
+                    <ExternalLink className="mr-2 h-4 w-4" />
+                    Manage Testimonials
+                  </Link>
+                </Button>
+              </CardHeader>
+              <CardContent>
+                <p className="text-muted-foreground">
+                  Testimonials are managed in a dedicated section. Click the button above to add, edit, or remove customer testimonials that appear on your homepage.
+                </p>
+              </CardContent>
+            </Card>
+          </TabsContent>
+
+          {/* FAQs Section */}
+          <TabsContent value="faqs" className="space-y-6">
+            <Card>
+              <CardHeader className="flex flex-row items-center justify-between">
+                <div>
+                  <CardTitle>FAQs Section</CardTitle>
+                  <CardDescription>Manage frequently asked questions displayed on the homepage</CardDescription>
+                </div>
+                <Button asChild>
+                  <Link to="/admin/faqs">
+                    <ExternalLink className="mr-2 h-4 w-4" />
+                    Manage FAQs
+                  </Link>
+                </Button>
+              </CardHeader>
+              <CardContent>
+                <p className="text-muted-foreground">
+                  FAQs are managed in a dedicated section. Click the button above to add, edit, or remove frequently asked questions that appear on your homepage.
+                </p>
+              </CardContent>
+            </Card>
+          </TabsContent>
+
+          {/* Support Page Section */}
+          <TabsContent value="support" className="space-y-6">
+            <Card>
+              <CardHeader className="flex flex-row items-center justify-between">
+                <div>
+                  <CardTitle>Support Page Section</CardTitle>
+                  <CardDescription>Manage the support page content and settings</CardDescription>
+                </div>
+                <Button asChild>
+                  <Link to="/admin/support">
+                    <ExternalLink className="mr-2 h-4 w-4" />
+                    Manage Support Page
+                  </Link>
+                </Button>
+              </CardHeader>
+              <CardContent>
+                <p className="text-muted-foreground">
+                  Support page content is managed in a dedicated section. Click the button above to configure live chat settings, support ticket options, and other support features.
+                </p>
               </CardContent>
             </Card>
           </TabsContent>
