@@ -3,6 +3,7 @@ import { Layout } from "@/components/layout";
 import { usePage } from "@/hooks/usePages";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Helmet } from "react-helmet-async";
+import DOMPurify from "dompurify";
 
 export default function StaticPage() {
   const { slug } = useParams<{ slug: string }>();
@@ -35,10 +36,16 @@ export default function StaticPage() {
 
     // Check if content looks like HTML
     if (content.includes("<") && content.includes(">")) {
+      // Sanitize HTML content to prevent XSS attacks
+      const sanitizedContent = DOMPurify.sanitize(content, {
+        ALLOWED_TAGS: ['h1', 'h2', 'h3', 'h4', 'h5', 'h6', 'p', 'a', 'ul', 'ol', 'li', 'strong', 'em', 'b', 'i', 'br', 'blockquote', 'code', 'pre', 'div', 'span', 'img', 'table', 'thead', 'tbody', 'tr', 'th', 'td'],
+        ALLOWED_ATTR: ['href', 'target', 'rel', 'src', 'alt', 'class', 'id']
+      });
+      
       return (
         <div
           className="prose prose-lg dark:prose-invert max-w-none"
-          dangerouslySetInnerHTML={{ __html: content }}
+          dangerouslySetInnerHTML={{ __html: sanitizedContent }}
         />
       );
     }
