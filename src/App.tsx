@@ -26,6 +26,7 @@ import GettingStarted from "./pages/GettingStarted";
 import Docs from "./pages/Docs";
 import Banned from "./pages/Banned";
 import StaticPage from "./pages/StaticPage";
+import MyTickets from "./pages/MyTickets";
 import AdminOverview from "./pages/admin/AdminOverview";
 import AdminUsers from "./pages/admin/AdminUsers";
 import AdminTemplates from "./pages/admin/AdminTemplates";
@@ -75,6 +76,7 @@ function AppContent() {
         <Route path="/dashboard/settings" element={<Settings />} />
         <Route path="/dashboard/support" element={<Support />} />
         <Route path="/dashboard/support/email" element={<EmailSupport />} />
+        <Route path="/dashboard/my-tickets" element={<MyTickets />} />
         <Route path="/dashboard/getting-started" element={<GettingStarted />} />
         <Route path="/docs" element={<Docs />} />
         {/* Admin Routes */}
