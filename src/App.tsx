@@ -50,6 +50,8 @@ import ManagerPages from "./pages/manager/ManagerPages";
 import ManagerTestimonials from "./pages/manager/ManagerTestimonials";
 import ManagerFaqs from "./pages/manager/ManagerFaqs";
 import ManagerReports from "./pages/manager/ManagerReports";
+import ManagerSupportTickets from "./pages/manager/ManagerSupportTickets";
+import ManagerLiveChats from "./pages/manager/ManagerLiveChats";
 
 const queryClient = new QueryClient();
 
@@ -105,6 +107,8 @@ function AppContent() {
         <Route path="/manager/pages" element={<ManagerPages />} />
         <Route path="/manager/testimonials" element={<ManagerTestimonials />} />
         <Route path="/manager/faqs" element={<ManagerFaqs />} />
+        <Route path="/manager/tickets" element={<ManagerSupportTickets />} />
+        <Route path="/manager/live-chats" element={<ManagerLiveChats />} />
         <Route path="/manager/reports" element={<ManagerReports />} />
         {/* Dynamic static pages - catches any slug not matched above */}
         <Route path="/:slug" element={<StaticPage />} />
