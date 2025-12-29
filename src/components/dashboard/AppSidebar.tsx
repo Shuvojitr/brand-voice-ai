@@ -44,6 +44,7 @@ const mainNavItems = [
 const settingsNavItems = [
   { title: "Billing", url: "/dashboard/billing", icon: CreditCard },
   { title: "Settings", url: "/dashboard/settings", icon: Settings },
+  { title: "My Tickets", url: "/dashboard/my-tickets", icon: LifeBuoy },
 ];
 
 const tierLabels: Record<string, string> = {
