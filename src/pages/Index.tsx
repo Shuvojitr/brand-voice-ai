@@ -18,7 +18,8 @@ import {
 } from "@/components/landing";
 import { 
   Sparkles, 
-  Globe2, 
+  Globe,
+  Globe2,
   Search, 
   FileText, 
   Zap, 
@@ -32,6 +33,8 @@ import {
   Menu,
   Star,
   MousePointerClick,
+  Shield,
+  Palette,
   LucideIcon
 } from "lucide-react";
 import { usePlans, Plan } from "@/hooks/usePlans";
@@ -45,6 +48,7 @@ const defaultPublicNavLinks = [
 ];
 
 const iconMap: Record<string, LucideIcon> = {
+  Globe,
   Globe2,
   Search,
   FileText,
@@ -55,6 +59,8 @@ const iconMap: Record<string, LucideIcon> = {
   Download,
   Star,
   Sparkles,
+  Shield,
+  Palette,
 };
 
 interface HeroContent {
