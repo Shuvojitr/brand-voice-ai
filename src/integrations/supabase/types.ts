@@ -47,6 +47,42 @@ export type Database = {
         }
         Relationships: []
       }
+      ai_provider_settings: {
+        Row: {
+          api_endpoint: string | null
+          api_key_encrypted: string | null
+          created_at: string | null
+          default_model: string | null
+          id: string
+          is_active: boolean
+          provider_name: string
+          provider_slug: string
+          updated_at: string | null
+        }
+        Insert: {
+          api_endpoint?: string | null
+          api_key_encrypted?: string | null
+          created_at?: string | null
+          default_model?: string | null
+          id?: string
+          is_active?: boolean
+          provider_name: string
+          provider_slug: string
+          updated_at?: string | null
+        }
+        Update: {
+          api_endpoint?: string | null
+          api_key_encrypted?: string | null
+          created_at?: string | null
+          default_model?: string | null
+          id?: string
+          is_active?: boolean
+          provider_name?: string
+          provider_slug?: string
+          updated_at?: string | null
+        }
+        Relationships: []
+      }
       api_keys: {
         Row: {
           created_at: string | null
