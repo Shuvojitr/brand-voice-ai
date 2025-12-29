@@ -27,6 +27,7 @@ import Docs from "./pages/Docs";
 import Banned from "./pages/Banned";
 import StaticPage from "./pages/StaticPage";
 import MyTickets from "./pages/MyTickets";
+import LiveChat from "./pages/LiveChat";
 import AdminOverview from "./pages/admin/AdminOverview";
 import AdminUsers from "./pages/admin/AdminUsers";
 import AdminTemplates from "./pages/admin/AdminTemplates";
@@ -42,6 +43,7 @@ import AdminSeo from "./pages/admin/AdminSeo";
 import AdminActivityLog from "./pages/admin/AdminActivityLog";
 import AdminSupportPage from "./pages/admin/AdminSupportPage";
 import AdminSupportTickets from "./pages/admin/AdminSupportTickets";
+import AdminLiveChats from "./pages/admin/AdminLiveChats";
 import ManagerOverview from "./pages/manager/ManagerOverview";
 import ManagerTemplates from "./pages/manager/ManagerTemplates";
 import ManagerPages from "./pages/manager/ManagerPages";
@@ -77,6 +79,7 @@ function AppContent() {
         <Route path="/dashboard/support" element={<Support />} />
         <Route path="/dashboard/support/email" element={<EmailSupport />} />
         <Route path="/dashboard/my-tickets" element={<MyTickets />} />
+        <Route path="/dashboard/live-chat" element={<LiveChat />} />
         <Route path="/dashboard/getting-started" element={<GettingStarted />} />
         <Route path="/docs" element={<Docs />} />
         {/* Admin Routes */}
@@ -88,6 +91,7 @@ function AppContent() {
         <Route path="/admin/homepage" element={<AdminHomepage />} />
         <Route path="/admin/support" element={<AdminSupportPage />} />
         <Route path="/admin/tickets" element={<AdminSupportTickets />} />
+        <Route path="/admin/live-chats" element={<AdminLiveChats />} />
         <Route path="/admin/testimonials" element={<AdminTestimonials />} />
         <Route path="/admin/faqs" element={<AdminFaqs />} />
         <Route path="/admin/plans" element={<AdminPlans />} />
