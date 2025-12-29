@@ -364,6 +364,77 @@ export type Database = {
         }
         Relationships: []
       }
+      live_chat_messages: {
+        Row: {
+          chat_id: string
+          created_at: string
+          id: string
+          is_admin_message: boolean
+          message: string
+          user_id: string | null
+        }
+        Insert: {
+          chat_id: string
+          created_at?: string
+          id?: string
+          is_admin_message?: boolean
+          message: string
+          user_id?: string | null
+        }
+        Update: {
+          chat_id?: string
+          created_at?: string
+          id?: string
+          is_admin_message?: boolean
+          message?: string
+          user_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "live_chat_messages_chat_id_fkey"
+            columns: ["chat_id"]
+            isOneToOne: false
+            referencedRelation: "live_chats"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      live_chats: {
+        Row: {
+          assigned_to: string | null
+          created_at: string
+          ended_at: string | null
+          id: string
+          status: string
+          updated_at: string
+          user_email: string
+          user_id: string | null
+          user_name: string
+        }
+        Insert: {
+          assigned_to?: string | null
+          created_at?: string
+          ended_at?: string | null
+          id?: string
+          status?: string
+          updated_at?: string
+          user_email: string
+          user_id?: string | null
+          user_name: string
+        }
+        Update: {
+          assigned_to?: string | null
+          created_at?: string
+          ended_at?: string | null
+          id?: string
+          status?: string
+          updated_at?: string
+          user_email?: string
+          user_id?: string | null
+          user_name?: string
+        }
+        Relationships: []
+      }
       organization_members: {
         Row: {
           id: string

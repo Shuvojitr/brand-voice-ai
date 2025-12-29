@@ -156,7 +156,11 @@ export default function Support() {
                           </p>
                         </div>
                       </div>
-                      <Button size="sm">{supportContent.contact.liveChat.buttonText}</Button>
+                      <Button asChild size="sm">
+                        <Link to="/dashboard/live-chat">
+                          {supportContent.contact.liveChat.buttonText}
+                        </Link>
+                      </Button>
                     </div>
                   </CardContent>
                 </Card>
