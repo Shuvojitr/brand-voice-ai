@@ -158,6 +158,7 @@ export default function MyTickets() {
                   initialMessage={selectedTicket.message}
                   initialMessageDate={selectedTicket.created_at}
                   isAdmin={false}
+                  ticketStatus={selectedTicket.status}
                 />
               </div>
             </>

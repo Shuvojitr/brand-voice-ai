@@ -14,16 +14,20 @@ interface TicketConversationProps {
   initialMessage: string;
   initialMessageDate: string;
   isAdmin?: boolean;
+  ticketStatus?: string;
 }
 
 export function TicketConversation({ 
   ticketId, 
   initialMessage, 
   initialMessageDate,
-  isAdmin = false 
+  isAdmin = false,
+  ticketStatus = "open"
 }: TicketConversationProps) {
   const [newMessage, setNewMessage] = useState("");
   const { replies, isLoading, createReply } = useTicketReplies(ticketId);
+  
+  const isClosed = ticketStatus === "closed";
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -124,24 +128,32 @@ export function TicketConversation({
       </ScrollArea>
 
       {/* Reply form */}
-      <form onSubmit={handleSubmit} className="pt-4 border-t space-y-3">
-        <Textarea
-          placeholder="Type your reply..."
-          value={newMessage}
-          onChange={(e) => setNewMessage(e.target.value)}
-          rows={3}
-          className="resize-none"
-        />
-        <div className="flex justify-end">
-          <Button 
-            type="submit" 
-            disabled={!newMessage.trim() || createReply.isPending}
-          >
-            <Send className="h-4 w-4 mr-2" />
-            {createReply.isPending ? "Sending..." : "Send Reply"}
-          </Button>
+      {isClosed && !isAdmin ? (
+        <div className="pt-4 border-t">
+          <p className="text-sm text-muted-foreground text-center py-4">
+            This ticket is closed. You cannot send new messages.
+          </p>
         </div>
-      </form>
+      ) : (
+        <form onSubmit={handleSubmit} className="pt-4 border-t space-y-3">
+          <Textarea
+            placeholder="Type your reply..."
+            value={newMessage}
+            onChange={(e) => setNewMessage(e.target.value)}
+            rows={3}
+            className="resize-none"
+          />
+          <div className="flex justify-end">
+            <Button 
+              type="submit" 
+              disabled={!newMessage.trim() || createReply.isPending}
+            >
+              <Send className="h-4 w-4 mr-2" />
+              {createReply.isPending ? "Sending..." : "Send Reply"}
+            </Button>
+          </div>
+        </form>
+      )}
     </div>
   );
 }
