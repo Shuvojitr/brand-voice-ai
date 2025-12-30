@@ -32,6 +32,7 @@ export default function CreateContent() {
   const [language, setLanguage] = useState<"en" | "bn">("en");
   const [brandVoiceId, setBrandVoiceId] = useState<string | null>(null);
   const [brandVoices, setBrandVoices] = useState<Array<{ id: string; name: string }>>([]);
+  const [activeModel, setActiveModel] = useState<string>("google/gemini-2.5-flash");
   
   // Use organization hook to get credits and invalidate after generation
   const { invalidate: invalidateOrganization } = useOrganization();
@@ -67,6 +68,17 @@ export default function CreateContent() {
             setBrandVoices(voices);
           }
         }
+      }
+      
+      // Fetch active AI provider to get the model being used
+      const { data: activeProvider } = await supabase
+        .from("ai_provider_settings")
+        .select("default_model, provider_slug")
+        .eq("is_active", true)
+        .maybeSingle();
+      
+      if (activeProvider?.default_model) {
+        setActiveModel(activeProvider.default_model);
       }
     };
     
@@ -394,6 +406,7 @@ export default function CreateContent() {
               autoSave={shouldAutoSave}
               onAutoSaveComplete={() => setShouldAutoSave(false)}
               onCreditsDeducted={invalidateOrganization}
+              modelUsed={activeModel}
             />
           </div>
         </div>

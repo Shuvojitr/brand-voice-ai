@@ -37,6 +37,7 @@ interface ContentEditorProps {
   autoSave?: boolean;
   onAutoSaveComplete?: () => void;
   onCreditsDeducted?: () => void;
+  modelUsed?: string;
 }
 
 export function ContentEditor({
@@ -48,6 +49,7 @@ export function ContentEditor({
   autoSave = false,
   onAutoSaveComplete,
   onCreditsDeducted,
+  modelUsed,
 }: ContentEditorProps) {
   const [isCopied, setIsCopied] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
@@ -121,6 +123,7 @@ export function ContentEditor({
               organizationId,
               wordCount,
               templateType: templateId,
+              modelUsed: modelUsed || 'unknown',
             }),
           }
         );

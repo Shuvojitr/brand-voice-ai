@@ -10,6 +10,7 @@ interface ReportWordCountRequest {
   organizationId: string;
   wordCount: number;
   templateType?: string;
+  modelUsed?: string;
 }
 
 serve(async (req) => {
@@ -46,9 +47,9 @@ serve(async (req) => {
 
     // Parse request
     const body: ReportWordCountRequest = await req.json();
-    const { organizationId, wordCount, templateType } = body;
+    const { organizationId, wordCount, templateType, modelUsed } = body;
 
-    console.log(`[report-word-count] User: ${user.id}, Org: ${organizationId}, Words: ${wordCount}`);
+    console.log(`[report-word-count] User: ${user.id}, Org: ${organizationId}, Words: ${wordCount}, Model: ${modelUsed || 'unknown'}`);
 
     if (!organizationId || typeof wordCount !== 'number' || wordCount < 0) {
       return new Response(JSON.stringify({ error: 'Invalid request parameters' }), {
@@ -109,13 +110,13 @@ serve(async (req) => {
       organization_id: organizationId,
       user_id: user.id,
       credits_consumed: actualDeduction,
-      model_used: 'google/gemini-2.5-flash',
+      model_used: modelUsed || 'unknown',
       template_type: templateType || null,
       tokens_input: 0,
       tokens_output: wordCount,
     });
 
-    console.log(`[report-word-count] Deducted ${actualDeduction} credits (${wordCount} words) from org ${organizationId}`);
+    console.log(`[report-word-count] Deducted ${actualDeduction} credits (${wordCount} words) from org ${organizationId}, model: ${modelUsed || 'unknown'}`);
 
     return new Response(JSON.stringify({ 
       success: true,
