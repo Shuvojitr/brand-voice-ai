@@ -32,8 +32,8 @@ const icons = [
 ];
 
 const aiModels = [
-  { value: "", label: "Use Default (from AI Settings)" },
-  { value: "google/gemini-2.5-flash", label: "Gemini 2.5 Flash (Default)" },
+  { value: "default", label: "Use Default (from AI Settings)" },
+  { value: "google/gemini-2.5-flash", label: "Gemini 2.5 Flash" },
   { value: "google/gemini-2.5-pro", label: "Gemini 2.5 Pro" },
   { value: "google/gemini-2.5-flash-lite", label: "Gemini 2.5 Flash Lite" },
   { value: "openai/gpt-5", label: "GPT-5" },
@@ -66,7 +66,7 @@ const emptyFormData: TemplateFormData = {
   system_prompt: "",
   form_schema_json: "[]",
   is_active: true,
-  model: "",
+  model: "default",
 };
 
 export default function AdminTemplates() {
@@ -117,7 +117,7 @@ export default function AdminTemplates() {
       system_prompt: template.system_prompt,
       form_schema_json: JSON.stringify(template.form_schema_json || [], null, 2),
       is_active: template.is_active,
-      model: template.model || "",
+      model: template.model || "default",
     });
     setDialogOpen(true);
   };
@@ -157,7 +157,7 @@ export default function AdminTemplates() {
         system_prompt: formData.system_prompt,
         form_schema_json: parsedSchema,
         is_active: formData.is_active,
-        model: formData.model || null,
+        model: formData.model === "default" ? null : formData.model,
       };
 
       if (selectedTemplate) {
