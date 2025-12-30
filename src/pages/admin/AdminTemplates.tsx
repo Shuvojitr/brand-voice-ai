@@ -31,6 +31,16 @@ const icons = [
   "Facebook", "Mail", "Send", "Package", "Search", "MessageSquare",
 ];
 
+const aiModels = [
+  { value: "", label: "Use Default (from AI Settings)" },
+  { value: "google/gemini-2.5-flash", label: "Gemini 2.5 Flash (Default)" },
+  { value: "google/gemini-2.5-pro", label: "Gemini 2.5 Pro" },
+  { value: "google/gemini-2.5-flash-lite", label: "Gemini 2.5 Flash Lite" },
+  { value: "openai/gpt-5", label: "GPT-5" },
+  { value: "openai/gpt-5-mini", label: "GPT-5 Mini" },
+  { value: "openai/gpt-5-nano", label: "GPT-5 Nano" },
+];
+
 interface TemplateFormData {
   name: string;
   name_bn: string;
@@ -42,6 +52,7 @@ interface TemplateFormData {
   system_prompt: string;
   form_schema_json: string;
   is_active: boolean;
+  model: string;
 }
 
 const emptyFormData: TemplateFormData = {
@@ -55,6 +66,7 @@ const emptyFormData: TemplateFormData = {
   system_prompt: "",
   form_schema_json: "[]",
   is_active: true,
+  model: "",
 };
 
 export default function AdminTemplates() {
@@ -105,6 +117,7 @@ export default function AdminTemplates() {
       system_prompt: template.system_prompt,
       form_schema_json: JSON.stringify(template.form_schema_json || [], null, 2),
       is_active: template.is_active,
+      model: template.model || "",
     });
     setDialogOpen(true);
   };
@@ -144,6 +157,7 @@ export default function AdminTemplates() {
         system_prompt: formData.system_prompt,
         form_schema_json: parsedSchema,
         is_active: formData.is_active,
+        model: formData.model || null,
       };
 
       if (selectedTemplate) {
@@ -252,7 +266,7 @@ export default function AdminTemplates() {
                     <TableRow>
                       <TableHead>Name</TableHead>
                       <TableHead>Category</TableHead>
-                      <TableHead>Slug</TableHead>
+                      <TableHead>Model</TableHead>
                       <TableHead>Status</TableHead>
                       <TableHead className="text-right">Actions</TableHead>
                     </TableRow>
@@ -266,7 +280,15 @@ export default function AdminTemplates() {
                             {template.category}
                           </Badge>
                         </TableCell>
-                        <TableCell className="font-mono text-sm">{template.slug}</TableCell>
+                        <TableCell>
+                          {template.model ? (
+                            <Badge variant="outline" className="font-mono text-xs">
+                              {template.model.split('/').pop()}
+                            </Badge>
+                          ) : (
+                            <span className="text-muted-foreground text-sm">Default</span>
+                          )}
+                        </TableCell>
                         <TableCell>
                           {template.is_active ? (
                             <Badge variant="outline">Active</Badge>
@@ -378,23 +400,46 @@ export default function AdminTemplates() {
               </div>
             </div>
 
-            <div>
-              <Label htmlFor="icon">Icon</Label>
-              <Select
-                value={formData.icon}
-                onValueChange={(v) => setFormData({ ...formData, icon: v })}
-              >
-                <SelectTrigger>
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  {icons.map((icon) => (
-                    <SelectItem key={icon} value={icon}>
-                      {icon}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <Label htmlFor="icon">Icon</Label>
+                <Select
+                  value={formData.icon}
+                  onValueChange={(v) => setFormData({ ...formData, icon: v })}
+                >
+                  <SelectTrigger>
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {icons.map((icon) => (
+                      <SelectItem key={icon} value={icon}>
+                        {icon}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+              <div>
+                <Label htmlFor="model">AI Model</Label>
+                <Select
+                  value={formData.model}
+                  onValueChange={(v) => setFormData({ ...formData, model: v })}
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder="Use Default" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {aiModels.map((m) => (
+                      <SelectItem key={m.value} value={m.value}>
+                        {m.label}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                <p className="text-xs text-muted-foreground mt-1">
+                  Override the default AI model for this template.
+                </p>
+              </div>
             </div>
 
             <div>
