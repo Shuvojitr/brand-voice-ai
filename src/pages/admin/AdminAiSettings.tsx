@@ -8,7 +8,9 @@ import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Separator } from "@/components/ui/separator";
 import { useAiProviderSettings, AiProviderSetting } from "@/hooks/useAiProviderSettings";
+import { AiUsageStats } from "@/components/admin/AiUsageStats";
 import { Bot, Key, Settings2, CheckCircle, ExternalLink, Eye, EyeOff, Loader2, Zap } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
@@ -386,6 +388,10 @@ export default function AdminAiSettings() {
             onSave={handleSave}
             isSaving={isUpdating}
           />
+
+          <Separator className="my-6" />
+
+          <AiUsageStats />
         </div>
       </AdminLayout>
     </AdminProtectedRoute>
