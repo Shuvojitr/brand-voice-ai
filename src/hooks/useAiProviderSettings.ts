@@ -81,7 +81,7 @@ export function useAiProviderSettings() {
       const { error: deactivateError } = await supabase
         .from('ai_provider_settings')
         .update({ is_active: false })
-        .neq('id', 'dummy'); // Update all
+        .eq('is_active', true); // Only update currently active ones
 
       if (deactivateError) throw deactivateError;
 
