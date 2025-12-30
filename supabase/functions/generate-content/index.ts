@@ -196,15 +196,15 @@ serve(async (req) => {
       default_model: 'google/gemini-2.5-flash',
     };
 
-    // Use request model or fall back to provider default
-    const model = body.model || provider.default_model || 'google/gemini-2.5-flash';
+    // Model priority: request body > template-specific > provider default
+    let model = body.model || provider.default_model || 'google/gemini-2.5-flash';
 
     console.log(`[generate-content] Using provider: ${provider.provider_slug}, model: ${model}`);
 
     // Fetch template from database
     const { data: template, error: templateError } = await supabase
       .from('templates')
-      .select('system_prompt, estimated_credits, is_active')
+      .select('system_prompt, estimated_credits, is_active, model')
       .eq('slug', templateId)
       .single();
 
@@ -221,6 +221,12 @@ serve(async (req) => {
         status: 400,
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       });
+    }
+
+    // Override model if template has a specific model set
+    if (template.model && !body.model) {
+      model = template.model;
+      console.log(`[generate-content] Using template-specific model: ${model}`);
     }
 
     const systemPrompt = template.system_prompt;

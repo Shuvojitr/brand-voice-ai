@@ -881,6 +881,7 @@ export type Database = {
           icon: string | null
           id: string
           is_active: boolean | null
+          model: string | null
           name: string
           name_bn: string | null
           output_format: string | null
@@ -901,6 +902,7 @@ export type Database = {
           icon?: string | null
           id?: string
           is_active?: boolean | null
+          model?: string | null
           name: string
           name_bn?: string | null
           output_format?: string | null
@@ -921,6 +923,7 @@ export type Database = {
           icon?: string | null
           id?: string
           is_active?: boolean | null
+          model?: string | null
           name?: string
           name_bn?: string | null
           output_format?: string | null
