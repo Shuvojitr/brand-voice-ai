@@ -43,9 +43,7 @@ const aiModels = [
 
 interface TemplateFormData {
   name: string;
-  name_bn: string;
   description: string;
-  description_bn: string;
   category: string;
   icon: string;
   slug: string;
@@ -57,9 +55,7 @@ interface TemplateFormData {
 
 const emptyFormData: TemplateFormData = {
   name: "",
-  name_bn: "",
   description: "",
-  description_bn: "",
   category: "blog",
   icon: "FileText",
   slug: "",
@@ -108,9 +104,7 @@ export default function AdminTemplates() {
     setSelectedTemplate(template);
     setFormData({
       name: template.name,
-      name_bn: template.name_bn || "",
       description: template.description || "",
-      description_bn: template.description_bn || "",
       category: template.category,
       icon: template.icon || "FileText",
       slug: template.slug,
@@ -148,9 +142,7 @@ export default function AdminTemplates() {
     try {
       const templateData = {
         name: formData.name,
-        name_bn: formData.name_bn || null,
         description: formData.description || null,
-        description_bn: formData.description_bn || null,
         category: formData.category,
         icon: formData.icon,
         slug: formData.slug,
@@ -349,25 +341,14 @@ export default function AdminTemplates() {
             </DialogDescription>
           </DialogHeader>
           <div className="space-y-4 py-4">
-            <div className="grid grid-cols-2 gap-4">
-              <div>
-                <Label htmlFor="name">Name *</Label>
-                <Input
-                  id="name"
-                  value={formData.name}
-                  onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                  placeholder="Blog Post"
-                />
-              </div>
-              <div>
-                <Label htmlFor="name_bn">Name (Bengali)</Label>
-                <Input
-                  id="name_bn"
-                  value={formData.name_bn}
-                  onChange={(e) => setFormData({ ...formData, name_bn: e.target.value })}
-                  placeholder="ব্লগ পোস্ট"
-                />
-              </div>
+            <div>
+              <Label htmlFor="name">Name *</Label>
+              <Input
+                id="name"
+                value={formData.name}
+                onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+                placeholder="Blog Post"
+              />
             </div>
 
             <div className="grid grid-cols-2 gap-4">

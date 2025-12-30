@@ -7,9 +7,7 @@ export interface DatabaseTemplate {
   id: string;
   slug: string;
   name: string;
-  name_bn: string | null;
   description: string | null;
-  description_bn: string | null;
   category: string;
   icon: string | null;
   form_schema_json: Json;
@@ -90,13 +88,13 @@ export function useTemplatesByCategory(category: TemplateCategory | "all") {
 }
 
 // Helper to get all unique categories
-export function getAllCategories(): { category: TemplateCategory; label: string; labelBn: string; icon: string }[] {
+export function getAllCategories(): { category: TemplateCategory; label: string; icon: string }[] {
   return [
-    { category: 'blog', label: 'Blog & Articles', labelBn: 'ব্লগ ও আর্টিকেল', icon: 'FileText' },
-    { category: 'social', label: 'Social Media', labelBn: 'সোশ্যাল মিডিয়া', icon: 'Share2' },
-    { category: 'ads', label: 'Advertisements', labelBn: 'বিজ্ঞাপন', icon: 'Target' },
-    { category: 'email', label: 'Email Marketing', labelBn: 'ইমেইল মার্কেটিং', icon: 'Mail' },
-    { category: 'product', label: 'Product Content', labelBn: 'পণ্য কন্টেন্ট', icon: 'Package' },
-    { category: 'seo', label: 'SEO', labelBn: 'এসইও', icon: 'Search' },
+    { category: 'blog', label: 'Blog & Articles', icon: 'FileText' },
+    { category: 'social', label: 'Social Media', icon: 'Share2' },
+    { category: 'ads', label: 'Advertisements', icon: 'Target' },
+    { category: 'email', label: 'Email Marketing', icon: 'Mail' },
+    { category: 'product', label: 'Product Content', icon: 'Package' },
+    { category: 'seo', label: 'SEO', icon: 'Search' },
   ];
 }
