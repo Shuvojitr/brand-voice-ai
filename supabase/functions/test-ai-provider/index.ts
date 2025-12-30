@@ -140,15 +140,17 @@ serve(async (req) => {
           }),
         });
       } else if (provider.provider_slug === 'google') {
-        // Google Gemini API format
-        aiResponse = await fetch(`${endpoint}?key=${apiKey}`, {
+        // Google Gemini via OpenAI-compatible endpoint
+        aiResponse = await fetch(endpoint, {
           method: 'POST',
           headers: {
+            'Authorization': `Bearer ${apiKey}`,
             'Content-Type': 'application/json',
           },
           body: JSON.stringify({
-            contents: [{ parts: [{ text: testMessages[0].content }] }],
-            generationConfig: { maxOutputTokens: 50 },
+            model,
+            messages: testMessages,
+            max_tokens: 50,
           }),
         });
       } else {
