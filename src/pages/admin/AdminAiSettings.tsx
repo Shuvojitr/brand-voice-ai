@@ -9,7 +9,9 @@ import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { useAiProviderSettings, AiProviderSetting } from "@/hooks/useAiProviderSettings";
-import { Bot, Key, Settings2, CheckCircle, ExternalLink, Eye, EyeOff } from "lucide-react";
+import { Bot, Key, Settings2, CheckCircle, ExternalLink, Eye, EyeOff, Loader2, Zap } from "lucide-react";
+import { supabase } from "@/integrations/supabase/client";
+import { toast } from "sonner";
 
 const providerInfo: Record<string, { description: string; docsUrl: string; models: string[] }> = {
   lovable: {
@@ -58,12 +60,16 @@ function ProviderCard({
   provider, 
   onConfigure, 
   onActivate,
-  isActivating 
+  onTest,
+  isActivating,
+  isTesting,
 }: { 
   provider: AiProviderSetting; 
   onConfigure: () => void;
   onActivate: () => void;
+  onTest: () => void;
   isActivating: boolean;
+  isTesting: boolean;
 }) {
   const info = providerInfo[provider.provider_slug] || { 
     description: "AI provider", 
@@ -116,6 +122,22 @@ function ProviderCard({
             <Button variant="outline" size="sm" onClick={onConfigure} className="flex-1">
               <Settings2 className="h-4 w-4 mr-1" />
               Configure
+            </Button>
+          )}
+          {(isLovable || hasApiKey) && (
+            <Button 
+              variant="outline" 
+              size="sm" 
+              onClick={onTest} 
+              disabled={isTesting}
+              className="flex-1"
+            >
+              {isTesting ? (
+                <Loader2 className="h-4 w-4 mr-1 animate-spin" />
+              ) : (
+                <Zap className="h-4 w-4 mr-1" />
+              )}
+              Test
             </Button>
           )}
           {!provider.is_active && (isLovable || hasApiKey) && (
@@ -260,11 +282,47 @@ function ConfigureDialog({
 export default function AdminAiSettings() {
   const { providers, isLoading, updateProvider, activateProvider, isUpdating, isActivating } = useAiProviderSettings();
   const [configureProvider, setConfigureProvider] = useState<AiProviderSetting | null>(null);
+  const [testingProviderId, setTestingProviderId] = useState<string | null>(null);
 
   const handleSave = (data: { api_key?: string; default_model?: string; api_endpoint?: string }) => {
     if (configureProvider) {
       updateProvider({ id: configureProvider.id, ...data });
       setConfigureProvider(null);
+    }
+  };
+
+  const handleTest = async (providerId: string) => {
+    setTestingProviderId(providerId);
+    try {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session) {
+        toast.error("You must be logged in to test providers");
+        return;
+      }
+
+      const response = await supabase.functions.invoke('test-ai-provider', {
+        body: { providerId },
+      });
+
+      if (response.error) {
+        toast.error("Test failed: " + response.error.message);
+        return;
+      }
+
+      const result = response.data;
+      if (result.success) {
+        toast.success(`API key verified! Response time: ${result.responseTime}ms`, {
+          description: result.message?.substring(0, 100),
+        });
+      } else {
+        toast.error("Test failed: " + result.error, {
+          description: result.details,
+        });
+      }
+    } catch (error) {
+      toast.error("Test failed: " + (error instanceof Error ? error.message : "Unknown error"));
+    } finally {
+      setTestingProviderId(null);
     }
   };
 
@@ -314,7 +372,9 @@ export default function AdminAiSettings() {
                 provider={provider}
                 onConfigure={() => setConfigureProvider(provider)}
                 onActivate={() => activateProvider(provider.id)}
+                onTest={() => handleTest(provider.id)}
                 isActivating={isActivating}
+                isTesting={testingProviderId === provider.id}
               />
             ))}
           </div>
