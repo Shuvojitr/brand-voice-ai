@@ -4,11 +4,13 @@ import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle }
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { PricingToggle } from "@/components/pricing";
-import { Check, CreditCard, Loader2, Sparkles } from "lucide-react";
+import { Check, CreditCard, Loader2, Sparkles, AlertTriangle } from "lucide-react";
 import { useOrganization } from "@/hooks/useOrganization";
 import { usePlans, Plan } from "@/hooks/usePlans";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
+import { format } from "date-fns";
+
 export default function Billing() {
   const { organization, isLoading: orgLoading, invalidate } = useOrganization();
   const { data: plans, isLoading: plansLoading } = usePlans();
@@ -18,8 +20,10 @@ export default function Billing() {
 
   const currentTier = organization?.subscription_tier || "free";
   const creditsUsed = organization?.credits_used || 0;
-  const monthlyCredits = organization?.monthly_credits || 1000;
-  const usagePercent = Math.min((creditsUsed / monthlyCredits) * 100, 100);
+  const monthlyCredits = organization?.monthly_credits || 0;
+  const subscriptionEndsAt = organization?.subscription_ends_at;
+  const hasNoPlan = currentTier === "free" && monthlyCredits === 0;
+  const usagePercent = monthlyCredits > 0 ? Math.min((creditsUsed / monthlyCredits) * 100, 100) : 0;
 
   const handleMockUpgrade = async (planSlug: string) => {
     if (planSlug === "free" || planSlug === currentTier) return;
@@ -124,23 +128,45 @@ export default function Billing() {
           </CardContent>
         </Card>
 
+        {/* No Plan Warning */}
+        {hasNoPlan && (
+          <Card className="border-destructive/50 bg-destructive/10">
+            <CardContent className="py-4">
+              <div className="flex items-center gap-3 text-destructive">
+                <AlertTriangle className="h-5 w-5" />
+                <div>
+                  <p className="font-medium">No Active Plan</p>
+                  <p className="text-sm opacity-80">
+                    Your subscription has expired or you haven't subscribed yet. Upgrade to a plan to continue using AI features.
+                  </p>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        )}
+
         {/* Current Usage */}
         <Card>
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
               <CreditCard className="h-5 w-5" />
               Current Usage
-              <Badge variant="secondary" className="ml-2 capitalize">
-                {currentTier}
+              <Badge variant={hasNoPlan ? "destructive" : "secondary"} className="ml-2 capitalize">
+                {hasNoPlan ? "No Plan" : currentTier}
               </Badge>
             </CardTitle>
-            <CardDescription>Your usage this billing period</CardDescription>
+            <CardDescription>
+              {subscriptionEndsAt && !hasNoPlan
+                ? `Your plan renews on ${format(new Date(subscriptionEndsAt), "MMMM d, yyyy")}`
+                : "Your usage this billing period"
+              }
+            </CardDescription>
           </CardHeader>
           <CardContent>
             <div className="space-y-4">
               <div>
                 <div className="flex justify-between text-sm mb-2">
-                  <span>Words Used</span>
+                  <span>Credits Used</span>
                   <span>{creditsUsed.toLocaleString()} / {monthlyCredits.toLocaleString()}</span>
                 </div>
                 <div className="h-2 rounded-full bg-muted overflow-hidden">
