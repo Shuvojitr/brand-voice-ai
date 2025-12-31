@@ -1,92 +1,65 @@
 import { useState } from "react";
 import { AdminLayout } from "@/components/admin/AdminLayout";
 import { AdminProtectedRoute } from "@/components/admin/AdminProtectedRoute";
-import { Card, CardContent } from "@/components/ui/card";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Separator } from "@/components/ui/separator";
 import { useAiProviderSettings, AiProviderSetting } from "@/hooks/useAiProviderSettings";
 import { AiUsageStats } from "@/components/admin/AiUsageStats";
-import { 
-  Bot, Key, Settings2, CheckCircle, ExternalLink, Eye, EyeOff, 
-  Loader2, Zap, Sparkles, Shield, Globe, Cpu, BarChart3 
-} from "lucide-react";
+import { Bot, Key, Settings2, CheckCircle, ExternalLink, Eye, EyeOff, Loader2, Zap } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 
-const providerInfo: Record<string, { 
-  description: string; 
-  docsUrl: string; 
-  models: string[];
-  icon: string;
-  color: string;
-}> = {
+const providerInfo: Record<string, { description: string; docsUrl: string; models: string[] }> = {
   lovable: {
     description: "Built-in AI gateway with pre-configured access. No API key required.",
     docsUrl: "https://docs.lovable.dev/features/ai",
     models: ["google/gemini-2.5-flash", "google/gemini-2.5-pro", "openai/gpt-5", "openai/gpt-5-mini"],
-    icon: "💜",
-    color: "from-violet-500 to-purple-600",
   },
   openai: {
     description: "OpenAI's GPT models for powerful language generation.",
     docsUrl: "https://platform.openai.com/api-keys",
     models: ["gpt-4o", "gpt-4o-mini", "gpt-4-turbo", "gpt-3.5-turbo"],
-    icon: "🤖",
-    color: "from-emerald-500 to-teal-600",
   },
   google: {
     description: "Google's Gemini models with multimodal capabilities.",
     docsUrl: "https://aistudio.google.com/app/apikey",
     models: ["gemini-2.0-flash", "gemini-1.5-pro", "gemini-1.5-flash"],
-    icon: "🔮",
-    color: "from-blue-500 to-indigo-600",
   },
   anthropic: {
     description: "Anthropic's Claude models known for safety and helpfulness.",
     docsUrl: "https://console.anthropic.com/settings/keys",
     models: ["claude-sonnet-4-20250514", "claude-3-5-sonnet-20241022", "claude-3-haiku-20240307"],
-    icon: "🧠",
-    color: "from-orange-500 to-amber-600",
   },
   deepseek: {
     description: "DeepSeek's efficient and capable language models.",
     docsUrl: "https://platform.deepseek.com/api_keys",
     models: ["deepseek-chat", "deepseek-coder"],
-    icon: "🌊",
-    color: "from-cyan-500 to-sky-600",
   },
   openrouter: {
     description: "Access multiple AI models through a single API.",
     docsUrl: "https://openrouter.ai/keys",
     models: ["openai/gpt-4o", "anthropic/claude-3-opus", "meta-llama/llama-3-70b"],
-    icon: "🌐",
-    color: "from-pink-500 to-rose-600",
   },
   mistral: {
     description: "Mistral AI's open and efficient language models.",
     docsUrl: "https://console.mistral.ai/api-keys",
     models: ["mistral-large-latest", "mistral-medium-latest", "mistral-small-latest"],
-    icon: "🌬️",
-    color: "from-slate-500 to-zinc-600",
   },
   bytez: {
     description: "Bytez AI platform for various AI models.",
     docsUrl: "https://bytez.com",
     models: ["Qwen/Qwen2.5-72B-Instruct"],
-    icon: "⚡",
-    color: "from-yellow-500 to-orange-600",
   },
   agentrouter: {
     description: "AgentRouter API for unified access to multiple AI models.",
     docsUrl: "https://agentrouter.ai",
     models: ["google/gemini-2.5-flash", "google/gemini-2.5-pro", "openai/gpt-4o", "anthropic/claude-3-opus"],
-    icon: "🚀",
-    color: "from-fuchsia-500 to-purple-600",
   },
 };
 
@@ -108,132 +81,83 @@ function ProviderCard({
   const info = providerInfo[provider.provider_slug] || { 
     description: "AI provider", 
     docsUrl: "#",
-    models: [],
-    icon: "🤖",
-    color: "from-gray-500 to-gray-600",
+    models: [] 
   };
   const hasApiKey = !!provider.api_key_encrypted;
   const isLovable = provider.provider_slug === 'lovable';
 
   return (
-    <Card className={`group relative overflow-hidden transition-all duration-300 hover-lift border-0 ${
-      provider.is_active 
-        ? 'ring-2 ring-primary shadow-glow' 
-        : 'bg-card/50 hover:bg-card'
-    }`}>
-      {/* Gradient background on hover */}
-      <div className={`absolute inset-0 bg-gradient-to-br ${info.color} opacity-0 group-hover:opacity-5 transition-opacity duration-300`} />
-      
-      {/* Active indicator */}
+    <Card className={`relative transition-all ${provider.is_active ? 'ring-2 ring-primary' : ''}`}>
       {provider.is_active && (
-        <div className="absolute top-0 left-0 right-0 h-1 gradient-primary" />
+        <Badge className="absolute -top-2 -right-2 bg-primary">
+          <CheckCircle className="h-3 w-3 mr-1" />
+          Active
+        </Badge>
       )}
-
-      <CardContent className="relative p-6">
-        {/* Header */}
-        <div className="flex items-start justify-between mb-4">
-          <div className="flex items-center gap-4">
-            <div className={`flex items-center justify-center w-12 h-12 rounded-xl bg-gradient-to-br ${info.color} shadow-lg`}>
-              <span className="text-2xl">{info.icon}</span>
+      <CardHeader>
+        <div className="flex items-start justify-between">
+          <div className="flex items-center gap-3">
+            <div className="p-2 rounded-lg bg-muted">
+              <Bot className="h-5 w-5 text-primary" />
             </div>
             <div>
-              <div className="flex items-center gap-2">
-                <h3 className="font-semibold text-lg">{provider.provider_name}</h3>
-                {provider.is_active && (
-                  <Badge className="bg-primary/10 text-primary border-primary/20 text-xs">
-                    <CheckCircle className="h-3 w-3 mr-1" />
-                    Active
-                  </Badge>
-                )}
-              </div>
-              <p className="text-sm text-muted-foreground mt-0.5 line-clamp-2">
+              <CardTitle className="text-lg">{provider.provider_name}</CardTitle>
+              <CardDescription className="text-sm mt-1">
                 {info.description}
-              </p>
+              </CardDescription>
             </div>
           </div>
         </div>
-
-        {/* Status indicators */}
-        <div className="flex flex-wrap items-center gap-3 mb-4">
-          <div className={`flex items-center gap-1.5 text-xs px-2.5 py-1 rounded-full ${
-            isLovable || hasApiKey 
-              ? 'bg-success/10 text-success' 
-              : 'bg-muted text-muted-foreground'
-          }`}>
-            {isLovable ? (
-              <>
-                <Shield className="h-3 w-3" />
-                <span>Pre-configured</span>
-              </>
-            ) : hasApiKey ? (
-              <>
-                <Key className="h-3 w-3" />
-                <span>API key set</span>
-              </>
-            ) : (
-              <>
-                <Key className="h-3 w-3" />
-                <span>No API key</span>
-              </>
-            )}
-          </div>
-
-          {provider.default_model && (
-            <div className="flex items-center gap-1.5 text-xs px-2.5 py-1 rounded-full bg-secondary text-secondary-foreground">
-              <Cpu className="h-3 w-3" />
-              <span className="font-mono">{provider.default_model}</span>
-            </div>
-          )}
+      </CardHeader>
+      <CardContent className="space-y-4">
+        <div className="flex items-center gap-2 text-sm text-muted-foreground">
+          <Key className="h-4 w-4" />
+          <span>
+            {isLovable ? 'Pre-configured' : hasApiKey ? 'API key configured' : 'No API key set'}
+          </span>
         </div>
+        
+        {provider.default_model && (
+          <div className="text-sm">
+            <span className="text-muted-foreground">Model: </span>
+            <code className="bg-muted px-1.5 py-0.5 rounded text-xs">{provider.default_model}</code>
+          </div>
+        )}
 
-        {/* Actions */}
-        <div className="flex items-center gap-2 pt-2 border-t border-border/50">
+        <div className="flex gap-2 pt-2">
           {!isLovable && (
-            <Button 
-              variant="ghost" 
-              size="sm" 
-              onClick={onConfigure} 
-              className="flex-1 h-9"
-            >
-              <Settings2 className="h-4 w-4 mr-1.5" />
+            <Button variant="outline" size="sm" onClick={onConfigure} className="flex-1">
+              <Settings2 className="h-4 w-4 mr-1" />
               Configure
             </Button>
           )}
-          
           {(isLovable || hasApiKey) && (
             <Button 
-              variant="ghost" 
+              variant="outline" 
               size="sm" 
               onClick={onTest} 
               disabled={isTesting}
-              className="flex-1 h-9"
+              className="flex-1"
             >
               {isTesting ? (
-                <Loader2 className="h-4 w-4 mr-1.5 animate-spin" />
+                <Loader2 className="h-4 w-4 mr-1 animate-spin" />
               ) : (
-                <Zap className="h-4 w-4 mr-1.5" />
+                <Zap className="h-4 w-4 mr-1" />
               )}
               Test
             </Button>
           )}
-          
           {!provider.is_active && (isLovable || hasApiKey) && (
             <Button 
               size="sm" 
               onClick={onActivate} 
               disabled={isActivating}
-              className="flex-1 h-9 gradient-primary text-white border-0"
+              className="flex-1"
             >
-              {isActivating ? (
-                <Loader2 className="h-4 w-4 mr-1.5 animate-spin" />
-              ) : (
-                <Sparkles className="h-4 w-4 mr-1.5" />
-              )}
               Activate
             </Button>
           )}
-          
-          <Button variant="ghost" size="icon" className="h-9 w-9 shrink-0" asChild>
+          <Button variant="ghost" size="sm" asChild>
             <a href={info.docsUrl} target="_blank" rel="noopener noreferrer">
               <ExternalLink className="h-4 w-4" />
             </a>
@@ -278,24 +202,17 @@ function ConfigureDialog({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-md">
+      <DialogContent>
         <DialogHeader>
-          <div className="flex items-center gap-3">
-            <div className={`flex items-center justify-center w-10 h-10 rounded-lg bg-gradient-to-br ${info?.color || 'from-gray-500 to-gray-600'}`}>
-              <span className="text-xl">{info?.icon || '🤖'}</span>
-            </div>
-            <div>
-              <DialogTitle>Configure {provider.provider_name}</DialogTitle>
-              <DialogDescription>
-                Set up your API credentials
-              </DialogDescription>
-            </div>
-          </div>
+          <DialogTitle>Configure {provider.provider_name}</DialogTitle>
+          <DialogDescription>
+            Set up your API key and default model for {provider.provider_name}.
+          </DialogDescription>
         </DialogHeader>
 
-        <div className="space-y-5 py-4">
+        <div className="space-y-4 py-4">
           <div className="space-y-2">
-            <Label htmlFor="api-key" className="text-sm font-medium">API Key</Label>
+            <Label htmlFor="api-key">API Key</Label>
             <div className="relative">
               <Input
                 id="api-key"
@@ -303,16 +220,15 @@ function ConfigureDialog({
                 placeholder={provider.api_key_encrypted ? "••••••••••••••••" : "Enter your API key"}
                 value={apiKey}
                 onChange={(e) => setApiKey(e.target.value)}
-                className="pr-10"
               />
               <Button
                 type="button"
                 variant="ghost"
                 size="sm"
-                className="absolute right-0 top-0 h-full px-3 hover:bg-transparent"
+                className="absolute right-0 top-0 h-full px-3"
                 onClick={() => setShowKey(!showKey)}
               >
-                {showKey ? <EyeOff className="h-4 w-4 text-muted-foreground" /> : <Eye className="h-4 w-4 text-muted-foreground" />}
+                {showKey ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
               </Button>
             </div>
             {provider.api_key_encrypted && (
@@ -323,7 +239,7 @@ function ConfigureDialog({
           </div>
 
           <div className="space-y-2">
-            <Label htmlFor="model" className="text-sm font-medium">Default Model</Label>
+            <Label htmlFor="model">Default Model</Label>
             <Input
               id="model"
               placeholder="e.g., gpt-4o"
@@ -331,12 +247,12 @@ function ConfigureDialog({
               onChange={(e) => setModel(e.target.value)}
             />
             {info?.models && info.models.length > 0 && (
-              <div className="flex flex-wrap gap-1.5 mt-2">
+              <div className="flex flex-wrap gap-1 mt-2">
                 {info.models.map((m) => (
                   <Badge 
                     key={m} 
                     variant="outline" 
-                    className="cursor-pointer hover:bg-primary/10 hover:border-primary/50 transition-colors text-xs"
+                    className="cursor-pointer hover:bg-muted"
                     onClick={() => setModel(m)}
                   >
                     {m}
@@ -347,9 +263,7 @@ function ConfigureDialog({
           </div>
 
           <div className="space-y-2">
-            <Label htmlFor="endpoint" className="text-sm font-medium">
-              API Endpoint <span className="text-muted-foreground font-normal">(Optional)</span>
-            </Label>
+            <Label htmlFor="endpoint">API Endpoint (Optional)</Label>
             <Input
               id="endpoint"
               placeholder={provider.api_endpoint || "Default endpoint"}
@@ -359,19 +273,12 @@ function ConfigureDialog({
           </div>
         </div>
 
-        <DialogFooter className="gap-2 sm:gap-0">
+        <DialogFooter>
           <Button variant="outline" onClick={() => onOpenChange(false)}>
             Cancel
           </Button>
-          <Button onClick={handleSave} disabled={isSaving} className="gradient-primary text-white border-0">
-            {isSaving ? (
-              <>
-                <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                Saving...
-              </>
-            ) : (
-              'Save Configuration'
-            )}
+          <Button onClick={handleSave} disabled={isSaving}>
+            {isSaving ? 'Saving...' : 'Save Configuration'}
           </Button>
         </DialogFooter>
       </DialogContent>
@@ -426,32 +333,24 @@ export default function AdminAiSettings() {
     }
   };
 
-  const activeProvider = providers?.find(p => p.is_active);
-
   if (isLoading) {
     return (
       <AdminProtectedRoute>
         <AdminLayout>
-          <div className="p-6 lg:p-8 space-y-8">
-            {/* Header Skeleton */}
-            <div className="space-y-2">
-              <Skeleton className="h-8 w-48" />
-              <Skeleton className="h-4 w-96" />
+          <div className="p-6 space-y-6">
+            <div>
+              <h1 className="text-2xl font-bold">AI Settings</h1>
+              <p className="text-muted-foreground">Configure your AI provider and API keys</p>
             </div>
-            
-            {/* Cards Skeleton */}
-            <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-              {[1, 2, 3, 4, 5, 6].map((i) => (
-                <Card key={i} className="border-0 bg-card/50">
-                  <CardContent className="p-6">
-                    <div className="flex items-center gap-4 mb-4">
-                      <Skeleton className="h-12 w-12 rounded-xl" />
-                      <div className="space-y-2">
-                        <Skeleton className="h-5 w-24" />
-                        <Skeleton className="h-3 w-32" />
-                      </div>
-                    </div>
-                    <Skeleton className="h-8 w-full" />
+            <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+              {[1, 2, 3, 4].map((i) => (
+                <Card key={i}>
+                  <CardHeader>
+                    <Skeleton className="h-6 w-32" />
+                    <Skeleton className="h-4 w-48 mt-2" />
+                  </CardHeader>
+                  <CardContent>
+                    <Skeleton className="h-10 w-full" />
                   </CardContent>
                 </Card>
               ))}
@@ -465,68 +364,27 @@ export default function AdminAiSettings() {
   return (
     <AdminProtectedRoute>
       <AdminLayout>
-        <div className="p-6 lg:p-8 space-y-8">
-          {/* Header */}
-          <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
-            <div>
-              <div className="flex items-center gap-3 mb-2">
-                <div className="flex items-center justify-center w-10 h-10 rounded-xl gradient-primary shadow-lg">
-                  <Bot className="h-5 w-5 text-white" />
-                </div>
-                <h1 className="text-2xl lg:text-3xl font-bold">AI Settings</h1>
-              </div>
-              <p className="text-muted-foreground">
-                Configure and manage your AI providers. Only one provider can be active at a time.
-              </p>
-            </div>
-
-            {/* Active Provider Badge */}
-            {activeProvider && (
-              <div className="flex items-center gap-3 px-4 py-2.5 rounded-xl bg-primary/5 border border-primary/20">
-                <div className="flex items-center justify-center w-8 h-8 rounded-lg bg-primary/10">
-                  <CheckCircle className="h-4 w-4 text-primary" />
-                </div>
-                <div>
-                  <p className="text-xs text-muted-foreground">Active Provider</p>
-                  <p className="font-medium text-sm">{activeProvider.provider_name}</p>
-                </div>
-              </div>
-            )}
+        <div className="p-6 space-y-6">
+          <div>
+            <h1 className="text-2xl font-bold">AI Settings</h1>
+            <p className="text-muted-foreground">
+              Configure your AI provider and API keys. Only one provider can be active at a time.
+            </p>
           </div>
 
-          {/* Tabs */}
-          <Tabs defaultValue="providers" className="space-y-6">
-            <TabsList className="bg-muted/50 p-1">
-              <TabsTrigger value="providers" className="gap-2 data-[state=active]:bg-background">
-                <Globe className="h-4 w-4" />
-                Providers
-              </TabsTrigger>
-              <TabsTrigger value="usage" className="gap-2 data-[state=active]:bg-background">
-                <BarChart3 className="h-4 w-4" />
-                Usage Stats
-              </TabsTrigger>
-            </TabsList>
-
-            <TabsContent value="providers" className="mt-6">
-              <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3 stagger-children">
-                {providers?.map((provider) => (
-                  <ProviderCard
-                    key={provider.id}
-                    provider={provider}
-                    onConfigure={() => setConfigureProvider(provider)}
-                    onActivate={() => activateProvider(provider.id)}
-                    onTest={() => handleTest(provider.id)}
-                    isActivating={isActivating}
-                    isTesting={testingProviderId === provider.id}
-                  />
-                ))}
-              </div>
-            </TabsContent>
-
-            <TabsContent value="usage" className="mt-6">
-              <AiUsageStats />
-            </TabsContent>
-          </Tabs>
+          <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+            {providers?.map((provider) => (
+              <ProviderCard
+                key={provider.id}
+                provider={provider}
+                onConfigure={() => setConfigureProvider(provider)}
+                onActivate={() => activateProvider(provider.id)}
+                onTest={() => handleTest(provider.id)}
+                isActivating={isActivating}
+                isTesting={testingProviderId === provider.id}
+              />
+            ))}
+          </div>
 
           <ConfigureDialog
             provider={configureProvider}
@@ -535,6 +393,10 @@ export default function AdminAiSettings() {
             onSave={handleSave}
             isSaving={isUpdating}
           />
+
+          <Separator className="my-6" />
+
+          <AiUsageStats />
         </div>
       </AdminLayout>
     </AdminProtectedRoute>
