@@ -68,10 +68,10 @@ Deno.serve(async (req) => {
       });
     }
 
-    // Get plan credits from database
+    // Get plan credits and interval from database
     const { data: planData } = await supabaseClient
       .from("plans")
-      .select("credits")
+      .select("credits, interval")
       .eq("slug", plan)
       .maybeSingle();
 
@@ -83,6 +83,7 @@ Deno.serve(async (req) => {
     };
 
     const newPlanCredits = planData?.credits ?? defaultPlanCredits[plan];
+    const planInterval = planData?.interval ?? "month";
 
     // Get current organization credits
     const { data: org, error: orgError } = await supabaseClient
@@ -102,9 +103,13 @@ Deno.serve(async (req) => {
     const remainingCredits = Math.max(0, (org.monthly_credits || 0) - (org.credits_used || 0));
     const newMonthlyCredits = remainingCredits + newPlanCredits;
 
-    // Calculate subscription end date (1 month from now for dev mode)
+    // Calculate subscription end date based on plan interval
     const subscriptionEndsAt = new Date();
-    subscriptionEndsAt.setMonth(subscriptionEndsAt.getMonth() + 1);
+    if (planInterval === "year") {
+      subscriptionEndsAt.setFullYear(subscriptionEndsAt.getFullYear() + 1);
+    } else {
+      subscriptionEndsAt.setMonth(subscriptionEndsAt.getMonth() + 1);
+    }
 
     // Update organization subscription
     const { error: updateError } = await supabaseClient
