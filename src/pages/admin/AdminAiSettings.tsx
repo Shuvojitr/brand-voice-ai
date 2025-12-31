@@ -56,6 +56,11 @@ const providerInfo: Record<string, { description: string; docsUrl: string; model
     docsUrl: "https://bytez.com",
     models: ["Qwen/Qwen2.5-72B-Instruct"],
   },
+  agentrouter: {
+    description: "AgentRouter API for unified access to multiple AI models.",
+    docsUrl: "https://agentrouter.ai",
+    models: ["google/gemini-2.5-flash", "google/gemini-2.5-pro", "openai/gpt-4o", "anthropic/claude-3-opus"],
+  },
 };
 
 function ProviderCard({ 
