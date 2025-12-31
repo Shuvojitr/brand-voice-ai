@@ -23,3 +23,9 @@ verify_jwt = false
 
 [functions.resize-favicon]
 verify_jwt = true
+
+[functions.expire-subscriptions]
+verify_jwt = false
+
+[functions.test-ai-provider]
+verify_jwt = true
