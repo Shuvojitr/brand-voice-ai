@@ -88,7 +88,11 @@ serve(async (req) => {
     }
 
     const creditsAvailable = (org.monthly_credits || 0) - (org.credits_used || 0);
-    const creditsToDeduct = Math.max(1, wordCount); // Minimum 1 credit
+    
+    // Token calculation: ~1.33 tokens per word (750,000 words ≈ 1,000,000 tokens)
+    // Credits = tokens used, so we convert words to approximate tokens
+    const estimatedTokens = Math.ceil(wordCount * 1.33);
+    const creditsToDeduct = Math.max(1, estimatedTokens); // Minimum 1 credit
     const actualDeduction = Math.min(creditsToDeduct, creditsAvailable);
 
     // Update organization credits
@@ -105,7 +109,8 @@ serve(async (req) => {
       });
     }
 
-    // Log usage
+    // Log usage with estimated token counts
+    const estimatedOutputTokens = Math.ceil(wordCount * 1.33);
     await supabase.from('credit_usage').insert({
       organization_id: organizationId,
       user_id: user.id,
@@ -113,10 +118,10 @@ serve(async (req) => {
       model_used: modelUsed || 'unknown',
       template_type: templateType || null,
       tokens_input: 0,
-      tokens_output: wordCount,
+      tokens_output: estimatedOutputTokens,
     });
 
-    console.log(`[report-word-count] Deducted ${actualDeduction} credits (${wordCount} words) from org ${organizationId}, model: ${modelUsed || 'unknown'}`);
+    console.log(`[report-word-count] Deducted ${actualDeduction} credits (${wordCount} words ≈ ${estimatedOutputTokens} tokens) from org ${organizationId}, model: ${modelUsed || 'unknown'}`);
 
     return new Response(JSON.stringify({ 
       success: true,
