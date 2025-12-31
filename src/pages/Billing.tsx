@@ -4,7 +4,7 @@ import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle }
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { PricingToggle } from "@/components/pricing";
-import { Check, CreditCard, Loader2, Sparkles, AlertTriangle } from "lucide-react";
+import { Check, CreditCard, Loader2, Sparkles, AlertTriangle, Calendar, RefreshCw } from "lucide-react";
 import { useOrganization } from "@/hooks/useOrganization";
 import { usePlans, Plan } from "@/hooks/usePlans";
 import { supabase } from "@/integrations/supabase/client";
@@ -17,12 +17,14 @@ export default function Billing() {
   const { toast } = useToast();
   const [isYearly, setIsYearly] = useState(false);
   const [upgradingPlan, setUpgradingPlan] = useState<string | null>(null);
+  const [isRenewing, setIsRenewing] = useState(false);
 
   const currentTier = organization?.subscription_tier || "free";
   const creditsUsed = organization?.credits_used || 0;
   const monthlyCredits = organization?.monthly_credits || 0;
   const subscriptionEndsAt = organization?.subscription_ends_at;
   const hasNoPlan = currentTier === "free" && monthlyCredits === 0;
+  const hasActiveSubscription = currentTier !== "free" && subscriptionEndsAt;
   const usagePercent = monthlyCredits > 0 ? Math.min((creditsUsed / monthlyCredits) * 100, 100) : 0;
 
   const handleMockUpgrade = async (planSlug: string) => {
@@ -63,6 +65,47 @@ export default function Billing() {
       });
     } finally {
       setUpgradingPlan(null);
+    }
+  };
+
+  const handleRenewSubscription = async () => {
+    if (!currentTier || currentTier === "free") return;
+
+    setIsRenewing(true);
+    try {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session) {
+        toast({
+          title: "Error",
+          description: "Please sign in to renew",
+          variant: "destructive",
+        });
+        return;
+      }
+
+      const response = await supabase.functions.invoke("mock-subscribe", {
+        body: { plan: currentTier },
+      });
+
+      if (response.error) {
+        throw new Error(response.error.message);
+      }
+
+      toast({
+        title: "Subscription Renewed!",
+        description: `Your ${plans?.find(p => p.slug === currentTier)?.name} plan has been renewed successfully.`,
+      });
+
+      invalidate();
+    } catch (error) {
+      console.error("Renewal error:", error);
+      toast({
+        title: "Error",
+        description: "Failed to renew subscription. Please try again.",
+        variant: "destructive",
+      });
+    } finally {
+      setIsRenewing(false);
     }
   };
 
@@ -156,10 +199,7 @@ export default function Billing() {
               </Badge>
             </CardTitle>
             <CardDescription>
-              {subscriptionEndsAt && !hasNoPlan
-                ? `Your plan renews on ${format(new Date(subscriptionEndsAt), "MMMM d, yyyy")}`
-                : "Your usage this billing period"
-              }
+              Your usage this billing period
             </CardDescription>
           </CardHeader>
           <CardContent>
@@ -179,6 +219,51 @@ export default function Billing() {
             </div>
           </CardContent>
         </Card>
+
+        {/* Subscription Details */}
+        {hasActiveSubscription && (
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <Calendar className="h-5 w-5" />
+                Subscription Details
+              </CardTitle>
+              <CardDescription>
+                Your current subscription information
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <div className="space-y-4">
+                <div className="flex items-center justify-between p-4 rounded-lg bg-muted/50">
+                  <div>
+                    <p className="text-sm text-muted-foreground">Plan Expires On</p>
+                    <p className="text-lg font-semibold">
+                      {format(new Date(subscriptionEndsAt), "MMMM d, yyyy")}
+                    </p>
+                    <p className="text-sm text-muted-foreground">
+                      at {format(new Date(subscriptionEndsAt), "h:mm a")}
+                    </p>
+                  </div>
+                  <Button 
+                    onClick={handleRenewSubscription}
+                    disabled={isRenewing}
+                    className="gap-2"
+                  >
+                    {isRenewing ? (
+                      <Loader2 className="h-4 w-4 animate-spin" />
+                    ) : (
+                      <RefreshCw className="h-4 w-4" />
+                    )}
+                    Renew Now
+                  </Button>
+                </div>
+                <p className="text-xs text-muted-foreground">
+                  Renewing will extend your subscription from the current end date.
+                </p>
+              </div>
+            </CardContent>
+          </Card>
+        )}
 
         {/* Plans */}
         <div>
