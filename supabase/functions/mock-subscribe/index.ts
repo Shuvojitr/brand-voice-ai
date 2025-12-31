@@ -102,6 +102,10 @@ Deno.serve(async (req) => {
     const remainingCredits = Math.max(0, (org.monthly_credits || 0) - (org.credits_used || 0));
     const newMonthlyCredits = remainingCredits + newPlanCredits;
 
+    // Calculate subscription end date (1 month from now for dev mode)
+    const subscriptionEndsAt = new Date();
+    subscriptionEndsAt.setMonth(subscriptionEndsAt.getMonth() + 1);
+
     // Update organization subscription
     const { error: updateError } = await supabaseClient
       .from("organizations")
@@ -109,6 +113,7 @@ Deno.serve(async (req) => {
         subscription_tier: plan,
         monthly_credits: newMonthlyCredits,
         credits_used: 0, // Reset credits used since remaining are now in monthly_credits
+        subscription_ends_at: subscriptionEndsAt.toISOString(),
         updated_at: new Date().toISOString(),
       })
       .eq("id", membership.organization_id);

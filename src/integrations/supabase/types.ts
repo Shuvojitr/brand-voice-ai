@@ -566,6 +566,7 @@ export type Database = {
           slug: string
           stripe_customer_id: string | null
           stripe_subscription_id: string | null
+          subscription_ends_at: string | null
           subscription_tier:
             | Database["public"]["Enums"]["subscription_tier"]
             | null
@@ -581,6 +582,7 @@ export type Database = {
           slug: string
           stripe_customer_id?: string | null
           stripe_subscription_id?: string | null
+          subscription_ends_at?: string | null
           subscription_tier?:
             | Database["public"]["Enums"]["subscription_tier"]
             | null
@@ -596,6 +598,7 @@ export type Database = {
           slug?: string
           stripe_customer_id?: string | null
           stripe_subscription_id?: string | null
+          subscription_ends_at?: string | null
           subscription_tier?:
             | Database["public"]["Enums"]["subscription_tier"]
             | null
@@ -1075,6 +1078,7 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      expire_subscriptions: { Args: never; Returns: undefined }
       get_user_org_ids: { Args: { _user_id: string }; Returns: string[] }
       has_role: {
         Args: {
