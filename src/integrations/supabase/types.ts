@@ -559,6 +559,7 @@ export type Database = {
         Row: {
           created_at: string | null
           credits_used: number | null
+          has_used_free_plan: boolean
           id: string
           logo_url: string | null
           monthly_credits: number | null
@@ -575,6 +576,7 @@ export type Database = {
         Insert: {
           created_at?: string | null
           credits_used?: number | null
+          has_used_free_plan?: boolean
           id?: string
           logo_url?: string | null
           monthly_credits?: number | null
@@ -591,6 +593,7 @@ export type Database = {
         Update: {
           created_at?: string | null
           credits_used?: number | null
+          has_used_free_plan?: boolean
           id?: string
           logo_url?: string | null
           monthly_credits?: number | null
