@@ -68,10 +68,10 @@ Deno.serve(async (req) => {
       });
     }
 
-    // Get plan credits and interval from database
+    // Get plan credits from database
     const { data: planData } = await supabaseClient
       .from("plans")
-      .select("credits, interval")
+      .select("credits")
       .eq("slug", plan)
       .maybeSingle();
 
@@ -83,12 +83,11 @@ Deno.serve(async (req) => {
     };
 
     const newPlanCredits = planData?.credits ?? defaultPlanCredits[plan];
-    const planInterval = planData?.interval ?? "month";
 
-    // Get current organization data
+    // Get current organization credits
     const { data: org, error: orgError } = await supabaseClient
       .from("organizations")
-      .select("monthly_credits, credits_used, subscription_tier, subscription_ends_at")
+      .select("monthly_credits, credits_used")
       .eq("id", membership.organization_id)
       .single();
 
@@ -99,30 +98,9 @@ Deno.serve(async (req) => {
       });
     }
 
-    // Check if this is a renewal (same plan) or upgrade (different plan)
-    const isRenewal = org.subscription_tier === plan;
-    
     // Calculate remaining credits and add new plan credits
     const remainingCredits = Math.max(0, (org.monthly_credits || 0) - (org.credits_used || 0));
     const newMonthlyCredits = remainingCredits + newPlanCredits;
-
-    // Calculate subscription end date based on plan interval
-    // For renewals, extend from current end date; for upgrades, start from today
-    let subscriptionEndsAt: Date;
-    
-    if (isRenewal && org.subscription_ends_at) {
-      // Renewing: extend from current end date
-      subscriptionEndsAt = new Date(org.subscription_ends_at);
-    } else {
-      // New subscription or upgrade: start from today
-      subscriptionEndsAt = new Date();
-    }
-    
-    if (planInterval === "year") {
-      subscriptionEndsAt.setFullYear(subscriptionEndsAt.getFullYear() + 1);
-    } else {
-      subscriptionEndsAt.setMonth(subscriptionEndsAt.getMonth() + 1);
-    }
 
     // Update organization subscription
     const { error: updateError } = await supabaseClient
@@ -131,7 +109,6 @@ Deno.serve(async (req) => {
         subscription_tier: plan,
         monthly_credits: newMonthlyCredits,
         credits_used: 0, // Reset credits used since remaining are now in monthly_credits
-        subscription_ends_at: subscriptionEndsAt.toISOString(),
         updated_at: new Date().toISOString(),
       })
       .eq("id", membership.organization_id);

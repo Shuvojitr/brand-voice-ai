@@ -48,7 +48,7 @@ const settingsNavItems = [
 ];
 
 const tierLabels: Record<string, string> = {
-  free: "No Plan",
+  free: "Free Plan",
   starter: "Starter Plan",
   pro: "Pro Plan",
   enterprise: "Enterprise",
@@ -63,11 +63,10 @@ export function AppSidebar() {
   const { isManager } = useManagerRole();
 
   const creditsUsed = organization?.credits_used || 0;
-  const monthlyCredits = organization?.monthly_credits || 0;
+  const monthlyCredits = organization?.monthly_credits || 1000;
   const creditsRemaining = Math.max(0, monthlyCredits - creditsUsed);
-  const usagePercent = monthlyCredits > 0 ? Math.min((creditsUsed / monthlyCredits) * 100, 100) : 0;
+  const usagePercent = Math.min((creditsUsed / monthlyCredits) * 100, 100);
   const tier = organization?.subscription_tier || "free";
-  const hasNoPlan = tier === "free" && monthlyCredits === 0;
 
   // Subscribe to real-time organization updates
   useEffect(() => {
@@ -222,21 +221,19 @@ export function AppSidebar() {
       <SidebarFooter className="border-t border-border p-4 space-y-4">
         {!collapsed && (
           <Link to="/dashboard/billing" className="block">
-            <div className={`rounded-lg p-3 transition-colors ${hasNoPlan ? 'bg-destructive/10 hover:bg-destructive/15' : 'bg-primary/5 hover:bg-primary/10'}`}>
-              <p className={`text-xs font-medium mb-1 ${hasNoPlan ? 'text-destructive' : 'text-primary'}`}>
+            <div className="rounded-lg bg-primary/5 p-3 hover:bg-primary/10 transition-colors">
+              <p className="text-xs font-medium text-primary mb-1">
                 {tierLabels[tier]}
               </p>
               <p className="text-xs text-muted-foreground">
-                {hasNoPlan ? 'No credits available' : `${creditsRemaining.toLocaleString()} credits remaining`}
+                {creditsRemaining.toLocaleString()} words remaining
               </p>
-              {!hasNoPlan && (
-                <div className="mt-2 h-1.5 rounded-full bg-muted overflow-hidden">
-                  <div 
-                    className="h-full rounded-full bg-primary transition-all duration-500" 
-                    style={{ width: `${100 - usagePercent}%` }}
-                  />
-                </div>
-              )}
+              <div className="mt-2 h-1.5 rounded-full bg-muted overflow-hidden">
+                <div 
+                  className="h-full rounded-full bg-primary transition-all duration-500" 
+                  style={{ width: `${100 - usagePercent}%` }}
+                />
+              </div>
             </div>
           </Link>
         )}
