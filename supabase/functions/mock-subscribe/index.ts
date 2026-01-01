@@ -37,9 +37,9 @@ Deno.serve(async (req) => {
       });
     }
 
-    const { plan } = await req.json();
+    const { plan, isYearly = false } = await req.json();
     
-    if (!plan || !["starter", "pro", "enterprise"].includes(plan)) {
+    if (!plan || !["free", "starter", "pro", "enterprise"].includes(plan)) {
       return new Response(JSON.stringify({ error: "Invalid plan" }), {
         status: 400,
         headers: { ...corsHeaders, "Content-Type": "application/json" },
@@ -68,26 +68,10 @@ Deno.serve(async (req) => {
       });
     }
 
-    // Get plan credits from database
-    const { data: planData } = await supabaseClient
-      .from("plans")
-      .select("credits")
-      .eq("slug", plan)
-      .maybeSingle();
-
-    // Fallback credits if plan not found in DB
-    const defaultPlanCredits: Record<string, number> = {
-      starter: 50000,
-      pro: 100000,
-      enterprise: 500000,
-    };
-
-    const newPlanCredits = planData?.credits ?? defaultPlanCredits[plan];
-
-    // Get current organization credits
+    // Get current organization
     const { data: org, error: orgError } = await supabaseClient
       .from("organizations")
-      .select("monthly_credits, credits_used")
+      .select("*")
       .eq("id", membership.organization_id)
       .single();
 
@@ -98,17 +82,79 @@ Deno.serve(async (req) => {
       });
     }
 
-    // Calculate remaining credits and add new plan credits
-    const remainingCredits = Math.max(0, (org.monthly_credits || 0) - (org.credits_used || 0));
-    const newMonthlyCredits = remainingCredits + newPlanCredits;
+    // Check for one-time free plan restriction
+    if (plan === "free") {
+      if (org.has_used_free_plan) {
+        return new Response(JSON.stringify({ 
+          error: "Free plan can only be claimed once. Please choose a paid plan." 
+        }), {
+          status: 400,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+    }
 
-    // Update organization subscription
+    // Get plan credits from database
+    const { data: planData } = await supabaseClient
+      .from("plans")
+      .select("credits, name")
+      .eq("slug", plan)
+      .maybeSingle();
+
+    // Fallback credits if plan not found in DB
+    const defaultPlanCredits: Record<string, number> = {
+      free: 1000,
+      starter: 50000,
+      pro: 100000,
+      enterprise: 500000,
+    };
+
+    const planCredits = planData?.credits ?? defaultPlanCredits[plan];
+
+    // Calculate duration based on yearly/monthly
+    const now = new Date();
+    let newEndDate: Date;
+    let newCredits: number;
+    let rolloverApplied = false;
+
+    // Check if user is renewing while still active (ROLLOVER)
+    const isActive = org.subscription_status === 'active' && 
+                     org.subscription_ends_at && 
+                     new Date(org.subscription_ends_at) > now;
+
+    if (isActive) {
+      // ROLLOVER: Add credits and extend date
+      newCredits = (org.remaining_credits || 0) + planCredits;
+      const currentEndDate = new Date(org.subscription_ends_at);
+      if (isYearly) {
+        newEndDate = new Date(currentEndDate.setFullYear(currentEndDate.getFullYear() + 1));
+      } else {
+        newEndDate = new Date(currentEndDate.setMonth(currentEndDate.getMonth() + 1));
+      }
+      rolloverApplied = true;
+      console.log(`[mock-subscribe] ROLLOVER: Adding ${planCredits} to existing ${org.remaining_credits}`);
+    } else {
+      // NEW or EXPIRED: Start fresh
+      newCredits = planCredits;
+      if (isYearly) {
+        newEndDate = new Date(now.setFullYear(now.getFullYear() + 1));
+      } else {
+        newEndDate = new Date(now.setMonth(now.getMonth() + 1));
+      }
+      console.log(`[mock-subscribe] NEW/EXPIRED: Setting credits to ${planCredits}`);
+    }
+
+    // Update organization subscription with new fields
     const { error: updateError } = await supabaseClient
       .from("organizations")
       .update({
         subscription_tier: plan,
-        monthly_credits: newMonthlyCredits,
-        credits_used: 0, // Reset credits used since remaining are now in monthly_credits
+        subscription_status: 'active',
+        remaining_credits: newCredits,
+        monthly_credits: planCredits,
+        credits_used: 0,
+        subscription_ends_at: newEndDate.toISOString(),
+        has_used_free_plan: plan === 'free' ? true : org.has_used_free_plan,
         updated_at: new Date().toISOString(),
       })
       .eq("id", membership.organization_id);
@@ -121,15 +167,24 @@ Deno.serve(async (req) => {
       });
     }
 
-    console.log(`Plan upgraded for org ${membership.organization_id}: ${plan} with ${newPlanCredits} new credits (total: ${newMonthlyCredits})`);
+    const planName = planData?.name || plan;
+    const duration = isYearly ? 'yearly' : 'monthly';
+
+    console.log(`[mock-subscribe] Plan upgraded for org ${membership.organization_id}: ${plan} (${duration})`);
+    console.log(`[mock-subscribe] Credits: ${newCredits}, Ends at: ${newEndDate.toISOString()}, Rollover: ${rolloverApplied}`);
 
     return new Response(
       JSON.stringify({ 
         success: true, 
         plan,
-        credits: newMonthlyCredits,
-        added_credits: newPlanCredits,
-        message: `Dev Mode: Upgraded to ${plan} successfully! Added ${newPlanCredits.toLocaleString()} credits.`
+        planName,
+        credits: newCredits,
+        added_credits: planCredits,
+        ends_at: newEndDate.toISOString(),
+        rollover_applied: rolloverApplied,
+        message: rolloverApplied 
+          ? `Upgraded to ${planName}! Added ${planCredits.toLocaleString()} credits to your existing balance. Plan extended to ${newEndDate.toLocaleDateString()}.`
+          : `Upgraded to ${planName}! ${planCredits.toLocaleString()} credits added. Plan valid until ${newEndDate.toLocaleDateString()}.`
       }),
       { headers: { ...corsHeaders, "Content-Type": "application/json" } }
     );

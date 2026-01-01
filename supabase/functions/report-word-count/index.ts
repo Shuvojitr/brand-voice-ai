@@ -73,60 +73,57 @@ serve(async (req) => {
       });
     }
 
-    // Get organization credits
-    const { data: org, error: orgError } = await supabase
-      .from('organizations')
-      .select('monthly_credits, credits_used')
-      .eq('id', organizationId)
-      .single();
-
-    if (orgError || !org) {
-      return new Response(JSON.stringify({ error: 'Organization not found' }), {
-        status: 404,
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-      });
-    }
-
-    const creditsAvailable = (org.monthly_credits || 0) - (org.credits_used || 0);
-    
     // Token calculation: ~1.33 tokens per word (750,000 words ≈ 1,000,000 tokens)
-    // Credits = tokens used, so we convert words to approximate tokens
     const estimatedTokens = Math.ceil(wordCount * 1.33);
-    const creditsToDeduct = Math.max(1, estimatedTokens); // Minimum 1 credit
-    const actualDeduction = Math.min(creditsToDeduct, creditsAvailable);
+    const creditsToDeduct = Math.max(1, estimatedTokens);
 
-    // Update organization credits
-    const { error: creditError } = await supabase
-      .from('organizations')
-      .update({ credits_used: (org.credits_used || 0) + actualDeduction })
-      .eq('id', organizationId);
+    // Use the deduct_credits database function for atomic deduction
+    const { data: deductResult, error: deductError } = await supabase
+      .rpc('deduct_credits', { 
+        org_id: organizationId, 
+        credits_amount: creditsToDeduct 
+      });
 
-    if (creditError) {
-      console.error('[report-word-count] Failed to deduct credits:', creditError);
+    if (deductError) {
+      console.error('[report-word-count] Failed to deduct credits:', deductError);
       return new Response(JSON.stringify({ error: 'Failed to deduct credits' }), {
         status: 500,
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       });
     }
 
+    // Check if deduction was successful
+    if (!(deductResult as any)?.success) {
+      console.error('[report-word-count] Credit deduction failed:', deductResult);
+      return new Response(JSON.stringify({ 
+        error: (deductResult as any)?.error || 'Failed to deduct credits',
+        remaining_credits: (deductResult as any)?.remaining_credits || 0,
+      }), {
+        status: 402,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      });
+    }
+
     // Log usage with estimated token counts
-    const estimatedOutputTokens = Math.ceil(wordCount * 1.33);
+    const estimatedOutputTokens = estimatedTokens;
     await supabase.from('credit_usage').insert({
       organization_id: organizationId,
       user_id: user.id,
-      credits_consumed: actualDeduction,
+      credits_consumed: creditsToDeduct,
       model_used: modelUsed || 'unknown',
       template_type: templateType || null,
       tokens_input: 0,
       tokens_output: estimatedOutputTokens,
     });
 
-    console.log(`[report-word-count] Deducted ${actualDeduction} credits (${wordCount} words ≈ ${estimatedOutputTokens} tokens) from org ${organizationId}, model: ${modelUsed || 'unknown'}`);
+    const remainingCredits = (deductResult as any)?.remaining_credits || 0;
+    console.log(`[report-word-count] Deducted ${creditsToDeduct} credits (${wordCount} words ≈ ${estimatedOutputTokens} tokens) from org ${organizationId}, remaining: ${remainingCredits}, model: ${modelUsed || 'unknown'}`);
 
     return new Response(JSON.stringify({ 
       success: true,
-      creditsDeducted: actualDeduction,
+      creditsDeducted: creditsToDeduct,
       wordCount,
+      remainingCredits,
     }), {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
     });
