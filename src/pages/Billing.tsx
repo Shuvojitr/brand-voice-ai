@@ -22,7 +22,9 @@ export default function Billing() {
   const currentTier = organization?.subscription_tier || "free";
   const remainingCredits = organization?.remaining_credits || 0;
   const monthlyCredits = organization?.monthly_credits || 1000;
-  const usagePercent = Math.min(((monthlyCredits - remainingCredits) / monthlyCredits) * 100, 100);
+  const creditsUsed = organization?.credits_used || 0;
+  const wordsGenerated = Math.round(creditsUsed / 1.33);
+  const usagePercent = Math.min((creditsUsed / monthlyCredits) * 100, 100);
 
   const handleMockUpgrade = async (planSlug: string) => {
     if (planSlug === "free" || planSlug === currentTier) return;
@@ -195,8 +197,8 @@ export default function Billing() {
             <div className="space-y-4">
               <div>
                 <div className="flex justify-between text-sm mb-2">
-                  <span>Credits Remaining</span>
-                  <span>{remainingCredits.toLocaleString()} / {monthlyCredits.toLocaleString()}</span>
+                  <span>Words Generated</span>
+                  <span>{wordsGenerated.toLocaleString()}</span>
                 </div>
                 <div className="h-2 rounded-full bg-muted overflow-hidden">
                   <div 
@@ -207,7 +209,7 @@ export default function Billing() {
                           ? "bg-amber-500" 
                           : "bg-primary"
                     }`}
-                    style={{ width: `${100 - usagePercent}%` }}
+                    style={{ width: `${usagePercent}%` }}
                   />
                 </div>
               </div>
