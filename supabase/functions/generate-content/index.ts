@@ -246,34 +246,35 @@ serve(async (req) => {
       });
     }
 
-    // Check organization credits
-    const { data: org, error: orgError } = await supabase
-      .from('organizations')
-      .select('monthly_credits, credits_used')
-      .eq('id', organizationId)
-      .single();
+    // Check subscription status using database function
+    const { data: statusCheck, error: statusError } = await supabase
+      .rpc('check_subscription_status', { org_id: organizationId });
 
-    if (orgError || !org) {
-      return new Response(JSON.stringify({ error: 'Organization not found' }), {
-        status: 404,
+    if (statusError) {
+      console.error('[generate-content] Subscription check error:', statusError);
+      return new Response(JSON.stringify({ error: 'Failed to verify subscription status' }), {
+        status: 500,
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       });
     }
 
-    const creditsAvailable = (org.monthly_credits || 0) - (org.credits_used || 0);
-    const skipCreditDeduction = body.skipCreditDeduction === true;
-
-    // Check if user has at least some credits before starting
-    if (!skipCreditDeduction && creditsAvailable <= 0) {
+    // Block if subscription is not valid
+    if (!statusCheck?.valid) {
+      console.log(`[generate-content] Subscription invalid: ${statusCheck?.error}`);
       return new Response(JSON.stringify({ 
-        error: 'Insufficient credits',
-        creditsNeeded: 1,
-        creditsAvailable,
+        error: statusCheck?.error || 'Subscription not active',
+        status: statusCheck?.status,
+        remaining_credits: statusCheck?.remaining_credits || 0,
       }), {
         status: 402,
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       });
     }
+
+    const creditsAvailable = statusCheck?.remaining_credits || 0;
+    const skipCreditDeduction = body.skipCreditDeduction === true;
+
+    console.log(`[generate-content] Subscription valid. Credits available: ${creditsAvailable}`);
 
     // Fetch brand voice if specified
     let brandVoiceInstructions = '';

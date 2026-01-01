@@ -564,10 +564,12 @@ export type Database = {
           logo_url: string | null
           monthly_credits: number | null
           name: string
+          remaining_credits: number
           slug: string
           stripe_customer_id: string | null
           stripe_subscription_id: string | null
           subscription_ends_at: string | null
+          subscription_status: string
           subscription_tier:
             | Database["public"]["Enums"]["subscription_tier"]
             | null
@@ -581,10 +583,12 @@ export type Database = {
           logo_url?: string | null
           monthly_credits?: number | null
           name: string
+          remaining_credits?: number
           slug: string
           stripe_customer_id?: string | null
           stripe_subscription_id?: string | null
           subscription_ends_at?: string | null
+          subscription_status?: string
           subscription_tier?:
             | Database["public"]["Enums"]["subscription_tier"]
             | null
@@ -598,10 +602,12 @@ export type Database = {
           logo_url?: string | null
           monthly_credits?: number | null
           name?: string
+          remaining_credits?: number
           slug?: string
           stripe_customer_id?: string | null
           stripe_subscription_id?: string | null
           subscription_ends_at?: string | null
+          subscription_status?: string
           subscription_tier?:
             | Database["public"]["Enums"]["subscription_tier"]
             | null
@@ -1081,6 +1087,11 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      check_subscription_status: { Args: { org_id: string }; Returns: Json }
+      deduct_credits: {
+        Args: { credits_amount: number; org_id: string }
+        Returns: Json
+      }
       expire_subscriptions: { Args: never; Returns: undefined }
       get_user_org_ids: { Args: { _user_id: string }; Returns: string[] }
       has_role: {
@@ -1097,6 +1108,15 @@ export type Database = {
       is_org_member: {
         Args: { _org_id: string; _user_id: string }
         Returns: boolean
+      }
+      process_subscription: {
+        Args: {
+          is_yearly?: boolean
+          org_id: string
+          plan_credits: number
+          plan_slug: string
+        }
+        Returns: Json
       }
     }
     Enums: {
