@@ -82,42 +82,54 @@ Deno.serve(async (req) => {
       enterprise: 500000,
     };
 
-    const planCredits = planData?.credits ?? defaultPlanCredits[plan];
+    const newPlanCredits = planData?.credits ?? defaultPlanCredits[plan];
 
-    // Use the process_subscription database function for proper handling
-    const { data: result, error: processError } = await supabaseClient
-      .rpc("process_subscription", {
-        org_id: membership.organization_id,
-        plan_slug: plan,
-        plan_credits: planCredits,
-        is_yearly: false, // Default to monthly for dev mode
+    // Get current organization credits
+    const { data: org, error: orgError } = await supabaseClient
+      .from("organizations")
+      .select("monthly_credits, credits_used")
+      .eq("id", membership.organization_id)
+      .single();
+
+    if (orgError || !org) {
+      return new Response(JSON.stringify({ error: "Organization not found" }), {
+        status: 404,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
+    }
 
-    if (processError) {
-      console.error("Process subscription error:", processError);
-      return new Response(JSON.stringify({ error: processError.message }), {
+    // Calculate remaining credits and add new plan credits
+    const remainingCredits = Math.max(0, (org.monthly_credits || 0) - (org.credits_used || 0));
+    const newMonthlyCredits = remainingCredits + newPlanCredits;
+
+    // Update organization subscription
+    const { error: updateError } = await supabaseClient
+      .from("organizations")
+      .update({
+        subscription_tier: plan,
+        monthly_credits: newMonthlyCredits,
+        credits_used: 0, // Reset credits used since remaining are now in monthly_credits
+        updated_at: new Date().toISOString(),
+      })
+      .eq("id", membership.organization_id);
+
+    if (updateError) {
+      console.error("Update error:", updateError);
+      return new Response(JSON.stringify({ error: "Failed to update subscription" }), {
         status: 500,
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
 
-    if (!result?.success) {
-      return new Response(JSON.stringify({ error: result?.error || "Subscription failed" }), {
-        status: 400,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-      });
-    }
-
-    console.log(`Plan upgraded for org ${membership.organization_id}: ${plan} with ${planCredits} credits. Result:`, result);
+    console.log(`Plan upgraded for org ${membership.organization_id}: ${plan} with ${newPlanCredits} new credits (total: ${newMonthlyCredits})`);
 
     return new Response(
       JSON.stringify({ 
         success: true, 
         plan,
-        credits: result.remaining_credits,
-        ends_at: result.ends_at,
-        rollover_applied: result.rollover_applied,
-        message: `Dev Mode: Upgraded to ${plan} successfully!`
+        credits: newMonthlyCredits,
+        added_credits: newPlanCredits,
+        message: `Dev Mode: Upgraded to ${plan} successfully! Added ${newPlanCredits.toLocaleString()} credits.`
       }),
       { headers: { ...corsHeaders, "Content-Type": "application/json" } }
     );
