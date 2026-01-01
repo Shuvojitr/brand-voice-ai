@@ -4,22 +4,25 @@ import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle }
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { PricingToggle } from "@/components/pricing";
-import { Check, CreditCard, Loader2, Sparkles } from "lucide-react";
+import { Check, CreditCard, Loader2, Sparkles, AlertTriangle, Clock, CalendarX } from "lucide-react";
 import { useOrganization } from "@/hooks/useOrganization";
 import { usePlans, Plan } from "@/hooks/usePlans";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
+import { format } from "date-fns";
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
+
 export default function Billing() {
-  const { organization, isLoading: orgLoading, invalidate } = useOrganization();
+  const { organization, isLoading: orgLoading, invalidate, subscriptionStatus } = useOrganization();
   const { data: plans, isLoading: plansLoading } = usePlans();
   const { toast } = useToast();
   const [isYearly, setIsYearly] = useState(false);
   const [upgradingPlan, setUpgradingPlan] = useState<string | null>(null);
 
   const currentTier = organization?.subscription_tier || "free";
-  const creditsUsed = organization?.credits_used || 0;
+  const remainingCredits = organization?.remaining_credits || 0;
   const monthlyCredits = organization?.monthly_credits || 1000;
-  const usagePercent = Math.min((creditsUsed / monthlyCredits) * 100, 100);
+  const usagePercent = Math.min(((monthlyCredits - remainingCredits) / monthlyCredits) * 100, 100);
 
   const handleMockUpgrade = async (planSlug: string) => {
     if (planSlug === "free" || planSlug === currentTier) return;
@@ -90,6 +93,19 @@ export default function Billing() {
     return isYearly ? "/mo" : "/month";
   };
 
+  const getStatusBadge = () => {
+    if (subscriptionStatus.isExpired) {
+      return <Badge variant="destructive">Expired</Badge>;
+    }
+    if (subscriptionStatus.isExpiringSoon) {
+      return <Badge variant="outline" className="border-amber-500 text-amber-600">Expiring Soon</Badge>;
+    }
+    if (organization?.subscription_status === "active") {
+      return <Badge variant="secondary" className="bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400">Active</Badge>;
+    }
+    return <Badge variant="secondary" className="capitalize">{currentTier}</Badge>;
+  };
+
   const isLoading = orgLoading || plansLoading;
 
   if (isLoading) {
@@ -112,6 +128,37 @@ export default function Billing() {
           </p>
         </div>
 
+        {/* Expiration Warning */}
+        {subscriptionStatus.isExpired && (
+          <Alert variant="destructive">
+            <CalendarX className="h-4 w-4" />
+            <AlertTitle>Plan Expired</AlertTitle>
+            <AlertDescription>
+              Your subscription has expired. Please renew to continue using all features.
+              {subscriptionStatus.expiryDate && (
+                <span className="block mt-1 text-sm">
+                  Expired on {format(subscriptionStatus.expiryDate, "MMMM d, yyyy")}
+                </span>
+              )}
+            </AlertDescription>
+          </Alert>
+        )}
+
+        {subscriptionStatus.isExpiringSoon && !subscriptionStatus.isExpired && (
+          <Alert className="border-amber-500 bg-amber-50 dark:bg-amber-950/20">
+            <AlertTriangle className="h-4 w-4 text-amber-600" />
+            <AlertTitle className="text-amber-700 dark:text-amber-400">Plan Expiring Soon</AlertTitle>
+            <AlertDescription className="text-amber-600 dark:text-amber-300">
+              Your subscription will expire in {subscriptionStatus.daysUntilExpiry} day{subscriptionStatus.daysUntilExpiry !== 1 ? "s" : ""}.
+              {subscriptionStatus.expiryDate && (
+                <span className="block mt-1 text-sm">
+                  Expires on {format(subscriptionStatus.expiryDate, "MMMM d, yyyy")}
+                </span>
+              )}
+            </AlertDescription>
+          </Alert>
+        )}
+
         {/* Dev Mode Banner */}
         <Card className="border-amber-500/50 bg-amber-500/10">
           <CardContent className="py-3">
@@ -130,25 +177,69 @@ export default function Billing() {
             <CardTitle className="flex items-center gap-2">
               <CreditCard className="h-5 w-5" />
               Current Usage
-              <Badge variant="secondary" className="ml-2 capitalize">
-                {currentTier}
-              </Badge>
+              <div className="ml-2 flex items-center gap-2">
+                {getStatusBadge()}
+              </div>
             </CardTitle>
-            <CardDescription>Your usage this billing period</CardDescription>
+            <CardDescription>
+              Your usage this billing period
+              {subscriptionStatus.expiryDate && !subscriptionStatus.isExpired && (
+                <span className="ml-2 inline-flex items-center gap-1 text-muted-foreground">
+                  <Clock className="h-3 w-3" />
+                  Renews {format(subscriptionStatus.expiryDate, "MMM d, yyyy")}
+                </span>
+              )}
+            </CardDescription>
           </CardHeader>
           <CardContent>
             <div className="space-y-4">
               <div>
                 <div className="flex justify-between text-sm mb-2">
-                  <span>Words Used</span>
-                  <span>{creditsUsed.toLocaleString()} / {monthlyCredits.toLocaleString()}</span>
+                  <span>Credits Remaining</span>
+                  <span>{remainingCredits.toLocaleString()} / {monthlyCredits.toLocaleString()}</span>
                 </div>
                 <div className="h-2 rounded-full bg-muted overflow-hidden">
                   <div 
-                    className="h-full rounded-full bg-primary transition-all duration-500" 
-                    style={{ width: `${usagePercent}%` }}
+                    className={`h-full rounded-full transition-all duration-500 ${
+                      subscriptionStatus.isExpired 
+                        ? "bg-destructive" 
+                        : subscriptionStatus.isExpiringSoon 
+                          ? "bg-amber-500" 
+                          : "bg-primary"
+                    }`}
+                    style={{ width: `${100 - usagePercent}%` }}
                   />
                 </div>
+              </div>
+
+              {/* Subscription Details */}
+              <div className="grid grid-cols-2 gap-4 pt-4 border-t">
+                <div>
+                  <p className="text-sm text-muted-foreground">Plan</p>
+                  <p className="font-medium capitalize">{currentTier}</p>
+                </div>
+                <div>
+                  <p className="text-sm text-muted-foreground">Status</p>
+                  <p className="font-medium capitalize">{organization?.subscription_status || "None"}</p>
+                </div>
+                {subscriptionStatus.expiryDate && (
+                  <>
+                    <div>
+                      <p className="text-sm text-muted-foreground">
+                        {subscriptionStatus.isExpired ? "Expired On" : "Renews On"}
+                      </p>
+                      <p className="font-medium">{format(subscriptionStatus.expiryDate, "MMM d, yyyy")}</p>
+                    </div>
+                    {!subscriptionStatus.isExpired && (
+                      <div>
+                        <p className="text-sm text-muted-foreground">Days Remaining</p>
+                        <p className={`font-medium ${subscriptionStatus.isExpiringSoon ? "text-amber-600" : ""}`}>
+                          {subscriptionStatus.daysUntilExpiry} days
+                        </p>
+                      </div>
+                    )}
+                  </>
+                )}
               </div>
             </div>
           </CardContent>
@@ -170,6 +261,7 @@ export default function Billing() {
               const isCurrent = plan.slug === currentTier;
               const isDowngrade = getPlanIndex(plan.slug) < getPlanIndex(currentTier);
               const isUpgrading = upgradingPlan === plan.slug;
+              const canRenew = isCurrent && (subscriptionStatus.isExpired || subscriptionStatus.isExpiringSoon);
 
               return (
                 <Card 
@@ -207,16 +299,18 @@ export default function Billing() {
                   <CardFooter>
                     <Button 
                       className={`w-full ${plan.is_popular && !isCurrent ? "bg-primary text-primary-foreground" : ""}`}
-                      variant={isCurrent ? "outline" : plan.is_popular ? "default" : "outline"}
-                      disabled={isCurrent || isDowngrade || isUpgrading}
+                      variant={isCurrent && !canRenew ? "outline" : plan.is_popular ? "default" : "outline"}
+                      disabled={(isCurrent && !canRenew) || (isDowngrade && !subscriptionStatus.isExpired) || isUpgrading}
                       onClick={() => handleMockUpgrade(plan.slug)}
                     >
                       {isUpgrading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                      {isCurrent 
+                      {isCurrent && !canRenew
                         ? "Current Plan" 
-                        : isDowngrade 
-                          ? "Downgrade" 
-                          : `Upgrade (Dev Mode)`
+                        : canRenew
+                          ? "Renew Plan"
+                          : isDowngrade && !subscriptionStatus.isExpired
+                            ? "Downgrade" 
+                            : `Upgrade (Dev Mode)`
                       }
                     </Button>
                   </CardFooter>
