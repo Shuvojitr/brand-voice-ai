@@ -88,7 +88,11 @@ serve(async (req) => {
     }
 
     const creditsAvailable = (org.monthly_credits || 0) - (org.credits_used || 0);
-    const creditsToDeduct = Math.max(1, wordCount); // Minimum 1 credit
+    
+    // Token estimation: ~1.33 tokens per word (750k words ≈ 1M tokens)
+    // This accounts for both input and output tokens in typical LLM usage
+    const estimatedTokens = Math.ceil(wordCount * 1.33);
+    const creditsToDeduct = Math.max(1, estimatedTokens); // Minimum 1 credit
     const actualDeduction = Math.min(creditsToDeduct, creditsAvailable);
 
     // Update organization credits
@@ -113,15 +117,16 @@ serve(async (req) => {
       model_used: modelUsed || 'unknown',
       template_type: templateType || null,
       tokens_input: 0,
-      tokens_output: wordCount,
+      tokens_output: estimatedTokens,
     });
 
-    console.log(`[report-word-count] Deducted ${actualDeduction} credits (${wordCount} words) from org ${organizationId}, model: ${modelUsed || 'unknown'}`);
+    console.log(`[report-word-count] Deducted ${actualDeduction} credits (${wordCount} words ≈ ${estimatedTokens} tokens) from org ${organizationId}, model: ${modelUsed || 'unknown'}`);
 
     return new Response(JSON.stringify({ 
       success: true,
       creditsDeducted: actualDeduction,
       wordCount,
+      estimatedTokens,
     }), {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
     });
