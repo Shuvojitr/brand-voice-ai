@@ -15,7 +15,7 @@ import { usePlans } from "@/hooks/usePlans";
 import { supabase } from "@/integrations/supabase/client";
 import { useQueryClient } from "@tanstack/react-query";
 import { formatDistanceToNow } from "date-fns";
-import { Search, CreditCard, Ban, UserX, Crown, CheckCircle, MailCheck, Shield, LogIn } from "lucide-react";
+import { Search, CreditCard, Ban, UserX, Crown, CheckCircle, MailCheck, Shield, LogIn, Calendar, CalendarPlus, CalendarMinus } from "lucide-react";
 
 type SubscriptionTier = "free" | "starter" | "pro" | "enterprise";
 
@@ -36,6 +36,9 @@ export default function AdminUsers() {
   const [selectedPlan, setSelectedPlan] = useState<SubscriptionTier>("free");
   const [selectedRole, setSelectedRole] = useState<"user" | "manager" | "admin">("user");
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [periodDialogOpen, setPeriodDialogOpen] = useState(false);
+  const [periodDays, setPeriodDays] = useState("");
+  const [periodMode, setPeriodMode] = useState<"extend" | "reduce" | "set">("extend");
 
   // Build plan details from database plans
   const planDetailsMap = useMemo(() => {
@@ -248,6 +251,59 @@ export default function AdminUsers() {
     setSelectedUser(user);
     setSelectedRole(user.role || "user");
     setRoleDialogOpen(true);
+  };
+
+  const openPeriodDialog = (user: any) => {
+    setSelectedUser(user);
+    setPeriodDays("");
+    setPeriodMode("extend");
+    setPeriodDialogOpen(true);
+  };
+
+  const handleUpdateSubscriptionPeriod = async () => {
+    if (!selectedUser?.organization_id || !periodDays) return;
+    
+    setIsSubmitting(true);
+    try {
+      const { data: session } = await supabase.auth.getSession();
+      
+      const response = await fetch(
+        `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/admin-stats?action=update-subscription-period`,
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${session.session?.access_token}`,
+          },
+          body: JSON.stringify({
+            organizationId: selectedUser.organization_id,
+            days: parseInt(periodDays),
+            mode: periodMode,
+          }),
+        }
+      );
+      
+      const data = await response.json();
+      if (!response.ok) throw new Error(data.error || "Failed to update subscription period");
+
+      const actionText = periodMode === "extend" ? "Extended" : periodMode === "reduce" ? "Reduced" : "Set";
+      toast({
+        title: "Subscription Period Updated",
+        description: `${actionText} subscription by ${periodDays} days for ${selectedUser.email}. New end date: ${new Date(data.subscription_ends_at).toLocaleDateString()}`,
+      });
+      
+      queryClient.invalidateQueries({ queryKey: ["admin-all-users"] });
+      setPeriodDialogOpen(false);
+      setPeriodDays("");
+    } catch (error: any) {
+      toast({
+        title: "Error",
+        description: error.message,
+        variant: "destructive",
+      });
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   const handleUpdateRole = async () => {
@@ -499,6 +555,16 @@ export default function AdminUsers() {
                             <Button
                               variant="outline"
                               size="sm"
+                              onClick={() => openPeriodDialog(user)}
+                              disabled={!user.organization_id}
+                              title="Extend or reduce subscription period"
+                            >
+                              <Calendar className="h-4 w-4 mr-1" />
+                              Period
+                            </Button>
+                            <Button
+                              variant="outline"
+                              size="sm"
                               onClick={() => {
                                 setSelectedUser(user);
                                 setCreditsDialogOpen(true);
@@ -726,6 +792,92 @@ export default function AdminUsers() {
               disabled={isSubmitting || selectedRole === selectedUser?.role}
             >
               {isSubmitting ? "Updating..." : "Update Role"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Subscription Period Dialog */}
+      <Dialog open={periodDialogOpen} onOpenChange={setPeriodDialogOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Manage Subscription Period</DialogTitle>
+            <DialogDescription>
+              Extend, reduce, or set the subscription period for {selectedUser?.email}.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4 py-4">
+            <div className="space-y-2">
+              <Label>Operation</Label>
+              <Select value={periodMode} onValueChange={(v) => setPeriodMode(v as "extend" | "reduce" | "set")}>
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="extend">
+                    <div className="flex items-center gap-2">
+                      <CalendarPlus className="h-4 w-4 text-green-500" />
+                      Extend Period
+                    </div>
+                  </SelectItem>
+                  <SelectItem value="reduce">
+                    <div className="flex items-center gap-2">
+                      <CalendarMinus className="h-4 w-4 text-red-500" />
+                      Reduce Period
+                    </div>
+                  </SelectItem>
+                  <SelectItem value="set">
+                    <div className="flex items-center gap-2">
+                      <Calendar className="h-4 w-4 text-blue-500" />
+                      Set Period (from today)
+                    </div>
+                  </SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="period-days">Days</Label>
+              <Input
+                id="period-days"
+                type="number"
+                min="1"
+                placeholder="e.g., 30"
+                value={periodDays}
+                onChange={(e) => setPeriodDays(e.target.value)}
+              />
+              <p className="text-xs text-muted-foreground">
+                {periodMode === "extend" && "Days to add to the current end date"}
+                {periodMode === "reduce" && "Days to subtract from the current end date"}
+                {periodMode === "set" && "Days from today to set as the new end date"}
+              </p>
+            </div>
+            <div className="rounded-lg border p-3 bg-muted/50 space-y-1">
+              <p className="text-sm font-medium">Current Status</p>
+              <p className="text-sm text-muted-foreground">
+                Plan: <span className="font-medium capitalize">{selectedUser?.subscription_tier || "Free"}</span>
+              </p>
+              <p className="text-sm text-muted-foreground">
+                Current end date:{" "}
+                <span className="font-medium">
+                  {selectedUser?.subscription_ends_at 
+                    ? new Date(selectedUser.subscription_ends_at).toLocaleDateString() 
+                    : "No end date set"}
+                </span>
+              </p>
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setPeriodDialogOpen(false)}>
+              Cancel
+            </Button>
+            <Button 
+              onClick={handleUpdateSubscriptionPeriod} 
+              disabled={isSubmitting || !periodDays}
+              variant={periodMode === "reduce" ? "destructive" : "default"}
+            >
+              {isSubmitting ? "Processing..." : 
+                periodMode === "extend" ? "Extend Period" : 
+                periodMode === "reduce" ? "Reduce Period" : "Set Period"}
             </Button>
           </DialogFooter>
         </DialogContent>
