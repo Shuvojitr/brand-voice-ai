@@ -454,6 +454,115 @@ Deno.serve(async (req) => {
         });
       }
 
+      if (action === "update-subscription-period") {
+        const { organizationId, days, mode } = body;
+        
+        if (!organizationId || days === undefined) {
+          return new Response(JSON.stringify({ error: "organizationId and days are required" }), {
+            status: 400,
+            headers: { ...corsHeaders, "Content-Type": "application/json" },
+          });
+        }
+
+        const parsedDays = parseInt(days);
+        if (isNaN(parsedDays) || parsedDays < 0) {
+          return new Response(JSON.stringify({ error: "days must be a valid non-negative number" }), {
+            status: 400,
+            headers: { ...corsHeaders, "Content-Type": "application/json" },
+          });
+        }
+
+        // Get current organization data
+        const { data: org, error: orgError } = await supabaseAdmin
+          .from("organizations")
+          .select("subscription_ends_at, subscription_tier, subscription_status, name")
+          .eq("id", organizationId)
+          .single();
+
+        if (orgError || !org) {
+          return new Response(JSON.stringify({ error: "Organization not found" }), {
+            status: 404,
+            headers: { ...corsHeaders, "Content-Type": "application/json" },
+          });
+        }
+
+        const previousEndDate = org.subscription_ends_at;
+        let newEndDate: Date;
+        
+        if (mode === "extend") {
+          // If no current end date, start from now
+          const baseDate = org.subscription_ends_at ? new Date(org.subscription_ends_at) : new Date();
+          newEndDate = new Date(baseDate.getTime() + parsedDays * 24 * 60 * 60 * 1000);
+        } else if (mode === "reduce") {
+          if (!org.subscription_ends_at) {
+            return new Response(JSON.stringify({ error: "Cannot reduce period: No subscription end date set" }), {
+              status: 400,
+              headers: { ...corsHeaders, "Content-Type": "application/json" },
+            });
+          }
+          const baseDate = new Date(org.subscription_ends_at);
+          newEndDate = new Date(baseDate.getTime() - parsedDays * 24 * 60 * 60 * 1000);
+          // Don't allow setting date in the past
+          if (newEndDate < new Date()) {
+            newEndDate = new Date(); // Set to now, will trigger expiration
+          }
+        } else if (mode === "set") {
+          // Set to a specific number of days from now
+          newEndDate = new Date(Date.now() + parsedDays * 24 * 60 * 60 * 1000);
+        } else {
+          return new Response(JSON.stringify({ error: "Invalid mode. Must be 'extend', 'reduce', or 'set'" }), {
+            status: 400,
+            headers: { ...corsHeaders, "Content-Type": "application/json" },
+          });
+        }
+
+        // Update the subscription end date and ensure status is active
+        const { error: updateError } = await supabaseAdmin
+          .from("organizations")
+          .update({ 
+            subscription_ends_at: newEndDate.toISOString(),
+            subscription_status: "active",
+            updated_at: new Date().toISOString()
+          })
+          .eq("id", organizationId);
+
+        if (updateError) {
+          console.error("Error updating subscription period:", updateError);
+          return new Response(JSON.stringify({ error: updateError.message }), {
+            status: 500,
+            headers: { ...corsHeaders, "Content-Type": "application/json" },
+          });
+        }
+
+        console.log(`Subscription period updated for org ${organizationId}: ${mode} ${parsedDays} days`);
+
+        // Log the activity
+        await logAdminActivity(
+          supabaseAdmin,
+          user.id,
+          "subscription_period_updated",
+          undefined,
+          organizationId,
+          { 
+            mode,
+            days: parsedDays,
+            previous_end_date: previousEndDate,
+            new_end_date: newEndDate.toISOString(),
+            organization_name: org.name
+          },
+          clientIp
+        );
+
+        return new Response(JSON.stringify({ 
+          success: true, 
+          subscription_ends_at: newEndDate.toISOString(),
+          mode,
+          days_changed: parsedDays
+        }), {
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+
       if (action === "impersonate-user") {
         const { userId } = body;
         
