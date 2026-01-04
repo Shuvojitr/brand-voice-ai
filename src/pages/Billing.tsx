@@ -150,6 +150,18 @@ export default function Billing() {
                   />
                 </div>
               </div>
+              {organization?.subscription_ends_at && currentTier !== "free" && (
+                <div className="flex justify-between text-sm pt-2 border-t">
+                  <span>Subscription Expires</span>
+                  <span className="font-medium">
+                    {new Date(organization.subscription_ends_at).toLocaleDateString(undefined, {
+                      year: 'numeric',
+                      month: 'long',
+                      day: 'numeric'
+                    })}
+                  </span>
+                </div>
+              )}
             </div>
           </CardContent>
         </Card>
