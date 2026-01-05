@@ -37,7 +37,7 @@ export default function Billing() {
       }
 
       const response = await supabase.functions.invoke("mock-subscribe", {
-        body: { plan: planSlug },
+        body: { plan: planSlug, isYearly },
       });
 
       if (response.error) {

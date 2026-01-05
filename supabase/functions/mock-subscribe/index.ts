@@ -37,7 +37,7 @@ Deno.serve(async (req) => {
       });
     }
 
-    const { plan } = await req.json();
+    const { plan, isYearly = false } = await req.json();
     
     if (!plan || !["starter", "pro", "enterprise"].includes(plan)) {
       return new Response(JSON.stringify({ error: "Invalid plan" }), {
@@ -102,17 +102,19 @@ Deno.serve(async (req) => {
     const remainingCredits = Math.max(0, (org.monthly_credits || 0) - (org.credits_used || 0));
     const newMonthlyCredits = remainingCredits + newPlanCredits;
 
-    // Calculate new subscription end date (1 month from now, or extend if already active)
+    // Calculate new subscription end date based on billing period
     const now = new Date();
-    const oneMonthMs = 30 * 24 * 60 * 60 * 1000; // 30 days in milliseconds
+    const periodMs = isYearly 
+      ? 365 * 24 * 60 * 60 * 1000  // 365 days for yearly
+      : 30 * 24 * 60 * 60 * 1000;  // 30 days for monthly
     let newSubscriptionEndsAt: Date;
     
     // If subscription is currently active and not expired, extend from current end date
     if (org.subscription_ends_at && new Date(org.subscription_ends_at) > now) {
-      newSubscriptionEndsAt = new Date(new Date(org.subscription_ends_at).getTime() + oneMonthMs);
+      newSubscriptionEndsAt = new Date(new Date(org.subscription_ends_at).getTime() + periodMs);
     } else {
       // Otherwise, start fresh from now
-      newSubscriptionEndsAt = new Date(now.getTime() + oneMonthMs);
+      newSubscriptionEndsAt = new Date(now.getTime() + periodMs);
     }
 
     // Update organization subscription
