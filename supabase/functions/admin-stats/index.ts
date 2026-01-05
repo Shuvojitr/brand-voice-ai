@@ -260,7 +260,7 @@ Deno.serve(async (req) => {
         // Get current organization credits
         const { data: org, error: orgError } = await supabaseAdmin
           .from("organizations")
-          .select("monthly_credits, credits_used, subscription_tier, name")
+          .select("monthly_credits, credits_used, subscription_tier, subscription_ends_at, name")
           .eq("id", organizationId)
           .single();
 
@@ -277,12 +277,27 @@ Deno.serve(async (req) => {
         const remainingCredits = Math.max(0, (org.monthly_credits || 0) - (org.credits_used || 0));
         const newMonthlyCredits = remainingCredits + newPlanCredits;
 
+        // Calculate new subscription end date (1 month from now, or extend if already active)
+        const now = new Date();
+        const oneMonthMs = 30 * 24 * 60 * 60 * 1000; // 30 days in milliseconds
+        let newSubscriptionEndsAt: Date;
+        
+        // If subscription is currently active and not expired, extend from current end date
+        if (org.subscription_ends_at && new Date(org.subscription_ends_at) > now) {
+          newSubscriptionEndsAt = new Date(new Date(org.subscription_ends_at).getTime() + oneMonthMs);
+        } else {
+          // Otherwise, start fresh from now
+          newSubscriptionEndsAt = new Date(now.getTime() + oneMonthMs);
+        }
+
         const { error: updateError } = await supabaseAdmin
           .from("organizations")
           .update({ 
             subscription_tier: plan,
+            subscription_status: "active",
             monthly_credits: newMonthlyCredits,
-            credits_used: 0 // Reset credits used since remaining are now in monthly_credits
+            credits_used: 0, // Reset credits used since remaining are now in monthly_credits
+            subscription_ends_at: newSubscriptionEndsAt.toISOString(),
           })
           .eq("id", organizationId);
 
@@ -316,7 +331,8 @@ Deno.serve(async (req) => {
           success: true, 
           subscription_tier: plan,
           monthly_credits: newMonthlyCredits,
-          added_credits: newPlanCredits
+          added_credits: newPlanCredits,
+          subscription_ends_at: newSubscriptionEndsAt.toISOString(),
         }), {
           headers: { ...corsHeaders, "Content-Type": "application/json" },
         });
@@ -706,7 +722,8 @@ Deno.serve(async (req) => {
             id,
             monthly_credits,
             credits_used,
-            subscription_tier
+            subscription_tier,
+            subscription_ends_at
           )
         `);
 
@@ -727,6 +744,7 @@ Deno.serve(async (req) => {
           credits_remaining: org ? (org.monthly_credits - org.credits_used) : 0,
           organization_id: org?.id,
           subscription_tier: org?.subscription_tier || "free",
+          subscription_ends_at: org?.subscription_ends_at || null,
           email_confirmed_at: authUser?.email_confirmed_at || null,
         };
       }) || [];
