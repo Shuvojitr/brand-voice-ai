@@ -84,10 +84,10 @@ Deno.serve(async (req) => {
 
     const newPlanCredits = planData?.credits ?? defaultPlanCredits[plan];
 
-    // Get current organization credits
+    // Get current organization credits and subscription info
     const { data: org, error: orgError } = await supabaseClient
       .from("organizations")
-      .select("monthly_credits, credits_used")
+      .select("monthly_credits, credits_used, subscription_ends_at, subscription_status")
       .eq("id", membership.organization_id)
       .single();
 
@@ -102,13 +102,28 @@ Deno.serve(async (req) => {
     const remainingCredits = Math.max(0, (org.monthly_credits || 0) - (org.credits_used || 0));
     const newMonthlyCredits = remainingCredits + newPlanCredits;
 
+    // Calculate new subscription end date (1 month from now, or extend if already active)
+    const now = new Date();
+    const oneMonthMs = 30 * 24 * 60 * 60 * 1000; // 30 days in milliseconds
+    let newSubscriptionEndsAt: Date;
+    
+    // If subscription is currently active and not expired, extend from current end date
+    if (org.subscription_ends_at && new Date(org.subscription_ends_at) > now) {
+      newSubscriptionEndsAt = new Date(new Date(org.subscription_ends_at).getTime() + oneMonthMs);
+    } else {
+      // Otherwise, start fresh from now
+      newSubscriptionEndsAt = new Date(now.getTime() + oneMonthMs);
+    }
+
     // Update organization subscription
     const { error: updateError } = await supabaseClient
       .from("organizations")
       .update({
         subscription_tier: plan,
+        subscription_status: "active",
         monthly_credits: newMonthlyCredits,
         credits_used: 0, // Reset credits used since remaining are now in monthly_credits
+        subscription_ends_at: newSubscriptionEndsAt.toISOString(),
         updated_at: new Date().toISOString(),
       })
       .eq("id", membership.organization_id);
@@ -129,6 +144,7 @@ Deno.serve(async (req) => {
         plan,
         credits: newMonthlyCredits,
         added_credits: newPlanCredits,
+        subscription_ends_at: newSubscriptionEndsAt.toISOString(),
         message: `Dev Mode: Upgraded to ${plan} successfully! Added ${newPlanCredits.toLocaleString()} credits.`
       }),
       { headers: { ...corsHeaders, "Content-Type": "application/json" } }
