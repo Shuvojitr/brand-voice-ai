@@ -179,9 +179,22 @@ export default function Billing() {
           </div>
           <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
             {plans?.map((plan) => {
-              const isCurrent = plan.slug === currentTier;
+              const isSameTier = plan.slug === currentTier;
+              const currentIsYearly = organization?.is_yearly_subscription ?? false;
+              const isExactCurrentPlan = isSameTier && isYearly === currentIsYearly;
+              const isSwitchingCycle = isSameTier && isYearly !== currentIsYearly && currentTier !== "free";
               const isDowngrade = getPlanIndex(plan.slug) < getPlanIndex(currentTier);
               const isUpgrading = upgradingPlan === plan.slug;
+
+              const getButtonText = () => {
+                if (isUpgrading) return null;
+                if (isExactCurrentPlan) return "Current Plan";
+                if (isSwitchingCycle) return isYearly ? "Switch to Yearly" : "Switch to Monthly";
+                if (isDowngrade) return "Downgrade";
+                return "Upgrade (Dev Mode)";
+              };
+
+              const isButtonDisabled = isExactCurrentPlan || isDowngrade || isUpgrading;
 
               return (
                 <Card 
@@ -218,18 +231,13 @@ export default function Billing() {
                   </CardContent>
                   <CardFooter>
                     <Button 
-                      className={`w-full ${plan.is_popular && !isCurrent ? "bg-primary text-primary-foreground" : ""}`}
-                      variant={isCurrent ? "outline" : plan.is_popular ? "default" : "outline"}
-                      disabled={isCurrent || isDowngrade || isUpgrading}
+                      className={`w-full ${plan.is_popular && !isExactCurrentPlan ? "bg-primary text-primary-foreground" : ""}`}
+                      variant={isExactCurrentPlan ? "outline" : plan.is_popular ? "default" : "outline"}
+                      disabled={isButtonDisabled}
                       onClick={() => handleMockUpgrade(plan.slug)}
                     >
                       {isUpgrading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                      {isCurrent 
-                        ? "Current Plan" 
-                        : isDowngrade 
-                          ? "Downgrade" 
-                          : `Upgrade (Dev Mode)`
-                      }
+                      {getButtonText()}
                     </Button>
                   </CardFooter>
                 </Card>

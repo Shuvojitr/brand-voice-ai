@@ -561,6 +561,7 @@ export type Database = {
           credits_used: number | null
           has_used_free_plan: boolean
           id: string
+          is_yearly_subscription: boolean | null
           logo_url: string | null
           monthly_credits: number | null
           name: string
@@ -580,6 +581,7 @@ export type Database = {
           credits_used?: number | null
           has_used_free_plan?: boolean
           id?: string
+          is_yearly_subscription?: boolean | null
           logo_url?: string | null
           monthly_credits?: number | null
           name: string
@@ -599,6 +601,7 @@ export type Database = {
           credits_used?: number | null
           has_used_free_plan?: boolean
           id?: string
+          is_yearly_subscription?: boolean | null
           logo_url?: string | null
           monthly_credits?: number | null
           name?: string
