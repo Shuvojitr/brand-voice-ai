@@ -69,10 +69,21 @@ export default function Billing() {
   const calculatePrice = (plan: Plan) => {
     if (plan.interval === "forever" || plan.price === 0) return plan.price;
     if (isYearly) {
+      // Use explicit yearly price if set, otherwise calculate from monthly with discount
+      if (plan.price_yearly && plan.price_yearly > 0) {
+        return Math.round(plan.price_yearly / 12);
+      }
       const yearlyPrice = plan.price * 12 * (1 - (plan.yearly_discount || 0) / 100);
       return Math.round(yearlyPrice / 12);
     }
     return plan.price;
+  };
+
+  const getCredits = (plan: Plan) => {
+    if (isYearly && plan.credits_yearly) {
+      return plan.credits_yearly;
+    }
+    return isYearly ? plan.credits * 12 : plan.credits;
   };
 
   const formatPrice = (plan: Plan) => {

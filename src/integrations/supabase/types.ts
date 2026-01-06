@@ -652,6 +652,7 @@ export type Database = {
         Row: {
           created_at: string | null
           credits: number
+          credits_yearly: number | null
           cta_text: string | null
           currency: string
           description: string | null
@@ -663,15 +664,18 @@ export type Database = {
           monthly_discount: number
           name: string
           price: number
+          price_yearly: number | null
           slug: string
           sort_order: number
           stripe_price_id: string | null
+          stripe_price_id_yearly: string | null
           updated_at: string | null
           yearly_discount: number
         }
         Insert: {
           created_at?: string | null
           credits?: number
+          credits_yearly?: number | null
           cta_text?: string | null
           currency?: string
           description?: string | null
@@ -683,15 +687,18 @@ export type Database = {
           monthly_discount?: number
           name: string
           price?: number
+          price_yearly?: number | null
           slug: string
           sort_order?: number
           stripe_price_id?: string | null
+          stripe_price_id_yearly?: string | null
           updated_at?: string | null
           yearly_discount?: number
         }
         Update: {
           created_at?: string | null
           credits?: number
+          credits_yearly?: number | null
           cta_text?: string | null
           currency?: string
           description?: string | null
@@ -703,9 +710,11 @@ export type Database = {
           monthly_discount?: number
           name?: string
           price?: number
+          price_yearly?: number | null
           slug?: string
           sort_order?: number
           stripe_price_id?: string | null
+          stripe_price_id_yearly?: string | null
           updated_at?: string | null
           yearly_discount?: number
         }

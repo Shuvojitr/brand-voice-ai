@@ -21,11 +21,14 @@ const defaultFormData: PlanFormData = {
   slug: "",
   description: "",
   price: 0,
+  price_yearly: 0,
   currency: "USD",
   interval: "month",
   stripe_price_id: "",
+  stripe_price_id_yearly: "",
   features: [],
   credits: 1000,
+  credits_yearly: null,
   is_active: true,
   is_popular: false,
   sort_order: 0,
@@ -62,11 +65,14 @@ export default function AdminPlans() {
       slug: plan.slug,
       description: plan.description || "",
       price: plan.price,
+      price_yearly: plan.price_yearly ?? 0,
       currency: plan.currency,
       interval: plan.interval,
       stripe_price_id: plan.stripe_price_id || "",
+      stripe_price_id_yearly: plan.stripe_price_id_yearly || "",
       features: plan.features || [],
       credits: plan.credits,
+      credits_yearly: plan.credits_yearly,
       is_active: plan.is_active,
       is_popular: plan.is_popular,
       sort_order: plan.sort_order,
@@ -232,7 +238,12 @@ export default function AdminPlans() {
                       <span className="text-sm text-muted-foreground">{plan.slug}</span>
                     </TableCell>
                     <TableCell>
-                      {formatPrice(plan.price, plan.currency, plan.interval)}
+                      <div className="flex flex-col gap-1">
+                        <span>{formatPrice(plan.price, plan.currency, "month")}</span>
+                        <span className="text-muted-foreground text-xs">
+                          {formatPrice(plan.price_yearly ?? 0, plan.currency, "year")}/yr
+                        </span>
+                      </div>
                     </TableCell>
                     <TableCell>
                       <div className="flex flex-col gap-1">
@@ -246,9 +257,14 @@ export default function AdminPlans() {
                     </TableCell>
                     <TableCell>{plan.credits.toLocaleString()}</TableCell>
                     <TableCell>
-                      <code className="text-xs bg-muted px-1 py-0.5 rounded">
-                        {plan.stripe_price_id || "—"}
-                      </code>
+                      <div className="flex flex-col gap-1">
+                        <code className="text-xs bg-muted px-1 py-0.5 rounded">
+                          M: {plan.stripe_price_id || "—"}
+                        </code>
+                        <code className="text-xs bg-muted px-1 py-0.5 rounded">
+                          Y: {plan.stripe_price_id_yearly || "—"}
+                        </code>
+                      </div>
                     </TableCell>
                     <TableCell>
                       <Badge variant={plan.is_active ? "default" : "secondary"}>
@@ -339,9 +355,9 @@ export default function AdminPlans() {
                 />
               </div>
 
-              <div className="grid grid-cols-3 gap-4">
+              <div className="grid grid-cols-2 gap-4">
                 <div className="space-y-2">
-                  <Label htmlFor="price">Price</Label>
+                  <Label htmlFor="price">Monthly Price</Label>
                   <Input
                     id="price"
                     type="number"
@@ -353,6 +369,22 @@ export default function AdminPlans() {
                     }
                   />
                 </div>
+                <div className="space-y-2">
+                  <Label htmlFor="price_yearly">Yearly Price (total annual)</Label>
+                  <Input
+                    id="price_yearly"
+                    type="number"
+                    min="0"
+                    step="0.01"
+                    value={formData.price_yearly ?? 0}
+                    onChange={(e) =>
+                      setFormData({ ...formData, price_yearly: parseFloat(e.target.value) || 0 })
+                    }
+                  />
+                </div>
+              </div>
+
+              <div className="grid grid-cols-2 gap-4">
                 <div className="space-y-2">
                   <Label htmlFor="currency">Currency</Label>
                   <Select
@@ -373,7 +405,7 @@ export default function AdminPlans() {
                   </Select>
                 </div>
                 <div className="space-y-2">
-                  <Label htmlFor="interval">Interval</Label>
+                  <Label htmlFor="interval">Base Interval</Label>
                   <Select
                     value={formData.interval}
                     onValueChange={(value: "month" | "year" | "forever") =>
@@ -394,7 +426,7 @@ export default function AdminPlans() {
 
               <div className="grid grid-cols-2 gap-4">
                 <div className="space-y-2">
-                  <Label htmlFor="credits">Credits (words/month)</Label>
+                  <Label htmlFor="credits">Monthly Credits</Label>
                   <Input
                     id="credits"
                     type="number"
@@ -406,7 +438,23 @@ export default function AdminPlans() {
                   />
                 </div>
                 <div className="space-y-2">
-                  <Label htmlFor="stripe_price_id">Stripe Price ID</Label>
+                  <Label htmlFor="credits_yearly">Yearly Credits (optional)</Label>
+                  <Input
+                    id="credits_yearly"
+                    type="number"
+                    min="0"
+                    placeholder="Leave empty for 12x monthly"
+                    value={formData.credits_yearly ?? ""}
+                    onChange={(e) =>
+                      setFormData({ ...formData, credits_yearly: e.target.value ? parseInt(e.target.value) : null })
+                    }
+                  />
+                </div>
+              </div>
+
+              <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label htmlFor="stripe_price_id">Monthly Stripe Price ID</Label>
                   <Input
                     id="stripe_price_id"
                     value={formData.stripe_price_id || ""}
@@ -414,6 +462,17 @@ export default function AdminPlans() {
                       setFormData({ ...formData, stripe_price_id: e.target.value })
                     }
                     placeholder="price_xxx"
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="stripe_price_id_yearly">Yearly Stripe Price ID</Label>
+                  <Input
+                    id="stripe_price_id_yearly"
+                    value={formData.stripe_price_id_yearly || ""}
+                    onChange={(e) =>
+                      setFormData({ ...formData, stripe_price_id_yearly: e.target.value })
+                    }
+                    placeholder="price_xxx_yearly"
                   />
                 </div>
               </div>
