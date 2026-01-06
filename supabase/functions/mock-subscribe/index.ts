@@ -126,6 +126,7 @@ Deno.serve(async (req) => {
         monthly_credits: newMonthlyCredits,
         credits_used: 0, // Reset credits used since remaining are now in monthly_credits
         subscription_ends_at: newSubscriptionEndsAt.toISOString(),
+        is_yearly_subscription: isYearly,
         updated_at: new Date().toISOString(),
       })
       .eq("id", membership.organization_id);
