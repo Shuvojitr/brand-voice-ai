@@ -7,11 +7,14 @@ export interface Plan {
   slug: string;
   description: string | null;
   price: number;
+  price_yearly: number | null;
   currency: string;
   interval: "month" | "year" | "forever";
   stripe_price_id: string | null;
+  stripe_price_id_yearly: string | null;
   features: string[];
   credits: number;
+  credits_yearly: number | null;
   is_active: boolean;
   is_popular: boolean;
   sort_order: number;
