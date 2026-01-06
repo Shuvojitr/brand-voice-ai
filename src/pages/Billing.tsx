@@ -22,7 +22,7 @@ export default function Billing() {
   const usagePercent = Math.min((creditsUsed / monthlyCredits) * 100, 100);
 
   const handleMockUpgrade = async (planSlug: string) => {
-    if (planSlug === "free" || planSlug === currentTier) return;
+    if (planSlug === "free") return;
 
     setUpgradingPlan(planSlug);
     try {
@@ -183,18 +183,21 @@ export default function Billing() {
               const currentIsYearly = organization?.is_yearly_subscription ?? false;
               const isExactCurrentPlan = isSameTier && isYearly === currentIsYearly;
               const isSwitchingCycle = isSameTier && isYearly !== currentIsYearly && currentTier !== "free";
+              const isUpgrade = getPlanIndex(plan.slug) > getPlanIndex(currentTier);
               const isDowngrade = getPlanIndex(plan.slug) < getPlanIndex(currentTier);
               const isUpgrading = upgradingPlan === plan.slug;
+              const isFree = plan.slug === "free";
 
               const getButtonText = () => {
                 if (isUpgrading) return null;
-                if (isExactCurrentPlan) return "Current Plan";
+                if (isExactCurrentPlan) return "Renew / Extend";
                 if (isSwitchingCycle) return isYearly ? "Switch to Yearly" : "Switch to Monthly";
+                if (isUpgrade) return "Upgrade";
                 if (isDowngrade) return "Downgrade";
-                return "Upgrade (Dev Mode)";
+                return plan.cta_text || "Get Started";
               };
 
-              const isButtonDisabled = isExactCurrentPlan || isDowngrade || isUpgrading;
+              const isButtonDisabled = isFree || isUpgrading;
 
               return (
                 <Card 
