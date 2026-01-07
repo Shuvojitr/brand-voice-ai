@@ -591,7 +591,7 @@ export default function Index() {
                       )}
                     </div>
                     <ul className="space-y-3">
-                      {plan.features.map((feature) => (
+                      {(isYearly ? plan.features_yearly : plan.features_monthly).map((feature) => (
                         <li key={feature} className="flex items-center gap-3">
                           <div className="flex h-5 w-5 items-center justify-center rounded-full bg-success/10">
                             <Check className="h-3 w-3 text-success" />

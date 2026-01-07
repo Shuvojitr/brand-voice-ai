@@ -86,6 +86,10 @@ export default function Billing() {
     return isYearly ? plan.credits * 12 : plan.credits;
   };
 
+  const getFeatures = (plan: Plan) => {
+    return isYearly ? plan.features_yearly : plan.features_monthly;
+  };
+
   const formatPrice = (plan: Plan) => {
     const displayPrice = calculatePrice(plan);
     const formatted = new Intl.NumberFormat("en-US", {
@@ -235,7 +239,7 @@ export default function Billing() {
                       )}
                     </div>
                     <ul className="space-y-2 text-sm">
-                      {plan.features.map((feature) => (
+                      {getFeatures(plan).map((feature) => (
                         <li key={feature} className="flex items-center gap-2">
                           <Check className="h-4 w-4 text-primary" />
                           {feature}
