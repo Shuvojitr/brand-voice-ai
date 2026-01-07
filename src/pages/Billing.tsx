@@ -237,6 +237,15 @@ export default function Billing() {
                           -{plan.yearly_discount}%
                         </Badge>
                       )}
+                      {isYearly && plan.price > 0 && plan.interval !== "forever" && (
+                        <p className="text-sm text-muted-foreground mt-1">
+                          {new Intl.NumberFormat("en-US", {
+                            style: "currency",
+                            currency: plan.currency,
+                            minimumFractionDigits: 0,
+                          }).format(calculatePrice(plan) * 12)}/year total
+                        </p>
+                      )}
                     </div>
                     <ul className="space-y-2 text-sm">
                       {getFeatures(plan).map((feature) => (
