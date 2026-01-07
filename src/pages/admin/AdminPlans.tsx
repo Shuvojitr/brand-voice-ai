@@ -26,7 +26,8 @@ const defaultFormData: PlanFormData = {
   interval: "month",
   stripe_price_id: "",
   stripe_price_id_yearly: "",
-  features: [],
+  features_monthly: [],
+  features_yearly: [],
   credits: 1000,
   credits_yearly: null,
   is_active: true,
@@ -47,6 +48,8 @@ export default function AdminPlans() {
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [editingPlan, setEditingPlan] = useState<Plan | null>(null);
   const [formData, setFormData] = useState<PlanFormData>(defaultFormData);
+  const [newFeatureMonthly, setNewFeatureMonthly] = useState("");
+  const [newFeatureYearly, setNewFeatureYearly] = useState("");
   const [newFeature, setNewFeature] = useState("");
 
   const openCreateDialog = () => {
@@ -70,7 +73,8 @@ export default function AdminPlans() {
       interval: plan.interval,
       stripe_price_id: plan.stripe_price_id || "",
       stripe_price_id_yearly: plan.stripe_price_id_yearly || "",
-      features: plan.features || [],
+      features_monthly: plan.features_monthly || [],
+      features_yearly: plan.features_yearly || [],
       credits: plan.credits,
       credits_yearly: plan.credits_yearly,
       is_active: plan.is_active,
@@ -141,20 +145,44 @@ export default function AdminPlans() {
     }
   };
 
-  const addFeature = () => {
-    if (newFeature.trim()) {
+  const addFeatureMonthly = () => {
+    if (newFeatureMonthly.trim()) {
       setFormData({
         ...formData,
-        features: [...formData.features, newFeature.trim()],
+        features_monthly: [...formData.features_monthly, newFeatureMonthly.trim()],
       });
-      setNewFeature("");
+      setNewFeatureMonthly("");
     }
   };
 
-  const removeFeature = (index: number) => {
+  const addFeatureYearly = () => {
+    if (newFeatureYearly.trim()) {
+      setFormData({
+        ...formData,
+        features_yearly: [...formData.features_yearly, newFeatureYearly.trim()],
+      });
+      setNewFeatureYearly("");
+    }
+  };
+
+  const removeFeatureMonthly = (index: number) => {
     setFormData({
       ...formData,
-      features: formData.features.filter((_, i) => i !== index),
+      features_monthly: formData.features_monthly.filter((_, i) => i !== index),
+    });
+  };
+
+  const removeFeatureYearly = (index: number) => {
+    setFormData({
+      ...formData,
+      features_yearly: formData.features_yearly.filter((_, i) => i !== index),
+    });
+  };
+
+  const copyMonthlyToYearly = () => {
+    setFormData({
+      ...formData,
+      features_yearly: [...formData.features_monthly],
     });
   };
 
@@ -537,26 +565,70 @@ export default function AdminPlans() {
                 </div>
               </div>
 
+              {/* Monthly Features Section */}
               <div className="space-y-2">
-                <Label>Features</Label>
+                <div className="flex items-center justify-between">
+                  <Label>Monthly Plan Features</Label>
+                </div>
                 <div className="flex gap-2">
                   <Input
-                    value={newFeature}
-                    onChange={(e) => setNewFeature(e.target.value)}
-                    placeholder="Add a feature..."
-                    onKeyDown={(e) => e.key === "Enter" && (e.preventDefault(), addFeature())}
+                    value={newFeatureMonthly}
+                    onChange={(e) => setNewFeatureMonthly(e.target.value)}
+                    placeholder="Add a monthly feature..."
+                    onKeyDown={(e) => e.key === "Enter" && (e.preventDefault(), addFeatureMonthly())}
                   />
-                  <Button type="button" variant="secondary" onClick={addFeature}>
+                  <Button type="button" variant="secondary" onClick={addFeatureMonthly}>
                     Add
                   </Button>
                 </div>
                 <div className="flex flex-wrap gap-2 mt-2">
-                  {formData.features.map((feature, index) => (
+                  {formData.features_monthly.map((feature, index) => (
                     <Badge key={index} variant="secondary" className="pr-1">
                       {feature}
                       <button
                         type="button"
-                        onClick={() => removeFeature(index)}
+                        onClick={() => removeFeatureMonthly(index)}
+                        className="ml-1 hover:text-destructive"
+                      >
+                        <X className="h-3 w-3" />
+                      </button>
+                    </Badge>
+                  ))}
+                </div>
+              </div>
+
+              {/* Yearly Features Section */}
+              <div className="space-y-2">
+                <div className="flex items-center justify-between">
+                  <Label>Yearly Plan Features</Label>
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="sm"
+                    onClick={copyMonthlyToYearly}
+                    className="text-xs"
+                  >
+                    Copy Monthly to Yearly
+                  </Button>
+                </div>
+                <div className="flex gap-2">
+                  <Input
+                    value={newFeatureYearly}
+                    onChange={(e) => setNewFeatureYearly(e.target.value)}
+                    placeholder="Add a yearly feature..."
+                    onKeyDown={(e) => e.key === "Enter" && (e.preventDefault(), addFeatureYearly())}
+                  />
+                  <Button type="button" variant="secondary" onClick={addFeatureYearly}>
+                    Add
+                  </Button>
+                </div>
+                <div className="flex flex-wrap gap-2 mt-2">
+                  {formData.features_yearly.map((feature, index) => (
+                    <Badge key={index} variant="outline" className="pr-1">
+                      {feature}
+                      <button
+                        type="button"
+                        onClick={() => removeFeatureYearly(index)}
                         className="ml-1 hover:text-destructive"
                       >
                         <X className="h-3 w-3" />

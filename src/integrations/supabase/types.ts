@@ -656,7 +656,8 @@ export type Database = {
           cta_text: string | null
           currency: string
           description: string | null
-          features: string[]
+          features_monthly: string[]
+          features_yearly: string[]
           id: string
           interval: string
           is_active: boolean
@@ -679,7 +680,8 @@ export type Database = {
           cta_text?: string | null
           currency?: string
           description?: string | null
-          features?: string[]
+          features_monthly?: string[]
+          features_yearly?: string[]
           id?: string
           interval?: string
           is_active?: boolean
@@ -702,7 +704,8 @@ export type Database = {
           cta_text?: string | null
           currency?: string
           description?: string | null
-          features?: string[]
+          features_monthly?: string[]
+          features_yearly?: string[]
           id?: string
           interval?: string
           is_active?: boolean
