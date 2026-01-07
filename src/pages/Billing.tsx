@@ -230,6 +230,15 @@ export default function Billing() {
                   </CardHeader>
                   <CardContent className="text-center">
                     <div className="mb-4">
+                      {isYearly && plan.yearly_discount > 0 && plan.price > 0 && (
+                        <p className="text-sm text-muted-foreground line-through mb-1">
+                          {new Intl.NumberFormat("en-US", {
+                            style: "currency",
+                            currency: plan.currency,
+                            minimumFractionDigits: 0,
+                          }).format(plan.price)}/mo
+                        </p>
+                      )}
                       <span className="text-3xl font-bold">{formatPrice(plan)}</span>
                       <span className="text-muted-foreground">{formatInterval(plan.interval)}</span>
                       {isYearly && plan.yearly_discount > 0 && plan.price > 0 && (
