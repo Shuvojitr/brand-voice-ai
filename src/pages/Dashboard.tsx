@@ -15,8 +15,10 @@ export default function Dashboard() {
 
   const isLoading = orgLoading || statsLoading;
   
-  const creditsRemaining = (stats?.creditsTotal || 1000) - (stats?.creditsUsed || 0);
-  const creditsPercent = Math.round(((stats?.creditsUsed || 0) / (stats?.creditsTotal || 1000)) * 100);
+  const creditsTotal = stats?.creditsTotal ?? 0;
+  const creditsUsed = stats?.creditsUsed ?? 0;
+  const creditsRemaining = creditsTotal - creditsUsed;
+  const creditsPercent = creditsTotal > 0 ? Math.round((creditsUsed / creditsTotal) * 100) : 0;
 
   const statsData = [
     { 
