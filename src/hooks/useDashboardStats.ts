@@ -64,8 +64,8 @@ export function useDashboardStats(organizationId: string | undefined) {
         documentsCount,
         wordsGenerated,
         brandVoicesCount: brandVoicesCount || 0,
-        creditsUsed: org?.credits_used || 0,
-        creditsTotal: org?.monthly_credits || 1000,
+        creditsUsed: org?.credits_used ?? 0,
+        creditsTotal: org?.monthly_credits ?? 0,
       };
     },
     enabled: !!organizationId,
