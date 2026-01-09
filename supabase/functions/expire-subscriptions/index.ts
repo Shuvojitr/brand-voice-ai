@@ -19,18 +19,50 @@ Deno.serve(async (req) => {
 
     console.log('[expire-subscriptions] Starting subscription expiration check...');
 
-    // Call the expire_subscriptions database function
-    const { error } = await supabase.rpc('expire_subscriptions');
+    // Find and expire subscriptions that have passed their end date
+    // Set to "No Plan" state (subscription_status = 'none', subscription_tier = null, 0 credits)
+    // Do NOT mark has_used_free_plan so user can still claim free plan later
+    const { data: expiredOrgs, error: fetchError } = await supabase
+      .from('organizations')
+      .select('id, name, subscription_tier')
+      .eq('subscription_status', 'active')
+      .not('subscription_tier', 'eq', 'free')
+      .not('subscription_ends_at', 'is', null)
+      .lt('subscription_ends_at', new Date().toISOString());
 
-    if (error) {
-      console.error('[expire-subscriptions] Error calling expire_subscriptions:', error);
+    if (fetchError) {
+      console.error('[expire-subscriptions] Error fetching expired subscriptions:', fetchError);
       return new Response(JSON.stringify({ 
         success: false, 
-        error: error.message 
+        error: fetchError.message 
       }), {
         status: 500,
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       });
+    }
+
+    console.log(`[expire-subscriptions] Found ${expiredOrgs?.length || 0} expired subscriptions`);
+
+    // Update each expired organization to "No Plan" state
+    for (const org of expiredOrgs || []) {
+      const { error: updateError } = await supabase
+        .from('organizations')
+        .update({
+          subscription_status: 'none',
+          subscription_tier: null,
+          monthly_credits: 0,
+          credits_used: 0,
+          remaining_credits: 0,
+          stripe_subscription_id: null,
+          // Do NOT set has_used_free_plan = true, so they can claim free later
+        })
+        .eq('id', org.id);
+
+      if (updateError) {
+        console.error(`[expire-subscriptions] Error updating org ${org.id}:`, updateError);
+      } else {
+        console.log(`[expire-subscriptions] Expired subscription for org: ${org.name} (${org.id})`);
+      }
     }
 
     console.log('[expire-subscriptions] Successfully processed subscription expirations');

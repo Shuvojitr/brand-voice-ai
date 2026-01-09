@@ -16,10 +16,11 @@ export default function Billing() {
   const [isYearly, setIsYearly] = useState(false);
   const [upgradingPlan, setUpgradingPlan] = useState<string | null>(null);
 
-  const currentTier = organization?.subscription_tier || "free";
-  const creditsUsed = organization?.credits_used || 0;
-  const monthlyCredits = organization?.monthly_credits || 1000;
-  const usagePercent = Math.min((creditsUsed / monthlyCredits) * 100, 100);
+  const currentTier = organization?.subscription_tier ?? null;
+  const hasNoPlan = currentTier === null || organization?.subscription_status === 'none';
+  const creditsUsed = organization?.credits_used ?? 0;
+  const monthlyCredits = organization?.monthly_credits ?? 0;
+  const usagePercent = monthlyCredits > 0 ? Math.min((creditsUsed / monthlyCredits) * 100, 100) : 0;
 
   const handleMockUpgrade = async (planSlug: string) => {
     if (planSlug === "free") return;
@@ -145,8 +146,8 @@ export default function Billing() {
             <CardTitle className="flex items-center gap-2">
               <CreditCard className="h-5 w-5" />
               Current Usage
-              <Badge variant="secondary" className="ml-2 capitalize">
-                {currentTier}
+              <Badge variant={hasNoPlan ? "destructive" : "secondary"} className="ml-2 capitalize">
+                {hasNoPlan ? "No Plan" : currentTier}
               </Badge>
             </CardTitle>
             <CardDescription>Your usage this billing period</CardDescription>
@@ -165,7 +166,7 @@ export default function Billing() {
                   />
                 </div>
               </div>
-              {organization?.subscription_ends_at && currentTier !== "free" && (
+              {organization?.subscription_ends_at && !hasNoPlan && currentTier !== "free" && (
                 <div className="flex justify-between text-sm pt-2 border-t">
                   <span>Subscription Expires</span>
                   <span className="font-medium">
@@ -196,10 +197,10 @@ export default function Billing() {
             {plans?.map((plan) => {
               const isSameTier = plan.slug === currentTier;
               const currentIsYearly = organization?.is_yearly_subscription ?? false;
-              const isExactCurrentPlan = isSameTier && isYearly === currentIsYearly;
-              const isSwitchingCycle = isSameTier && isYearly !== currentIsYearly && currentTier !== "free";
-              const isUpgrade = getPlanIndex(plan.slug) > getPlanIndex(currentTier);
-              const isDowngrade = getPlanIndex(plan.slug) < getPlanIndex(currentTier);
+              const isExactCurrentPlan = isSameTier && isYearly === currentIsYearly && !hasNoPlan;
+              const isSwitchingCycle = isSameTier && isYearly !== currentIsYearly && !hasNoPlan && currentTier !== "free";
+              const isUpgrade = hasNoPlan || getPlanIndex(plan.slug) > getPlanIndex(currentTier || "");
+              const isDowngrade = !hasNoPlan && getPlanIndex(plan.slug) < getPlanIndex(currentTier || "");
               const isUpgrading = upgradingPlan === plan.slug;
               const isFree = plan.slug === "free";
 
