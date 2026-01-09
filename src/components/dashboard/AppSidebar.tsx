@@ -48,6 +48,7 @@ const settingsNavItems = [
 ];
 
 const tierLabels: Record<string, string> = {
+  none: "No Plan",
   free: "Free Plan",
   starter: "Starter Plan",
   pro: "Pro Plan",
@@ -62,11 +63,12 @@ export function AppSidebar() {
   const { isAdmin } = useAdminRole();
   const { isManager } = useManagerRole();
 
-  const creditsUsed = organization?.credits_used || 0;
-  const monthlyCredits = organization?.monthly_credits || 1000;
+  const creditsUsed = organization?.credits_used ?? 0;
+  const monthlyCredits = organization?.monthly_credits ?? 0;
   const creditsRemaining = Math.max(0, monthlyCredits - creditsUsed);
-  const usagePercent = Math.min((creditsUsed / monthlyCredits) * 100, 100);
-  const tier = organization?.subscription_tier || "free";
+  const usagePercent = monthlyCredits > 0 ? Math.min((creditsUsed / monthlyCredits) * 100, 100) : 0;
+  const hasNoPlan = organization?.subscription_tier === null || organization?.subscription_status === 'none';
+  const tier = hasNoPlan ? "none" : (organization?.subscription_tier || "free");
 
   // Subscribe to real-time organization updates
   useEffect(() => {
