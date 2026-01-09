@@ -39,7 +39,7 @@ Deno.serve(async (req) => {
 
     const { plan, isYearly = false } = await req.json();
     
-    if (!plan || !["starter", "pro", "enterprise"].includes(plan)) {
+    if (!plan || !["free", "starter", "pro", "enterprise"].includes(plan)) {
       return new Response(JSON.stringify({ error: "Invalid plan" }), {
         status: 400,
         headers: { ...corsHeaders, "Content-Type": "application/json" },
@@ -77,6 +77,7 @@ Deno.serve(async (req) => {
 
     // Fallback credits if plan not found in DB
     const defaultPlanCredits: Record<string, number> = {
+      free: 1000,
       starter: 50000,
       pro: 100000,
       enterprise: 500000,
@@ -87,13 +88,21 @@ Deno.serve(async (req) => {
     // Get current organization credits and subscription info
     const { data: org, error: orgError } = await supabaseClient
       .from("organizations")
-      .select("monthly_credits, credits_used, subscription_ends_at, subscription_status")
+      .select("monthly_credits, credits_used, subscription_ends_at, subscription_status, has_used_free_plan")
       .eq("id", membership.organization_id)
       .single();
 
     if (orgError || !org) {
       return new Response(JSON.stringify({ error: "Organization not found" }), {
         status: 404,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
+    // Check if claiming free plan is allowed
+    if (plan === "free" && org.has_used_free_plan) {
+      return new Response(JSON.stringify({ error: "Free plan has already been used" }), {
+        status: 400,
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
@@ -118,17 +127,24 @@ Deno.serve(async (req) => {
     }
 
     // Update organization subscription
+    const updateData: Record<string, unknown> = {
+      subscription_tier: plan,
+      subscription_status: "active",
+      monthly_credits: newMonthlyCredits,
+      credits_used: 0,
+      subscription_ends_at: newSubscriptionEndsAt.toISOString(),
+      is_yearly_subscription: isYearly,
+      updated_at: new Date().toISOString(),
+    };
+
+    // Mark free plan as used if claiming free
+    if (plan === "free") {
+      updateData.has_used_free_plan = true;
+    }
+
     const { error: updateError } = await supabaseClient
       .from("organizations")
-      .update({
-        subscription_tier: plan,
-        subscription_status: "active",
-        monthly_credits: newMonthlyCredits,
-        credits_used: 0, // Reset credits used since remaining are now in monthly_credits
-        subscription_ends_at: newSubscriptionEndsAt.toISOString(),
-        is_yearly_subscription: isYearly,
-        updated_at: new Date().toISOString(),
-      })
+      .update(updateData)
       .eq("id", membership.organization_id);
 
     if (updateError) {

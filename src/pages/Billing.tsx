@@ -4,7 +4,7 @@ import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle }
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { PricingToggle } from "@/components/pricing";
-import { Check, CreditCard, Loader2, Sparkles } from "lucide-react";
+import { Check, CreditCard, Loader2, Sparkles, Gift } from "lucide-react";
 import { useOrganization } from "@/hooks/useOrganization";
 import { usePlans, Plan } from "@/hooks/usePlans";
 import { supabase } from "@/integrations/supabase/client";
@@ -18,9 +18,51 @@ export default function Billing() {
 
   const currentTier = organization?.subscription_tier ?? null;
   const hasNoPlan = currentTier === null || organization?.subscription_status === 'none';
+  const hasUsedFreePlan = organization?.has_used_free_plan ?? false;
+  const canClaimFreePlan = hasNoPlan && !hasUsedFreePlan;
   const creditsUsed = organization?.credits_used ?? 0;
   const monthlyCredits = organization?.monthly_credits ?? 0;
   const usagePercent = monthlyCredits > 0 ? Math.min((creditsUsed / monthlyCredits) * 100, 100) : 0;
+  const [claimingFree, setClaimingFree] = useState(false);
+
+  const handleClaimFreePlan = async () => {
+    setClaimingFree(true);
+    try {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session) {
+        toast({
+          title: "Error",
+          description: "Please sign in to claim the free plan",
+          variant: "destructive",
+        });
+        return;
+      }
+
+      const response = await supabase.functions.invoke("mock-subscribe", {
+        body: { plan: "free", isYearly: false },
+      });
+
+      if (response.error) {
+        throw new Error(response.error.message);
+      }
+
+      toast({
+        title: "Success!",
+        description: "Free plan activated! You now have 1,000 words/month.",
+      });
+
+      invalidate();
+    } catch (error) {
+      console.error("Claim free plan error:", error);
+      toast({
+        title: "Error",
+        description: "Failed to claim free plan. Please try again.",
+        variant: "destructive",
+      });
+    } finally {
+      setClaimingFree(false);
+    }
+  };
 
   const handleMockUpgrade = async (planSlug: string) => {
     if (planSlug === "free") return;
@@ -176,6 +218,21 @@ export default function Billing() {
                       day: 'numeric'
                     })}
                   </span>
+                </div>
+              )}
+              {canClaimFreePlan && (
+                <div className="pt-4 border-t">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <p className="font-medium">Get started with our Free Plan</p>
+                      <p className="text-sm text-muted-foreground">1,000 words/month - no credit card required</p>
+                    </div>
+                    <Button onClick={handleClaimFreePlan} disabled={claimingFree}>
+                      {claimingFree && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                      <Gift className="mr-2 h-4 w-4" />
+                      Claim Free Plan
+                    </Button>
+                  </div>
                 </div>
               )}
             </div>
