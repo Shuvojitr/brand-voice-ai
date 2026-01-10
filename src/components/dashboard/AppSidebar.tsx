@@ -68,7 +68,11 @@ export function AppSidebar() {
   const creditsRemaining = Math.max(0, monthlyCredits - creditsUsed);
   const usagePercent = monthlyCredits > 0 ? Math.min((creditsUsed / monthlyCredits) * 100, 100) : 0;
   const hasNoPlan = organization?.subscription_tier === null || organization?.subscription_status === 'none';
-  const tier = hasNoPlan ? "none" : (organization?.subscription_tier || "free");
+  const hasInactiveSubscription = organization?.subscription_status && 
+    ['expired', 'cancelled', 'past_due', 'inactive'].includes(organization.subscription_status);
+  // Also treat 0 monthly credits as effectively no active plan
+  const hasNoCreditsAllocation = organization?.monthly_credits === 0;
+  const tier = (hasNoPlan || hasInactiveSubscription || hasNoCreditsAllocation) ? "none" : (organization?.subscription_tier || "free");
 
   // Subscribe to real-time organization updates
   useEffect(() => {
