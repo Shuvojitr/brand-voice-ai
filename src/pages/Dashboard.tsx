@@ -15,8 +15,10 @@ export default function Dashboard() {
 
   const isLoading = orgLoading || statsLoading;
   
+  const isSubscriptionInactive = organization?.subscription_status !== 'active';
   const hasNoPlan = organization?.subscription_tier === null || organization?.subscription_status === 'none';
   const canClaimFreePlan = hasNoPlan && !organization?.has_used_free_plan;
+  const showUpgradeBanner = isSubscriptionInactive;
   
   const creditsTotal = stats?.creditsTotal ?? 0;
   const creditsUsed = stats?.creditsUsed ?? 0;
@@ -53,8 +55,8 @@ export default function Dashboard() {
   return (
     <DashboardLayout>
       <div className="space-y-8">
-        {/* No Plan Banner */}
-        {hasNoPlan && (
+        {/* No Active Subscription Banner */}
+        {showUpgradeBanner && (
           <Card className="border-amber-500/50 bg-amber-500/10">
             <CardContent className="py-4">
               <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
@@ -62,18 +64,20 @@ export default function Dashboard() {
                   <AlertCircle className="h-5 w-5 text-amber-600 dark:text-amber-400 mt-0.5 shrink-0" />
                   <div>
                     <p className="font-medium text-amber-600 dark:text-amber-400">
-                      {canClaimFreePlan ? "You don't have an active plan yet" : "Your plan has expired"}
+                      {canClaimFreePlan 
+                        ? "You don't have an active plan yet" 
+                        : "You don't have an active subscription"}
                     </p>
                     <p className="text-sm text-muted-foreground mt-0.5">
                       {canClaimFreePlan 
                         ? "Claim your free plan to get 1,000 words/month, or upgrade for more features."
-                        : "Subscribe to a plan to continue generating content."}
+                        : "Subscribe to a plan to continue generating content and unlock all features."}
                     </p>
                   </div>
                 </div>
                 <Button asChild className="shrink-0">
                   <Link to="/dashboard/billing">
-                    {canClaimFreePlan ? "Get Started" : "View Plans"}
+                    {canClaimFreePlan ? "Get Started" : "Upgrade Now"}
                   </Link>
                 </Button>
               </div>
