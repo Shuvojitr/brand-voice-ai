@@ -15,8 +15,13 @@ export default function Dashboard() {
 
   const isLoading = orgLoading || statsLoading;
   
+  // New user who hasn't claimed any plan yet
   const hasNoPlan = organization?.subscription_tier === null || organization?.subscription_status === 'none';
   const canClaimFreePlan = hasNoPlan && !organization?.has_used_free_plan;
+  
+  // User with inactive subscription (expired, cancelled, etc.) - different from new users
+  const hasInactiveSubscription = organization?.subscription_status && 
+    ['expired', 'cancelled', 'past_due', 'inactive'].includes(organization.subscription_status);
   
   const creditsTotal = stats?.creditsTotal ?? 0;
   const creditsUsed = stats?.creditsUsed ?? 0;
@@ -53,7 +58,7 @@ export default function Dashboard() {
   return (
     <DashboardLayout>
       <div className="space-y-8">
-        {/* No Plan Banner */}
+        {/* New User Banner - No plan claimed yet */}
         {hasNoPlan && (
           <Card className="border-amber-500/50 bg-amber-500/10">
             <CardContent className="py-4">
@@ -74,6 +79,32 @@ export default function Dashboard() {
                 <Button asChild className="shrink-0">
                   <Link to="/dashboard/billing">
                     {canClaimFreePlan ? "Get Started" : "View Plans"}
+                  </Link>
+                </Button>
+              </div>
+            </CardContent>
+          </Card>
+        )}
+
+        {/* Inactive Subscription Banner - Expired/Cancelled users */}
+        {!hasNoPlan && hasInactiveSubscription && (
+          <Card className="border-destructive/50 bg-destructive/10">
+            <CardContent className="py-4">
+              <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+                <div className="flex items-start gap-3">
+                  <AlertCircle className="h-5 w-5 text-destructive mt-0.5 shrink-0" />
+                  <div>
+                    <p className="font-medium text-destructive">
+                      Your subscription is no longer active
+                    </p>
+                    <p className="text-sm text-muted-foreground mt-0.5">
+                      Upgrade now to continue generating AI-powered content and unlock all features.
+                    </p>
+                  </div>
+                </div>
+                <Button asChild variant="destructive" className="shrink-0">
+                  <Link to="/dashboard/billing">
+                    Upgrade Now
                   </Link>
                 </Button>
               </div>
