@@ -15,6 +15,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { useTemplate, getFormFields } from "@/hooks/useTemplates";
 import { ContentEditor } from "@/components/content/ContentEditor";
+import { UpgradeBanner } from "@/components/content/UpgradeBanner";
 import { useOrganization } from "@/hooks/useOrganization";
 import { User } from "@supabase/supabase-js";
 import type { TemplateInputField } from "@/lib/types/ai";
@@ -35,7 +36,16 @@ export default function CreateContent() {
   const [activeModel, setActiveModel] = useState<string>("google/gemini-2.5-flash");
   
   // Use organization hook to get credits and invalidate after generation
-  const { invalidate: invalidateOrganization } = useOrganization();
+  const { organization, invalidate: invalidateOrganization } = useOrganization();
+  
+  // Check if user needs to upgrade
+  const hasInactiveSubscription = organization?.subscription_status && 
+    ['expired', 'cancelled', 'past_due', 'inactive', 'none'].includes(organization.subscription_status);
+  const hasNoCreditsAllocation = organization?.monthly_credits === 0;
+  const hasNoPlan = organization?.subscription_tier === null || hasInactiveSubscription || hasNoCreditsAllocation;
+  const hasUsedFreePlan = organization?.has_used_free_plan ?? false;
+  const canClaimFreePlan = hasNoPlan && !hasUsedFreePlan;
+  const needsUpgrade = hasNoPlan;
 
   // Fetch template from database
   const { data: template, isLoading: templateLoading, error: templateError } = useTemplate(templateId);
@@ -299,6 +309,9 @@ export default function CreateContent() {
           </div>
         </div>
 
+        {/* Upgrade Banner for users without active plan */}
+        {needsUpgrade && <UpgradeBanner canClaimFreePlan={canClaimFreePlan} />}
+
         {/* Split Layout - Stack on mobile, side-by-side on desktop */}
         <div className="flex flex-col md:flex-row gap-6">
           {/* Left Column - Input Form */}
@@ -371,7 +384,7 @@ export default function CreateContent() {
               <Button
                 className="w-full h-12 gradient-primary text-white text-base"
                 onClick={handleGenerate}
-                disabled={isGenerating || !organizationId}
+                disabled={isGenerating || !organizationId || needsUpgrade}
               >
                 {isGenerating ? (
                   <>
@@ -386,7 +399,16 @@ export default function CreateContent() {
                 )}
               </Button>
 
-              {!organizationId && (
+              {needsUpgrade && (
+                <p className="text-sm text-destructive text-center font-medium">
+                  {canClaimFreePlan 
+                    ? "Claim your free plan to start generating content."
+                    : "Please upgrade your plan to generate content."
+                  }
+                </p>
+              )}
+              
+              {!organizationId && !needsUpgrade && (
                 <p className="text-sm text-amber-600 text-center">
                   Complete your account setup to start generating content.
                 </p>
