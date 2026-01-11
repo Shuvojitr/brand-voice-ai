@@ -17,7 +17,10 @@ export default function Billing() {
   const [upgradingPlan, setUpgradingPlan] = useState<string | null>(null);
 
   const currentTier = organization?.subscription_tier ?? null;
-  const hasNoPlan = currentTier === null || organization?.subscription_status === 'none';
+  const hasInactiveSubscription = organization?.subscription_status && 
+    ['expired', 'cancelled', 'past_due', 'inactive', 'none'].includes(organization.subscription_status);
+  const hasNoCreditsAllocation = organization?.monthly_credits === 0;
+  const hasNoPlan = currentTier === null || hasInactiveSubscription || hasNoCreditsAllocation;
   const hasUsedFreePlan = organization?.has_used_free_plan ?? false;
   const canClaimFreePlan = hasNoPlan && !hasUsedFreePlan;
   const creditsUsed = organization?.credits_used ?? 0;
