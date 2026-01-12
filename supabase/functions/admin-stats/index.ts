@@ -651,6 +651,161 @@ Deno.serve(async (req) => {
           headers: { ...corsHeaders, "Content-Type": "application/json" },
         });
       }
+
+      // Invite user - sends invite email
+      if (action === "invite-user") {
+        const { email, fullName } = body;
+        
+        if (!email) {
+          return new Response(JSON.stringify({ error: "email is required" }), {
+            status: 400,
+            headers: { ...corsHeaders, "Content-Type": "application/json" },
+          });
+        }
+
+        // Validate email format
+        const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+        if (!emailRegex.test(email)) {
+          return new Response(JSON.stringify({ error: "Invalid email format" }), {
+            status: 400,
+            headers: { ...corsHeaders, "Content-Type": "application/json" },
+          });
+        }
+
+        // Check if user already exists
+        const { data: existingUsers } = await supabaseAdmin.auth.admin.listUsers();
+        const existingUser = existingUsers?.users?.find(u => u.email?.toLowerCase() === email.toLowerCase());
+        
+        if (existingUser) {
+          return new Response(JSON.stringify({ error: "A user with this email already exists" }), {
+            status: 400,
+            headers: { ...corsHeaders, "Content-Type": "application/json" },
+          });
+        }
+
+        const redirectUrl = `${req.headers.get("origin") || Deno.env.get("SITE_URL") || "http://localhost:5173"}/auth`;
+
+        // Generate invite link
+        const { data: inviteData, error: inviteError } = await supabaseAdmin.auth.admin.generateLink({
+          type: "invite",
+          email,
+          options: {
+            redirectTo: redirectUrl,
+            data: {
+              full_name: fullName || null,
+            },
+          },
+        });
+
+        if (inviteError) {
+          console.error("Error generating invite link:", inviteError);
+          return new Response(JSON.stringify({ error: inviteError.message }), {
+            status: 500,
+            headers: { ...corsHeaders, "Content-Type": "application/json" },
+          });
+        }
+
+        // The invite email is sent automatically by Supabase when using generateLink with type "invite"
+        console.log(`Admin ${user.id} invited user ${email}`);
+
+        // Log the activity
+        await logAdminActivity(
+          supabaseAdmin,
+          user.id,
+          "user_invited",
+          inviteData.user?.id,
+          undefined,
+          { invited_email: email, full_name: fullName },
+          clientIp
+        );
+
+        return new Response(JSON.stringify({ 
+          success: true, 
+          message: `Invitation sent to ${email}`,
+          userId: inviteData.user?.id,
+        }), {
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+
+      // Create user directly with password
+      if (action === "create-user") {
+        const { email, password, fullName } = body;
+        
+        if (!email || !password) {
+          return new Response(JSON.stringify({ error: "email and password are required" }), {
+            status: 400,
+            headers: { ...corsHeaders, "Content-Type": "application/json" },
+          });
+        }
+
+        // Validate email format
+        const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+        if (!emailRegex.test(email)) {
+          return new Response(JSON.stringify({ error: "Invalid email format" }), {
+            status: 400,
+            headers: { ...corsHeaders, "Content-Type": "application/json" },
+          });
+        }
+
+        // Validate password strength
+        if (password.length < 6) {
+          return new Response(JSON.stringify({ error: "Password must be at least 6 characters" }), {
+            status: 400,
+            headers: { ...corsHeaders, "Content-Type": "application/json" },
+          });
+        }
+
+        // Check if user already exists
+        const { data: existingUsers } = await supabaseAdmin.auth.admin.listUsers();
+        const existingUser = existingUsers?.users?.find(u => u.email?.toLowerCase() === email.toLowerCase());
+        
+        if (existingUser) {
+          return new Response(JSON.stringify({ error: "A user with this email already exists" }), {
+            status: 400,
+            headers: { ...corsHeaders, "Content-Type": "application/json" },
+          });
+        }
+
+        // Create the user with admin API
+        const { data: newUser, error: createError } = await supabaseAdmin.auth.admin.createUser({
+          email,
+          password,
+          email_confirm: true, // Auto-confirm the email
+          user_metadata: {
+            full_name: fullName || null,
+          },
+        });
+
+        if (createError) {
+          console.error("Error creating user:", createError);
+          return new Response(JSON.stringify({ error: createError.message }), {
+            status: 500,
+            headers: { ...corsHeaders, "Content-Type": "application/json" },
+          });
+        }
+
+        console.log(`Admin ${user.id} created user ${email}`);
+
+        // Log the activity
+        await logAdminActivity(
+          supabaseAdmin,
+          user.id,
+          "user_created",
+          newUser.user?.id,
+          undefined,
+          { created_email: email, full_name: fullName },
+          clientIp
+        );
+
+        return new Response(JSON.stringify({ 
+          success: true, 
+          message: `User ${email} created successfully`,
+          userId: newUser.user?.id,
+        }), {
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
     }
 
     // GET requests for fetching data
