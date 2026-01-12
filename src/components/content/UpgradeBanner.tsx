@@ -1,7 +1,9 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Sparkles, ArrowRight, X, Crown, Rocket, Gift } from "lucide-react";
+
+const STORAGE_KEY = "upgrade-banner-dismissed";
 
 interface UpgradeBannerProps {
   canClaimFreePlan?: boolean;
@@ -14,11 +16,15 @@ export function UpgradeBanner({
   variant = "default",
   onDismiss 
 }: UpgradeBannerProps) {
-  const [isDismissed, setIsDismissed] = useState(false);
+  const [isDismissed, setIsDismissed] = useState(() => {
+    const stored = sessionStorage.getItem(STORAGE_KEY);
+    return stored === "true";
+  });
 
   if (isDismissed) return null;
 
   const handleDismiss = () => {
+    sessionStorage.setItem(STORAGE_KEY, "true");
     setIsDismissed(true);
     onDismiss?.();
   };
