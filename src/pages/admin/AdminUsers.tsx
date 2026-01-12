@@ -7,6 +7,7 @@ import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useToast } from "@/hooks/use-toast";
@@ -15,7 +16,7 @@ import { usePlans } from "@/hooks/usePlans";
 import { supabase } from "@/integrations/supabase/client";
 import { useQueryClient } from "@tanstack/react-query";
 import { formatDistanceToNow } from "date-fns";
-import { Search, CreditCard, Ban, UserX, Crown, CheckCircle, MailCheck, Shield, LogIn, Calendar, CalendarPlus, CalendarMinus } from "lucide-react";
+import { Search, CreditCard, Ban, UserX, Crown, CheckCircle, MailCheck, Shield, LogIn, Calendar, CalendarPlus, CalendarMinus, UserPlus, Mail, Key, Eye, EyeOff } from "lucide-react";
 
 type SubscriptionTier = "free" | "starter" | "pro" | "enterprise";
 
@@ -39,6 +40,14 @@ export default function AdminUsers() {
   const [periodDialogOpen, setPeriodDialogOpen] = useState(false);
   const [periodDays, setPeriodDays] = useState("");
   const [periodMode, setPeriodMode] = useState<"extend" | "reduce" | "set">("extend");
+  
+  // Add user dialogs
+  const [inviteUserOpen, setInviteUserOpen] = useState(false);
+  const [createUserOpen, setCreateUserOpen] = useState(false);
+  const [newUserEmail, setNewUserEmail] = useState("");
+  const [newUserName, setNewUserName] = useState("");
+  const [newUserPassword, setNewUserPassword] = useState("");
+  const [showPassword, setShowPassword] = useState(false);
 
   // Build plan details from database plans
   const planDetailsMap = useMemo(() => {
@@ -349,6 +358,99 @@ export default function AdminUsers() {
     }
   };
 
+  const handleInviteUser = async () => {
+    if (!newUserEmail) return;
+    
+    setIsSubmitting(true);
+    try {
+      const { data: session } = await supabase.auth.getSession();
+      
+      const response = await fetch(
+        `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/admin-stats?action=invite-user`,
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${session.session?.access_token}`,
+          },
+          body: JSON.stringify({
+            email: newUserEmail.trim(),
+            fullName: newUserName.trim() || undefined,
+          }),
+        }
+      );
+      
+      const data = await response.json();
+      if (!response.ok) throw new Error(data.error || "Failed to send invitation");
+
+      toast({
+        title: "Invitation Sent",
+        description: `An invitation email has been sent to ${newUserEmail}.`,
+      });
+      
+      queryClient.invalidateQueries({ queryKey: ["admin-all-users"] });
+      setInviteUserOpen(false);
+      setNewUserEmail("");
+      setNewUserName("");
+    } catch (error: any) {
+      toast({
+        title: "Error",
+        description: error.message,
+        variant: "destructive",
+      });
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  const handleCreateUser = async () => {
+    if (!newUserEmail || !newUserPassword) return;
+    
+    setIsSubmitting(true);
+    try {
+      const { data: session } = await supabase.auth.getSession();
+      
+      const response = await fetch(
+        `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/admin-stats?action=create-user`,
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${session.session?.access_token}`,
+          },
+          body: JSON.stringify({
+            email: newUserEmail.trim(),
+            password: newUserPassword,
+            fullName: newUserName.trim() || undefined,
+          }),
+        }
+      );
+      
+      const data = await response.json();
+      if (!response.ok) throw new Error(data.error || "Failed to create user");
+
+      toast({
+        title: "User Created",
+        description: `User ${newUserEmail} has been created successfully.`,
+      });
+      
+      queryClient.invalidateQueries({ queryKey: ["admin-all-users"] });
+      setCreateUserOpen(false);
+      setNewUserEmail("");
+      setNewUserName("");
+      setNewUserPassword("");
+      setShowPassword(false);
+    } catch (error: any) {
+      toast({
+        title: "Error",
+        description: error.message,
+        variant: "destructive",
+      });
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
   const handleImpersonateUser = async (user: any) => {
     if (user.is_banned) {
       toast({
@@ -420,14 +522,34 @@ export default function AdminUsers() {
                   {users?.length || 0} total users registered
                 </CardDescription>
               </div>
-              <div className="relative w-full md:w-64">
-                <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                <Input
-                  placeholder="Search users..."
-                  value={searchQuery}
-                  onChange={(e) => setSearchQuery(e.target.value)}
-                  className="pl-9"
-                />
+              <div className="flex items-center gap-3">
+                <div className="relative w-full md:w-64">
+                  <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                  <Input
+                    placeholder="Search users..."
+                    value={searchQuery}
+                    onChange={(e) => setSearchQuery(e.target.value)}
+                    className="pl-9"
+                  />
+                </div>
+                <DropdownMenu>
+                  <DropdownMenuTrigger asChild>
+                    <Button>
+                      <UserPlus className="h-4 w-4 mr-2" />
+                      Add User
+                    </Button>
+                  </DropdownMenuTrigger>
+                  <DropdownMenuContent align="end">
+                    <DropdownMenuItem onClick={() => setInviteUserOpen(true)}>
+                      <Mail className="h-4 w-4 mr-2" />
+                      Send Invite Email
+                    </DropdownMenuItem>
+                    <DropdownMenuItem onClick={() => setCreateUserOpen(true)}>
+                      <Key className="h-4 w-4 mr-2" />
+                      Create with Password
+                    </DropdownMenuItem>
+                  </DropdownMenuContent>
+                </DropdownMenu>
               </div>
             </div>
           </CardHeader>
@@ -878,6 +1000,149 @@ export default function AdminUsers() {
               {isSubmitting ? "Processing..." : 
                 periodMode === "extend" ? "Extend Period" : 
                 periodMode === "reduce" ? "Reduce Period" : "Set Period"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Invite User Dialog */}
+      <Dialog open={inviteUserOpen} onOpenChange={(open) => {
+        setInviteUserOpen(open);
+        if (!open) {
+          setNewUserEmail("");
+          setNewUserName("");
+        }
+      }}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <Mail className="h-5 w-5" />
+              Invite User
+            </DialogTitle>
+            <DialogDescription>
+              Send an invitation email to a new user. They will set their own password.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4 py-4">
+            <div className="space-y-2">
+              <Label htmlFor="invite-email">Email Address *</Label>
+              <Input
+                id="invite-email"
+                type="email"
+                placeholder="user@example.com"
+                value={newUserEmail}
+                onChange={(e) => setNewUserEmail(e.target.value)}
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="invite-name">Full Name (optional)</Label>
+              <Input
+                id="invite-name"
+                type="text"
+                placeholder="John Doe"
+                value={newUserName}
+                onChange={(e) => setNewUserName(e.target.value)}
+              />
+            </div>
+            <div className="rounded-lg border p-3 bg-muted/50">
+              <p className="text-sm text-muted-foreground">
+                The user will receive an email with a link to set their password and complete registration.
+              </p>
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setInviteUserOpen(false)}>
+              Cancel
+            </Button>
+            <Button 
+              onClick={handleInviteUser} 
+              disabled={isSubmitting || !newUserEmail}
+            >
+              {isSubmitting ? "Sending..." : "Send Invitation"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Create User Dialog */}
+      <Dialog open={createUserOpen} onOpenChange={(open) => {
+        setCreateUserOpen(open);
+        if (!open) {
+          setNewUserEmail("");
+          setNewUserName("");
+          setNewUserPassword("");
+          setShowPassword(false);
+        }
+      }}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <Key className="h-5 w-5" />
+              Create User
+            </DialogTitle>
+            <DialogDescription>
+              Create a new user account with a password. The account will be immediately active.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4 py-4">
+            <div className="space-y-2">
+              <Label htmlFor="create-email">Email Address *</Label>
+              <Input
+                id="create-email"
+                type="email"
+                placeholder="user@example.com"
+                value={newUserEmail}
+                onChange={(e) => setNewUserEmail(e.target.value)}
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="create-name">Full Name (optional)</Label>
+              <Input
+                id="create-name"
+                type="text"
+                placeholder="John Doe"
+                value={newUserName}
+                onChange={(e) => setNewUserName(e.target.value)}
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="create-password">Password *</Label>
+              <div className="relative">
+                <Input
+                  id="create-password"
+                  type={showPassword ? "text" : "password"}
+                  placeholder="Minimum 6 characters"
+                  value={newUserPassword}
+                  onChange={(e) => setNewUserPassword(e.target.value)}
+                  className="pr-10"
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowPassword(!showPassword)}
+                  className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
+                >
+                  {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                </button>
+              </div>
+              <p className="text-xs text-muted-foreground">
+                Password must be at least 6 characters.
+              </p>
+            </div>
+            <div className="rounded-lg border p-3 bg-amber-500/10 border-amber-500/20">
+              <p className="text-sm text-amber-600 dark:text-amber-400">
+                The user's email will be automatically verified and they can log in immediately with this password.
+              </p>
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setCreateUserOpen(false)}>
+              Cancel
+            </Button>
+            <Button 
+              onClick={handleCreateUser} 
+              disabled={isSubmitting || !newUserEmail || !newUserPassword || newUserPassword.length < 6}
+            >
+              {isSubmitting ? "Creating..." : "Create User"}
             </Button>
           </DialogFooter>
         </DialogContent>
