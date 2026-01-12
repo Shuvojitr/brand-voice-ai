@@ -2,11 +2,12 @@ import { DashboardLayout } from "@/components/dashboard";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
-import { Plus, FileText, Mic, TrendingUp, Zap, Calendar, Edit, AlertCircle } from "lucide-react";
+import { Plus, FileText, Mic, TrendingUp, Zap, Calendar, Edit } from "lucide-react";
 import { Link } from "react-router-dom";
 import { useOrganization } from "@/hooks/useOrganization";
 import { useDashboardStats, useRecentDocuments } from "@/hooks/useDashboardStats";
 import { formatDistanceToNow } from "date-fns";
+import { UpgradeBanner } from "@/components/content/UpgradeBanner";
 
 export default function Dashboard() {
   const { organization, isLoading: orgLoading } = useOrganization();
@@ -58,60 +59,15 @@ export default function Dashboard() {
   return (
     <DashboardLayout>
       <div className="space-y-8">
-        {/* New User Banner - No plan claimed yet */}
+        {/* Upgrade Banner for users without active plan */}
         {hasNoPlan && (
-          <Card className="border-amber-500/50 bg-amber-500/10">
-            <CardContent className="py-4">
-              <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-                <div className="flex items-start gap-3">
-                  <AlertCircle className="h-5 w-5 text-amber-600 dark:text-amber-400 mt-0.5 shrink-0" />
-                  <div>
-                    <p className="font-medium text-amber-600 dark:text-amber-400">
-                      {canClaimFreePlan ? "You don't have an active plan yet" : "Your plan has expired"}
-                    </p>
-                    <p className="text-sm text-muted-foreground mt-0.5">
-                      {canClaimFreePlan 
-                        ? "Claim your free plan to get 1,000 words/month, or upgrade for more features."
-                        : "Subscribe to a plan to continue generating content."}
-                    </p>
-                  </div>
-                </div>
-                <Button asChild className="shrink-0">
-                  <Link to="/dashboard/billing">
-                    {canClaimFreePlan ? "Get Started" : "View Plans"}
-                  </Link>
-                </Button>
-              </div>
-            </CardContent>
-          </Card>
+          <UpgradeBanner canClaimFreePlan={canClaimFreePlan} />
         )}
 
         {/* Inactive Subscription Banner - Expired/Cancelled users */}
         {!hasNoPlan && hasInactiveSubscription && (
-          <Card className="border-destructive/50 bg-destructive/10">
-            <CardContent className="py-4">
-              <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-                <div className="flex items-start gap-3">
-                  <AlertCircle className="h-5 w-5 text-destructive mt-0.5 shrink-0" />
-                  <div>
-                    <p className="font-medium text-destructive">
-                      Your subscription is no longer active
-                    </p>
-                    <p className="text-sm text-muted-foreground mt-0.5">
-                      Upgrade now to continue generating AI-powered content and unlock all features.
-                    </p>
-                  </div>
-                </div>
-                <Button asChild variant="destructive" className="shrink-0">
-                  <Link to="/dashboard/billing">
-                    Upgrade Now
-                  </Link>
-                </Button>
-              </div>
-            </CardContent>
-          </Card>
+          <UpgradeBanner variant="expired" />
         )}
-
         {/* Welcome Section */}
         <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
           <div>
