@@ -685,28 +685,26 @@ Deno.serve(async (req) => {
 
         const redirectUrl = `${req.headers.get("origin") || Deno.env.get("SITE_URL") || "http://localhost:5173"}/auth`;
 
-        // Generate invite link
-        const { data: inviteData, error: inviteError } = await supabaseAdmin.auth.admin.generateLink({
-          type: "invite",
+        // Use inviteUserByEmail which actually sends the invitation email
+        const { data: inviteData, error: inviteError } = await supabaseAdmin.auth.admin.inviteUserByEmail(
           email,
-          options: {
+          {
             redirectTo: redirectUrl,
             data: {
               full_name: fullName || null,
             },
-          },
-        });
+          }
+        );
 
         if (inviteError) {
-          console.error("Error generating invite link:", inviteError);
+          console.error("Error sending invite email:", inviteError);
           return new Response(JSON.stringify({ error: inviteError.message }), {
             status: 500,
             headers: { ...corsHeaders, "Content-Type": "application/json" },
           });
         }
 
-        // The invite email is sent automatically by Supabase when using generateLink with type "invite"
-        console.log(`Admin ${user.id} invited user ${email}`);
+        console.log(`Admin ${user.id} invited user ${email} - invitation email sent`);
 
         // Log the activity
         await logAdminActivity(
@@ -721,8 +719,81 @@ Deno.serve(async (req) => {
 
         return new Response(JSON.stringify({ 
           success: true, 
-          message: `Invitation sent to ${email}`,
+          message: `Invitation email sent to ${email}`,
           userId: inviteData.user?.id,
+        }), {
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+
+      // Resend invitation email to a user who hasn't completed registration
+      if (action === "resend-invite") {
+        const { userId, email } = body;
+        
+        if (!userId && !email) {
+          return new Response(JSON.stringify({ error: "userId or email is required" }), {
+            status: 400,
+            headers: { ...corsHeaders, "Content-Type": "application/json" },
+          });
+        }
+
+        // Find the user
+        const { data: authData } = await supabaseAdmin.auth.admin.listUsers();
+        const targetUser = authData?.users?.find(u => 
+          userId ? u.id === userId : u.email?.toLowerCase() === email?.toLowerCase()
+        );
+
+        if (!targetUser) {
+          return new Response(JSON.stringify({ error: "User not found" }), {
+            status: 404,
+            headers: { ...corsHeaders, "Content-Type": "application/json" },
+          });
+        }
+
+        // Check if user has already confirmed their email
+        if (targetUser.email_confirmed_at) {
+          return new Response(JSON.stringify({ error: "User has already confirmed their email" }), {
+            status: 400,
+            headers: { ...corsHeaders, "Content-Type": "application/json" },
+          });
+        }
+
+        const redirectUrl = `${req.headers.get("origin") || Deno.env.get("SITE_URL") || "http://localhost:5173"}/auth`;
+
+        // Resend the invitation using inviteUserByEmail
+        // This will resend the invite email to an existing unconfirmed user
+        const { data: resendData, error: resendError } = await supabaseAdmin.auth.admin.inviteUserByEmail(
+          targetUser.email!,
+          {
+            redirectTo: redirectUrl,
+            data: targetUser.user_metadata,
+          }
+        );
+
+        if (resendError) {
+          console.error("Error resending invite email:", resendError);
+          return new Response(JSON.stringify({ error: resendError.message }), {
+            status: 500,
+            headers: { ...corsHeaders, "Content-Type": "application/json" },
+          });
+        }
+
+        console.log(`Admin ${user.id} resent invitation to ${targetUser.email}`);
+
+        // Log the activity
+        await logAdminActivity(
+          supabaseAdmin,
+          user.id,
+          "invite_resent",
+          targetUser.id,
+          undefined,
+          { target_email: targetUser.email },
+          clientIp
+        );
+
+        return new Response(JSON.stringify({ 
+          success: true, 
+          message: `Invitation email resent to ${targetUser.email}`,
         }), {
           headers: { ...corsHeaders, "Content-Type": "application/json" },
         });
