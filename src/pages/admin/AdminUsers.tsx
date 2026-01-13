@@ -16,7 +16,7 @@ import { usePlans } from "@/hooks/usePlans";
 import { supabase } from "@/integrations/supabase/client";
 import { useQueryClient } from "@tanstack/react-query";
 import { formatDistanceToNow } from "date-fns";
-import { Search, CreditCard, Ban, UserX, Crown, CheckCircle, MailCheck, Shield, LogIn, Calendar, CalendarPlus, CalendarMinus, UserPlus, Mail, Key, Eye, EyeOff } from "lucide-react";
+import { Search, CreditCard, Ban, UserX, Crown, CheckCircle, MailCheck, Shield, LogIn, Calendar, CalendarPlus, CalendarMinus, UserPlus, Mail, Key, Eye, EyeOff, RefreshCw } from "lucide-react";
 
 type SubscriptionTier = "free" | "starter" | "pro" | "enterprise";
 
@@ -451,6 +451,46 @@ export default function AdminUsers() {
     }
   };
 
+  const handleResendInvite = async (user: any) => {
+    setIsSubmitting(true);
+    try {
+      const { data: session } = await supabase.auth.getSession();
+      
+      const response = await fetch(
+        `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/admin-stats?action=resend-invite`,
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${session.session?.access_token}`,
+          },
+          body: JSON.stringify({
+            userId: user.id,
+            email: user.email,
+          }),
+        }
+      );
+      
+      const data = await response.json();
+      if (!response.ok) throw new Error(data.error || "Failed to resend invitation");
+
+      toast({
+        title: "Invitation Resent",
+        description: `A new invitation email has been sent to ${user.email}.`,
+      });
+      
+      queryClient.invalidateQueries({ queryKey: ["admin-all-users"] });
+    } catch (error: any) {
+      toast({
+        title: "Error",
+        description: error.message,
+        variant: "destructive",
+      });
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
   const handleImpersonateUser = async (user: any) => {
     if (user.is_banned) {
       toast({
@@ -647,15 +687,28 @@ export default function AdminUsers() {
                               Login As
                             </Button>
                             {!user.email_confirmed_at && (
-                              <Button
-                                variant="outline"
-                                size="sm"
-                                onClick={() => handleVerifyUser(user)}
-                                disabled={isSubmitting}
-                              >
-                                <MailCheck className="h-4 w-4 mr-1" />
-                                Verify
-                              </Button>
+                              <>
+                                <Button
+                                  variant="outline"
+                                  size="sm"
+                                  onClick={() => handleResendInvite(user)}
+                                  disabled={isSubmitting}
+                                  title="Resend invitation email"
+                                >
+                                  <RefreshCw className="h-4 w-4 mr-1" />
+                                  Resend
+                                </Button>
+                                <Button
+                                  variant="outline"
+                                  size="sm"
+                                  onClick={() => handleVerifyUser(user)}
+                                  disabled={isSubmitting}
+                                  title="Manually verify email"
+                                >
+                                  <MailCheck className="h-4 w-4 mr-1" />
+                                  Verify
+                                </Button>
+                              </>
                             )}
                             <Button
                               variant="outline"
