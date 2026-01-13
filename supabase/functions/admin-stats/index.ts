@@ -877,6 +877,79 @@ Deno.serve(async (req) => {
           headers: { ...corsHeaders, "Content-Type": "application/json" },
         });
       }
+
+      // Delete user permanently
+      if (action === "delete-user") {
+        const { userId } = body;
+        
+        if (!userId) {
+          return new Response(JSON.stringify({ error: "userId is required" }), {
+            status: 400,
+            headers: { ...corsHeaders, "Content-Type": "application/json" },
+          });
+        }
+
+        // Prevent self-deletion
+        if (userId === user.id) {
+          return new Response(JSON.stringify({ error: "You cannot delete your own account" }), {
+            status: 400,
+            headers: { ...corsHeaders, "Content-Type": "application/json" },
+          });
+        }
+
+        // Get target user info before deletion for logging
+        const { data: targetProfile } = await supabaseAdmin
+          .from("profiles")
+          .select("email, full_name")
+          .eq("id", userId)
+          .maybeSingle();
+
+        // Check if target user is also an admin
+        const { data: targetRole } = await supabaseAdmin
+          .from("user_roles")
+          .select("role")
+          .eq("user_id", userId)
+          .eq("role", "admin")
+          .maybeSingle();
+
+        if (targetRole) {
+          return new Response(JSON.stringify({ error: "Cannot delete another admin. Please remove their admin role first." }), {
+            status: 400,
+            headers: { ...corsHeaders, "Content-Type": "application/json" },
+          });
+        }
+
+        // Delete from auth (this will cascade to profiles if set up correctly)
+        const { error: deleteError } = await supabaseAdmin.auth.admin.deleteUser(userId);
+
+        if (deleteError) {
+          console.error("Error deleting user:", deleteError);
+          return new Response(JSON.stringify({ error: deleteError.message }), {
+            status: 500,
+            headers: { ...corsHeaders, "Content-Type": "application/json" },
+          });
+        }
+
+        console.log(`Admin ${user.id} permanently deleted user ${userId} (${targetProfile?.email})`);
+
+        // Log the activity
+        await logAdminActivity(
+          supabaseAdmin,
+          user.id,
+          "user_deleted",
+          userId,
+          undefined,
+          { deleted_email: targetProfile?.email, deleted_name: targetProfile?.full_name },
+          clientIp
+        );
+
+        return new Response(JSON.stringify({ 
+          success: true, 
+          message: `User ${targetProfile?.email || userId} has been permanently deleted`,
+        }), {
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
     }
 
     // GET requests for fetching data
