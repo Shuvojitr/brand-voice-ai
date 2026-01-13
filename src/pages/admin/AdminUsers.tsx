@@ -16,7 +16,7 @@ import { usePlans } from "@/hooks/usePlans";
 import { supabase } from "@/integrations/supabase/client";
 import { useQueryClient } from "@tanstack/react-query";
 import { formatDistanceToNow } from "date-fns";
-import { Search, CreditCard, Ban, UserX, Crown, CheckCircle, MailCheck, Shield, LogIn, Calendar, CalendarPlus, CalendarMinus, UserPlus, Mail, Key, Eye, EyeOff, RefreshCw } from "lucide-react";
+import { Search, CreditCard, Ban, UserX, Crown, CheckCircle, MailCheck, Shield, LogIn, Calendar, CalendarPlus, CalendarMinus, UserPlus, Mail, Key, Eye, EyeOff, RefreshCw, Trash2 } from "lucide-react";
 
 type SubscriptionTier = "free" | "starter" | "pro" | "enterprise";
 
@@ -48,7 +48,7 @@ export default function AdminUsers() {
   const [newUserName, setNewUserName] = useState("");
   const [newUserPassword, setNewUserPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
-
+  const [deleteUserOpen, setDeleteUserOpen] = useState(false);
   // Build plan details from database plans
   const planDetailsMap = useMemo(() => {
     const defaultDetails: Record<SubscriptionTier, { label: string; credits: number; color: string }> = {
@@ -491,6 +491,49 @@ export default function AdminUsers() {
     }
   };
 
+  const handleDeleteUser = async () => {
+    if (!selectedUser) return;
+    
+    setIsSubmitting(true);
+    try {
+      const { data: session } = await supabase.auth.getSession();
+      
+      const response = await fetch(
+        `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/admin-stats?action=delete-user`,
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${session.session?.access_token}`,
+          },
+          body: JSON.stringify({
+            userId: selectedUser.id,
+          }),
+        }
+      );
+      
+      const data = await response.json();
+      if (!response.ok) throw new Error(data.error || "Failed to delete user");
+
+      toast({
+        title: "User Deleted",
+        description: `${selectedUser.email} has been permanently deleted.`,
+      });
+      
+      queryClient.invalidateQueries({ queryKey: ["admin-all-users"] });
+      setDeleteUserOpen(false);
+      setSelectedUser(null);
+    } catch (error: any) {
+      toast({
+        title: "Error",
+        description: error.message,
+        variant: "destructive",
+      });
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
   const handleImpersonateUser = async (user: any) => {
     if (user.is_banned) {
       toast({
@@ -768,6 +811,17 @@ export default function AdminUsers() {
                                   Ban
                                 </>
                               )}
+                            </Button>
+                            <Button
+                              variant="destructive"
+                              size="sm"
+                              onClick={() => {
+                                setSelectedUser(user);
+                                setDeleteUserOpen(true);
+                              }}
+                              title="Permanently delete user"
+                            >
+                              <Trash2 className="h-4 w-4" />
                             </Button>
                           </div>
                         </TableCell>
@@ -1196,6 +1250,55 @@ export default function AdminUsers() {
               disabled={isSubmitting || !newUserEmail || !newUserPassword || newUserPassword.length < 6}
             >
               {isSubmitting ? "Creating..." : "Create User"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Delete User Confirmation Dialog */}
+      <Dialog open={deleteUserOpen} onOpenChange={(open) => {
+        setDeleteUserOpen(open);
+        if (!open) setSelectedUser(null);
+      }}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2 text-destructive">
+              <Trash2 className="h-5 w-5" />
+              Delete User Permanently
+            </DialogTitle>
+            <DialogDescription>
+              This action cannot be undone. This will permanently delete the user account and all associated data.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4 py-4">
+            <div className="rounded-lg border border-destructive/50 p-4 bg-destructive/10">
+              <p className="text-sm font-medium">You are about to delete:</p>
+              <p className="text-sm text-muted-foreground mt-1">
+                <strong>Email:</strong> {selectedUser?.email}
+              </p>
+              {selectedUser?.full_name && (
+                <p className="text-sm text-muted-foreground">
+                  <strong>Name:</strong> {selectedUser.full_name}
+                </p>
+              )}
+              <p className="text-sm text-muted-foreground">
+                <strong>Role:</strong> {selectedUser?.role || "user"}
+              </p>
+            </div>
+            <p className="text-sm text-destructive font-medium">
+              ⚠️ All user data, documents, and settings will be permanently removed.
+            </p>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setDeleteUserOpen(false)}>
+              Cancel
+            </Button>
+            <Button 
+              variant="destructive"
+              onClick={handleDeleteUser} 
+              disabled={isSubmitting}
+            >
+              {isSubmitting ? "Deleting..." : "Delete Permanently"}
             </Button>
           </DialogFooter>
         </DialogContent>
