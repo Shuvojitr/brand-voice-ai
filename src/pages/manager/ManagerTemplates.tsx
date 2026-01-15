@@ -7,6 +7,9 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useTemplates } from "@/hooks/useTemplates";
+import { useTemplateCategories } from "@/hooks/useTemplateCategories";
+import { useTemplateIcons } from "@/hooks/useTemplateIcons";
+import { getIconByName } from "@/lib/icon-utils";
 import { Search, Plus, Pencil, Eye, EyeOff } from "lucide-react";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
@@ -17,10 +20,10 @@ import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { useQueryClient } from "@tanstack/react-query";
 
-const categories = ["Marketing", "Sales", "Social Media", "Email", "Blog", "SEO", "Other"];
-
 export default function ManagerTemplates() {
   const { data: templates, isLoading } = useTemplates(true);
+  const { data: categories } = useTemplateCategories();
+  const { data: icons } = useTemplateIcons();
   const { toast } = useToast();
   const queryClient = useQueryClient();
   
@@ -30,7 +33,8 @@ export default function ManagerTemplates() {
   const [formData, setFormData] = useState({
     name: "",
     description: "",
-    category: "Marketing",
+    category: "",
+    icon: "",
     slug: "",
     system_prompt: "",
     is_active: true,
@@ -47,7 +51,8 @@ export default function ManagerTemplates() {
     setFormData({
       name: "",
       description: "",
-      category: "Marketing",
+      category: categories?.[0]?.value || "",
+      icon: icons?.[0]?.name || "FileText",
       slug: "",
       system_prompt: "",
       is_active: true,
@@ -61,6 +66,7 @@ export default function ManagerTemplates() {
       name: template.name,
       description: template.description || "",
       category: template.category,
+      icon: template.icon || "FileText",
       slug: template.slug,
       system_prompt: template.system_prompt,
       is_active: template.is_active,
@@ -87,6 +93,7 @@ export default function ManagerTemplates() {
             name: formData.name,
             description: formData.description,
             category: formData.category,
+            icon: formData.icon,
             slug: formData.slug,
             system_prompt: formData.system_prompt,
             is_active: formData.is_active,
@@ -104,6 +111,7 @@ export default function ManagerTemplates() {
           name: formData.name,
           description: formData.description,
           category: formData.category,
+          icon: formData.icon,
           slug: formData.slug,
           system_prompt: formData.system_prompt,
           is_active: formData.is_active,
@@ -155,6 +163,12 @@ export default function ManagerTemplates() {
     }
   };
 
+  // Find category label by value
+  const getCategoryLabel = (value: string) => {
+    const category = categories?.find(c => c.value === value);
+    return category?.label || value;
+  };
+
   return (
     <ManagerLayout>
       <div className="space-y-6">
@@ -204,49 +218,59 @@ export default function ManagerTemplates() {
                   <TableRow>
                     <TableHead>Name</TableHead>
                     <TableHead>Category</TableHead>
+                    <TableHead>Icon</TableHead>
                     <TableHead>Slug</TableHead>
                     <TableHead>Status</TableHead>
                     <TableHead className="text-right">Actions</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {filteredTemplates.map((template) => (
-                    <TableRow key={template.id}>
-                      <TableCell className="font-medium">{template.name}</TableCell>
-                      <TableCell>
-                        <Badge variant="secondary">{template.category}</Badge>
-                      </TableCell>
-                      <TableCell className="text-muted-foreground">{template.slug}</TableCell>
-                      <TableCell>
-                        <Badge variant={template.is_active ? "default" : "outline"}>
-                          {template.is_active ? "Active" : "Inactive"}
-                        </Badge>
-                      </TableCell>
-                      <TableCell className="text-right">
-                        <div className="flex items-center justify-end gap-2">
-                          <Button
-                            variant="outline"
-                            size="sm"
-                            onClick={() => openEditDialog(template)}
-                          >
-                            <Pencil className="h-4 w-4 mr-1" />
-                            Edit
-                          </Button>
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            onClick={() => toggleTemplateStatus(template)}
-                          >
-                            {template.is_active ? (
-                              <EyeOff className="h-4 w-4" />
-                            ) : (
-                              <Eye className="h-4 w-4" />
-                            )}
-                          </Button>
-                        </div>
-                      </TableCell>
-                    </TableRow>
-                  ))}
+                  {filteredTemplates.map((template) => {
+                    const IconComponent = getIconByName(template.icon);
+                    return (
+                      <TableRow key={template.id}>
+                        <TableCell className="font-medium">{template.name}</TableCell>
+                        <TableCell>
+                          <Badge variant="secondary">{getCategoryLabel(template.category)}</Badge>
+                        </TableCell>
+                        <TableCell>
+                          <div className="flex items-center gap-2">
+                            <IconComponent className="h-4 w-4 text-muted-foreground" />
+                            <span className="text-sm text-muted-foreground">{template.icon}</span>
+                          </div>
+                        </TableCell>
+                        <TableCell className="text-muted-foreground">{template.slug}</TableCell>
+                        <TableCell>
+                          <Badge variant={template.is_active ? "default" : "outline"}>
+                            {template.is_active ? "Active" : "Inactive"}
+                          </Badge>
+                        </TableCell>
+                        <TableCell className="text-right">
+                          <div className="flex items-center justify-end gap-2">
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              onClick={() => openEditDialog(template)}
+                            >
+                              <Pencil className="h-4 w-4 mr-1" />
+                              Edit
+                            </Button>
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              onClick={() => toggleTemplateStatus(template)}
+                            >
+                              {template.is_active ? (
+                                <EyeOff className="h-4 w-4" />
+                              ) : (
+                                <Eye className="h-4 w-4" />
+                              )}
+                            </Button>
+                          </div>
+                        </TableCell>
+                      </TableRow>
+                    );
+                  })}
                 </TableBody>
               </Table>
             ) : (
@@ -285,18 +309,41 @@ export default function ManagerTemplates() {
                 />
               </div>
             </div>
-            <div className="space-y-2">
-              <Label>Category</Label>
-              <Select value={formData.category} onValueChange={(v) => setFormData({ ...formData, category: v })}>
-                <SelectTrigger>
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  {categories.map((cat) => (
-                    <SelectItem key={cat} value={cat}>{cat}</SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label>Category</Label>
+                <Select value={formData.category} onValueChange={(v) => setFormData({ ...formData, category: v })}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Select category" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {categories?.map((cat) => (
+                      <SelectItem key={cat.id} value={cat.value}>{cat.label}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="space-y-2">
+                <Label>Icon</Label>
+                <Select value={formData.icon} onValueChange={(v) => setFormData({ ...formData, icon: v })}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Select icon" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {icons?.map((icon) => {
+                      const IconComponent = getIconByName(icon.name);
+                      return (
+                        <SelectItem key={icon.id} value={icon.name}>
+                          <div className="flex items-center gap-2">
+                            <IconComponent className="h-4 w-4" />
+                            {icon.name}
+                          </div>
+                        </SelectItem>
+                      );
+                    })}
+                  </SelectContent>
+                </Select>
+              </div>
             </div>
             <div className="space-y-2">
               <Label>Description</Label>

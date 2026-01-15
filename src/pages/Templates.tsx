@@ -4,76 +4,22 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
-import { 
-  Search, 
-  FileText, 
-  Mail, 
-  MessageSquare, 
-  ShoppingBag, 
-  Megaphone, 
-  Globe,
-  Linkedin,
-  Twitter,
-  Instagram,
-  Youtube,
-  PenTool,
-  Newspaper,
-  Send,
-  Star,
-  Target,
-  Package,
-  List,
-  Facebook,
-  type LucideIcon
-} from "lucide-react";
+import { Search, FileText, Star } from "lucide-react";
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { useTemplates, type DatabaseTemplate } from "@/hooks/useTemplates";
-
-interface Category {
-  id: string;
-  label: string;
-  icon: LucideIcon;
-}
-
-const categories: Category[] = [
-  { id: "all", label: "All Templates", icon: FileText },
-  { id: "blog", label: "Blog", icon: Newspaper },
-  { id: "social", label: "Social Media", icon: MessageSquare },
-  { id: "email", label: "Email", icon: Mail },
-  { id: "ads", label: "Ads", icon: Megaphone },
-  { id: "product", label: "Product", icon: ShoppingBag },
-  { id: "seo", label: "SEO", icon: Globe },
-];
-
-// Icon mapping from string to component
-const iconMap: Record<string, LucideIcon> = {
-  FileText,
-  List,
-  Linkedin,
-  Twitter,
-  Instagram,
-  Youtube,
-  Target,
-  Facebook,
-  Mail,
-  Send,
-  Package,
-  Search,
-  PenTool,
-  Newspaper,
-  MessageSquare,
-  ShoppingBag,
-  Megaphone,
-  Globe,
-};
+import { useTemplates } from "@/hooks/useTemplates";
+import { useTemplateCategories } from "@/hooks/useTemplateCategories";
+import { getIconByName } from "@/lib/icon-utils";
 
 export default function Templates() {
   const [search, setSearch] = useState("");
   const [activeCategory, setActiveCategory] = useState("all");
   const navigate = useNavigate();
   
-  const { data: templates, isLoading } = useTemplates();
+  const { data: templates, isLoading: templatesLoading } = useTemplates();
+  const { data: categories, isLoading: categoriesLoading } = useTemplateCategories();
+
+  const isLoading = templatesLoading || categoriesLoading;
 
   const filteredTemplates = templates?.filter((template) => {
     const matchesSearch = 
@@ -88,10 +34,11 @@ export default function Templates() {
     navigate(`/dashboard/create/${templateSlug}`);
   };
 
-  const getIcon = (iconName: string | null): LucideIcon => {
-    if (!iconName) return FileText;
-    return iconMap[iconName] || FileText;
-  };
+  // Create categories array with "All Templates" at the start
+  const displayCategories = [
+    { id: "all", value: "all", label: "All Templates", icon: "FileText" },
+    ...(categories || []).map(cat => ({ ...cat, id: cat.value })),
+  ];
 
   return (
     <DashboardLayout>
@@ -117,21 +64,28 @@ export default function Templates() {
         {/* Categories */}
         <div className="relative">
           <div className="flex overflow-x-auto pb-2 gap-2 no-scrollbar mask-fade-right scroll-snap-x md:flex-wrap md:overflow-visible md:pb-0 md:mask-none md:scroll-snap-none">
-            {categories.map((category) => {
-              const IconComponent = category.icon;
-              return (
-                <Button
-                  key={category.id}
-                  variant={activeCategory === category.id ? "default" : "outline"}
-                  size="sm"
-                  onClick={() => setActiveCategory(category.id)}
-                  className={`whitespace-nowrap flex-shrink-0 snap-start ${activeCategory === category.id ? "gradient-primary text-white" : ""}`}
-                >
-                  <IconComponent className="h-4 w-4 mr-2" />
-                  {category.label}
-                </Button>
-              );
-            })}
+            {categoriesLoading ? (
+              // Show skeleton buttons while loading
+              [...Array(6)].map((_, i) => (
+                <Skeleton key={i} className="h-9 w-24 rounded-md" />
+              ))
+            ) : (
+              displayCategories.map((category) => {
+                const IconComponent = getIconByName(category.icon);
+                return (
+                  <Button
+                    key={category.id}
+                    variant={activeCategory === category.value ? "default" : "outline"}
+                    size="sm"
+                    onClick={() => setActiveCategory(category.value)}
+                    className={`whitespace-nowrap flex-shrink-0 snap-start ${activeCategory === category.value ? "gradient-primary text-white" : ""}`}
+                  >
+                    <IconComponent className="h-4 w-4 mr-2" />
+                    {category.label}
+                  </Button>
+                );
+              })
+            )}
           </div>
         </div>
 
@@ -157,7 +111,7 @@ export default function Templates() {
         {!isLoading && (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5 gap-4">
             {filteredTemplates.map((template) => {
-              const IconComponent = getIcon(template.icon);
+              const IconComponent = getIconByName(template.icon);
               const isPopular = template.tags?.includes('popular') || template.sort_order === 1;
               return (
                 <Card 
