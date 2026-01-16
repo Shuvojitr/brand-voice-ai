@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import { AdminLayout } from "@/components/admin";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
@@ -13,10 +13,11 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { ScrollArea } from "@/components/ui/scroll-area";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { Plus, Pencil, Trash2, Search, Folder, icons as LucideIcons } from "lucide-react";
+import { Plus, Pencil, Trash2, Search, Folder, Eye, icons as LucideIcons } from "lucide-react";
 import * as LucideIconsAll from "lucide-react";
 
 const aiModels = [
@@ -65,6 +66,42 @@ interface IconFormData {
   is_active: boolean;
 }
 
+// Sample values for prompt preview
+const getSampleValue = (field: { id: string; type: string; label: string; options?: { value: string; label: string }[] }): string => {
+  const id = field.id.toLowerCase();
+  const type = field.type;
+  
+  // Use first option for select fields
+  if (type === "select" && field.options?.length) {
+    return field.options[0].value;
+  }
+  
+  // Generate contextual sample values based on field id/label
+  if (id.includes("topic") || id.includes("subject")) return "Artificial Intelligence in Healthcare";
+  if (id.includes("keyword")) return "AI, machine learning, healthcare, diagnosis";
+  if (id.includes("title")) return "The Future of AI in Medicine";
+  if (id.includes("tone") || id.includes("style")) return "Professional and informative";
+  if (id.includes("audience") || id.includes("target")) return "Healthcare professionals and tech enthusiasts";
+  if (id.includes("length") || id.includes("word")) return "1500";
+  if (id.includes("product") || id.includes("name")) return "SmartHealth Pro";
+  if (id.includes("description") || id.includes("about")) return "A cutting-edge AI-powered health monitoring system";
+  if (id.includes("brand")) return "TechMed Solutions";
+  if (id.includes("url") || id.includes("link")) return "https://example.com";
+  if (id.includes("platform")) return "LinkedIn";
+  if (id.includes("language")) return "English";
+  if (id.includes("industry")) return "Technology";
+  if (id.includes("feature")) return "Real-time health analytics, personalized recommendations";
+  if (id.includes("benefit")) return "Improved patient outcomes, reduced costs";
+  if (id.includes("cta") || id.includes("action")) return "Learn More";
+  
+  // Default based on type
+  if (type === "number") return "500";
+  if (type === "toggle") return "true";
+  if (type === "textarea") return "This is a sample longer text that would be entered in a textarea field. It provides context and details for the AI to work with.";
+  
+  return `Sample ${field.label}`;
+};
+
 export default function AdminTemplates() {
   const { toast } = useToast();
   const queryClient = useQueryClient();
@@ -75,6 +112,7 @@ export default function AdminTemplates() {
   const [selectedTemplate, setSelectedTemplate] = useState<any>(null);
   const [formData, setFormData] = useState<TemplateFormData>(emptyFormData);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [dialogTab, setDialogTab] = useState<"edit" | "preview">("edit");
   
   // Category management state
   const [categoryDialogOpen, setCategoryDialogOpen] = useState(false);
@@ -89,6 +127,37 @@ export default function AdminTemplates() {
   const [selectedIcon, setSelectedIcon] = useState<any>(null);
   const [iconFormData, setIconFormData] = useState<IconFormData>({ name: "", is_active: true });
   const [deleteIconOpen, setDeleteIconOpen] = useState(false);
+
+  // Generate prompt preview
+  const promptPreview = useMemo(() => {
+    try {
+      const fields = JSON.parse(formData.form_schema_json || "[]");
+      
+      // Build user prompt from sample inputs (same logic as edge function)
+      const userPromptParts: string[] = [];
+      for (const field of fields) {
+        const sampleValue = getSampleValue(field);
+        userPromptParts.push(`${field.id}: ${sampleValue}`);
+      }
+      
+      const languageInstruction = "\n\nWrite your response in clear, fluent English.";
+      const userPrompt = userPromptParts.join("\n") + languageInstruction;
+      
+      return {
+        systemPrompt: formData.system_prompt || "(No system prompt defined)",
+        userPrompt: userPrompt || "(No input fields defined)",
+        fields,
+        isValid: true,
+      };
+    } catch {
+      return {
+        systemPrompt: formData.system_prompt || "(No system prompt defined)",
+        userPrompt: "(Invalid form schema JSON)",
+        fields: [],
+        isValid: false,
+      };
+    }
+  }, [formData.form_schema_json, formData.system_prompt]);
 
   // Fetch templates
   const { data: templates, isLoading } = useQuery({
@@ -705,152 +774,224 @@ export default function AdminTemplates() {
       </div>
 
       {/* Template Create/Edit Dialog */}
-      <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
-        <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+      <Dialog open={dialogOpen} onOpenChange={(open) => { setDialogOpen(open); if (!open) setDialogTab("edit"); }}>
+        <DialogContent className="max-w-3xl max-h-[90vh] overflow-hidden flex flex-col">
           <DialogHeader>
             <DialogTitle>
               {selectedTemplate ? "Edit Template" : "Create Template"}
             </DialogTitle>
             <DialogDescription>
-              Configure the template settings and form schema.
+              Configure the template settings and preview how the prompt will look.
             </DialogDescription>
           </DialogHeader>
-          <div className="space-y-4 py-4">
-            <div>
-              <Label htmlFor="name">Name *</Label>
-              <Input
-                id="name"
-                value={formData.name}
-                onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                placeholder="Blog Post"
-              />
-            </div>
+          
+          <Tabs value={dialogTab} onValueChange={(v) => setDialogTab(v as "edit" | "preview")} className="flex-1 flex flex-col overflow-hidden">
+            <TabsList className="w-fit">
+              <TabsTrigger value="edit">
+                <Pencil className="h-4 w-4 mr-2" />
+                Edit
+              </TabsTrigger>
+              <TabsTrigger value="preview">
+                <Eye className="h-4 w-4 mr-2" />
+                Preview Prompt
+              </TabsTrigger>
+            </TabsList>
+            
+            <TabsContent value="edit" className="flex-1 overflow-y-auto mt-4">
+              <div className="space-y-4 pr-2">
+                <div>
+                  <Label htmlFor="name">Name *</Label>
+                  <Input
+                    id="name"
+                    value={formData.name}
+                    onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+                    placeholder="Blog Post"
+                  />
+                </div>
 
-            <div className="grid grid-cols-2 gap-4">
-              <div>
-                <Label htmlFor="slug">Slug *</Label>
-                <Input
-                  id="slug"
-                  value={formData.slug}
-                  onChange={(e) => setFormData({ ...formData, slug: e.target.value })}
-                  placeholder="blog-post"
-                />
-              </div>
-              <div>
-                <Label htmlFor="category">Category</Label>
-                <Select
-                  value={formData.category}
-                  onValueChange={(v) => setFormData({ ...formData, category: v })}
-                >
-                  <SelectTrigger>
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {categories.filter(c => c.is_active).map((cat) => (
-                      <SelectItem key={cat.value} value={cat.value}>
-                        {cat.label}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-            </div>
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <Label htmlFor="slug">Slug *</Label>
+                    <Input
+                      id="slug"
+                      value={formData.slug}
+                      onChange={(e) => setFormData({ ...formData, slug: e.target.value })}
+                      placeholder="blog-post"
+                    />
+                  </div>
+                  <div>
+                    <Label htmlFor="category">Category</Label>
+                    <Select
+                      value={formData.category}
+                      onValueChange={(v) => setFormData({ ...formData, category: v })}
+                    >
+                      <SelectTrigger>
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {categories.filter(c => c.is_active).map((cat) => (
+                          <SelectItem key={cat.value} value={cat.value}>
+                            {cat.label}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                </div>
 
-            <div className="grid grid-cols-2 gap-4">
-              <div>
-                <Label htmlFor="icon">Icon</Label>
-                <Select
-                  value={formData.icon}
-                  onValueChange={(v) => setFormData({ ...formData, icon: v })}
-                >
-                  <SelectTrigger>
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {dbIcons.filter(i => i.is_active).map((icon) => {
-                      const IconComp = getIconComponent(icon.name);
-                      return (
-                        <SelectItem key={icon.name} value={icon.name}>
-                          <div className="flex items-center gap-2">
-                            <IconComp className="h-4 w-4" />
-                            {icon.name}
-                          </div>
-                        </SelectItem>
-                      );
-                    })}
-                  </SelectContent>
-                </Select>
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <Label htmlFor="icon">Icon</Label>
+                    <Select
+                      value={formData.icon}
+                      onValueChange={(v) => setFormData({ ...formData, icon: v })}
+                    >
+                      <SelectTrigger>
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {dbIcons.filter(i => i.is_active).map((icon) => {
+                          const IconComp = getIconComponent(icon.name);
+                          return (
+                            <SelectItem key={icon.name} value={icon.name}>
+                              <div className="flex items-center gap-2">
+                                <IconComp className="h-4 w-4" />
+                                {icon.name}
+                              </div>
+                            </SelectItem>
+                          );
+                        })}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <div>
+                    <Label htmlFor="model">AI Model</Label>
+                    <Select
+                      value={formData.model}
+                      onValueChange={(v) => setFormData({ ...formData, model: v })}
+                    >
+                      <SelectTrigger>
+                        <SelectValue placeholder="Use Default" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {aiModels.map((m) => (
+                          <SelectItem key={m.value} value={m.value}>
+                            {m.label}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                    <p className="text-xs text-muted-foreground mt-1">
+                      Override the default AI model for this template.
+                    </p>
+                  </div>
+                </div>
+
+                <div>
+                  <Label htmlFor="description">Description</Label>
+                  <Textarea
+                    id="description"
+                    value={formData.description}
+                    onChange={(e) => setFormData({ ...formData, description: e.target.value })}
+                    placeholder="Generate a complete blog post..."
+                    rows={2}
+                  />
+                </div>
+
+                <div>
+                  <Label htmlFor="system_prompt">System Prompt *</Label>
+                  <Textarea
+                    id="system_prompt"
+                    value={formData.system_prompt}
+                    onChange={(e) => setFormData({ ...formData, system_prompt: e.target.value })}
+                    placeholder="You are an expert content writer..."
+                    rows={4}
+                  />
+                </div>
+
+                <div>
+                  <Label htmlFor="form_schema">Form Schema (JSON)</Label>
+                  <Textarea
+                    id="form_schema"
+                    value={formData.form_schema_json}
+                    onChange={(e) => setFormData({ ...formData, form_schema_json: e.target.value })}
+                    placeholder='[{"id": "topic", "type": "text", "label": "Topic", "required": true}]'
+                    rows={6}
+                    className="font-mono text-sm"
+                  />
+                  <p className="text-xs text-muted-foreground mt-1">
+                    Define input fields as JSON array. Each field needs: id, type, label. The field <code className="bg-muted px-1 rounded">id</code> becomes the key in the user prompt.
+                  </p>
+                </div>
+
+                <div className="flex items-center gap-2">
+                  <Switch
+                    id="is_active"
+                    checked={formData.is_active}
+                    onCheckedChange={(checked) => setFormData({ ...formData, is_active: checked })}
+                  />
+                  <Label htmlFor="is_active">Active</Label>
+                </div>
               </div>
-              <div>
-                <Label htmlFor="model">AI Model</Label>
-                <Select
-                  value={formData.model}
-                  onValueChange={(v) => setFormData({ ...formData, model: v })}
-                >
-                  <SelectTrigger>
-                    <SelectValue placeholder="Use Default" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {aiModels.map((m) => (
-                      <SelectItem key={m.value} value={m.value}>
-                        {m.label}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-                <p className="text-xs text-muted-foreground mt-1">
-                  Override the default AI model for this template.
+            </TabsContent>
+            
+            <TabsContent value="preview" className="flex-1 overflow-hidden mt-4">
+              <div className="h-full flex flex-col gap-4">
+                <p className="text-sm text-muted-foreground">
+                  This preview shows how the prompt will be sent to the AI with sample input values.
                 </p>
+                
+                {/* Input fields preview */}
+                {promptPreview.fields.length > 0 && (
+                  <div className="rounded-lg border bg-muted/30 p-3">
+                    <h4 className="text-sm font-medium mb-2">Sample Input Values:</h4>
+                    <div className="grid grid-cols-2 gap-2 text-sm">
+                      {promptPreview.fields.map((field: any) => (
+                        <div key={field.id} className="flex gap-2">
+                          <span className="font-mono text-muted-foreground">{field.id}:</span>
+                          <span className="text-foreground truncate">{getSampleValue(field)}</span>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+                
+                <ScrollArea className="flex-1 border rounded-lg">
+                  <div className="p-4 space-y-4">
+                    {/* System prompt section */}
+                    <div>
+                      <div className="flex items-center gap-2 mb-2">
+                        <Badge variant="secondary" className="text-xs">System</Badge>
+                        <span className="text-xs text-muted-foreground">Sent as system message</span>
+                      </div>
+                      <pre className="text-sm whitespace-pre-wrap font-mono bg-muted/50 p-3 rounded-md border">
+                        {promptPreview.systemPrompt}
+                      </pre>
+                    </div>
+                    
+                    {/* User prompt section */}
+                    <div>
+                      <div className="flex items-center gap-2 mb-2">
+                        <Badge className="text-xs">User</Badge>
+                        <span className="text-xs text-muted-foreground">Sent as user message (from form inputs)</span>
+                      </div>
+                      <pre className="text-sm whitespace-pre-wrap font-mono bg-muted/50 p-3 rounded-md border">
+                        {promptPreview.userPrompt}
+                      </pre>
+                    </div>
+                    
+                    {!promptPreview.isValid && (
+                      <div className="text-sm text-destructive bg-destructive/10 p-3 rounded-md">
+                        ⚠️ Form schema JSON is invalid. Fix the JSON to see the user prompt preview.
+                      </div>
+                    )}
+                  </div>
+                </ScrollArea>
               </div>
-            </div>
-
-            <div>
-              <Label htmlFor="description">Description</Label>
-              <Textarea
-                id="description"
-                value={formData.description}
-                onChange={(e) => setFormData({ ...formData, description: e.target.value })}
-                placeholder="Generate a complete blog post..."
-                rows={2}
-              />
-            </div>
-
-            <div>
-              <Label htmlFor="system_prompt">System Prompt *</Label>
-              <Textarea
-                id="system_prompt"
-                value={formData.system_prompt}
-                onChange={(e) => setFormData({ ...formData, system_prompt: e.target.value })}
-                placeholder="You are an expert content writer..."
-                rows={4}
-              />
-            </div>
-
-            <div>
-              <Label htmlFor="form_schema">Form Schema (JSON)</Label>
-              <Textarea
-                id="form_schema"
-                value={formData.form_schema_json}
-                onChange={(e) => setFormData({ ...formData, form_schema_json: e.target.value })}
-                placeholder='[{"id": "topic", "type": "text", "label": "Topic", "required": true}]'
-                rows={6}
-                className="font-mono text-sm"
-              />
-              <p className="text-xs text-muted-foreground mt-1">
-                Define input fields as JSON array. Each field needs: id, type, label.
-              </p>
-            </div>
-
-            <div className="flex items-center gap-2">
-              <Switch
-                id="is_active"
-                checked={formData.is_active}
-                onCheckedChange={(checked) => setFormData({ ...formData, is_active: checked })}
-              />
-              <Label htmlFor="is_active">Active</Label>
-            </div>
-          </div>
-          <DialogFooter>
+            </TabsContent>
+          </Tabs>
+          
+          <DialogFooter className="mt-4">
             <Button variant="outline" onClick={() => setDialogOpen(false)}>
               Cancel
             </Button>
