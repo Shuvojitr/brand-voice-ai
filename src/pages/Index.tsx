@@ -37,7 +37,6 @@ import {
   Palette,
   LucideIcon
 } from "lucide-react";
-import heroIllustration from "@/assets/hero-illustration.png";
 import { usePlans, Plan } from "@/hooks/usePlans";
 import { useSiteSettings } from "@/hooks/useSiteSettings";
 import { useHomepageContent } from "@/hooks/useHomepageContent";
@@ -287,87 +286,101 @@ export default function Index() {
       {homepageLoading || !hero ? (
         <HeroSkeleton />
       ) : (
-        <section className="relative py-16 md:py-24 lg:py-32 overflow-hidden">
-          {/* Decorative gradient shapes */}
-          <div className="absolute top-0 right-0 w-[600px] h-[600px] bg-gradient-to-bl from-violet/20 via-cyan/10 to-transparent rounded-full blur-3xl -z-10 translate-x-1/3 -translate-y-1/4" />
-          <div className="absolute bottom-0 left-0 w-[400px] h-[400px] bg-gradient-to-tr from-coral/15 to-transparent rounded-full blur-3xl -z-10 -translate-x-1/4 translate-y-1/4" />
-          
+        <section className="relative py-24 md:py-36">
           <div className="container">
-            <div className="grid lg:grid-cols-2 gap-12 lg:gap-16 items-center">
-              {/* Left Content */}
-              <div className="text-left">
-                <Badge 
+            <div className="mx-auto max-w-4xl text-center">
+              <Badge variant="gradient" className="mb-6 animate-fade-in px-4 py-2">
+                <Sparkles className="mr-2 h-4 w-4" />
+                {hero.badge_text}
+              </Badge>
+              
+              <h1 className="mb-6 font-display text-5xl font-bold tracking-tight md:text-7xl lg:text-8xl animate-slide-up">
+                {hero.headline_1}
+                <br />
+                <span className="gradient-text">{hero.headline_2}</span>
+              </h1>
+              
+              <p className="mx-auto mb-10 max-w-2xl text-lg text-muted-foreground md:text-xl animate-slide-up" style={{ animationDelay: "0.1s" }}>
+                {hero.subheadline}
+              </p>
+              
+              <div className="flex flex-col items-center justify-center gap-4 sm:flex-row animate-slide-up" style={{ animationDelay: "0.2s" }}>
+                <Button size="xl" variant="glow" asChild className="group">
+                  <Link to={hero.cta_primary_link}>
+                    {hero.cta_primary_text}
+                    <ArrowRight className="ml-2 h-5 w-5 transition-transform group-hover:translate-x-1" />
+                  </Link>
+                </Button>
+                <Button 
+                  size="xl" 
                   variant="outline" 
-                  className="mb-6 animate-fade-in px-4 py-2 bg-gradient-to-r from-violet/10 to-cyan/10 border-violet/30 text-foreground"
+                  className="group"
+                  onClick={() => {
+                    if (hero.cta_secondary_link.startsWith('#')) {
+                      const element = document.getElementById(hero.cta_secondary_link.slice(1));
+                      if (element) element.scrollIntoView({ behavior: 'smooth' });
+                    } else {
+                      window.location.href = hero.cta_secondary_link;
+                    }
+                  }}
                 >
-                  <Sparkles className="mr-2 h-4 w-4 text-violet" />
-                  {hero.badge_text}
-                </Badge>
-                
-                <h1 className="mb-6 font-display text-4xl font-bold tracking-tight sm:text-5xl md:text-6xl lg:text-7xl animate-slide-up">
-                  {hero.headline_1}
-                  <br />
-                  <span className="gradient-text">{hero.headline_2}</span>
-                </h1>
-                
-                <p className="mb-8 max-w-xl text-lg text-muted-foreground md:text-xl animate-slide-up" style={{ animationDelay: "0.1s" }}>
-                  {hero.subheadline}
-                </p>
-                
-                <div className="flex flex-col sm:flex-row gap-4 animate-slide-up" style={{ animationDelay: "0.2s" }}>
-                  <Button size="xl" className="group bg-gradient-to-r from-cyan to-violet hover:from-cyan/90 hover:to-violet/90 text-white shadow-lg shadow-violet/25" asChild>
-                    <Link to={hero.cta_primary_link}>
-                      {hero.cta_primary_text}
-                      <ArrowRight className="ml-2 h-5 w-5 transition-transform group-hover:translate-x-1" />
-                    </Link>
-                  </Button>
-                  <Button 
-                    size="xl" 
-                    variant="outline" 
-                    className="group border-border/60 hover:bg-accent"
-                    onClick={() => {
-                      if (hero.cta_secondary_link.startsWith('#')) {
-                        const element = document.getElementById(hero.cta_secondary_link.slice(1));
-                        if (element) element.scrollIntoView({ behavior: 'smooth' });
-                      } else {
-                        window.location.href = hero.cta_secondary_link;
-                      }
-                    }}
-                  >
-                    <Sparkles className="mr-2 h-5 w-5 text-violet" />
-                    {hero.cta_secondary_text}
-                  </Button>
-                </div>
-                
-                <div className="mt-8 flex flex-wrap items-center gap-6 text-sm text-muted-foreground animate-fade-in" style={{ animationDelay: "0.3s" }}>
-                  <span className="flex items-center gap-2">
-                    <Check className="h-4 w-4 text-success" />
-                    {hero.trust_text_1}
-                  </span>
-                  <span className="flex items-center gap-2">
-                    <Check className="h-4 w-4 text-success" />
-                    {hero.trust_text_2}
-                  </span>
-                </div>
+                  <MousePointerClick className="mr-2 h-5 w-5" />
+                  {hero.cta_secondary_text}
+                </Button>
               </div>
+              
+              <div className="mt-6 flex items-center justify-center gap-6 text-sm text-muted-foreground animate-fade-in" style={{ animationDelay: "0.3s" }}>
+                <span className="flex items-center gap-2">
+                  <Check className="h-4 w-4 text-success" />
+                  {hero.trust_text_1}
+                </span>
+                <span className="flex items-center gap-2">
+                  <Check className="h-4 w-4 text-success" />
+                  {hero.trust_text_2}
+                </span>
+              </div>
+            </div>
 
-              {/* Right Illustration */}
-              <div className="relative animate-slide-up lg:animate-fade-in" style={{ animationDelay: "0.3s" }}>
-                <div className="relative">
-                  {/* Glow effect behind image */}
-                  <div className="absolute inset-0 bg-gradient-to-tr from-violet/30 via-cyan/20 to-violet/30 rounded-3xl blur-2xl scale-95 opacity-60" />
+            {/* Dashboard Mockup */}
+            <div className="mt-20 animate-slide-up" style={{ animationDelay: "0.4s" }}>
+              <div className="mx-auto max-w-5xl">
+                <div className="relative rounded-3xl border border-border/50 bg-card/80 p-3 shadow-dreamy backdrop-blur-sm hover-lift">
+                  {/* Gradient glow behind */}
+                  <div className="absolute -inset-1 rounded-3xl bg-gradient-to-r from-coral/20 via-violet/20 to-cyan/20 blur-xl opacity-50" />
                   
-                  <img 
-                    src={heroIllustration} 
-                    alt="AI Content Generation"
-                    className="relative w-full h-auto max-w-lg mx-auto lg:max-w-none drop-shadow-2xl"
-                  />
+                  <div className="relative rounded-2xl bg-muted/50 p-6 md:p-10">
+                    {/* Window controls */}
+                    <div className="flex items-center gap-2 mb-6">
+                      <div className="h-3 w-3 rounded-full bg-coral/60" />
+                      <div className="h-3 w-3 rounded-full bg-warning/60" />
+                      <div className="h-3 w-3 rounded-full bg-success/60" />
+                      <span className="ml-4 text-xs text-muted-foreground font-medium">{siteName} Editor</span>
+                    </div>
+                    
+                    {/* Mock content */}
+                    <div className="grid gap-6 md:grid-cols-3">
+                      <div className="space-y-4">
+                        <div className="h-10 w-3/4 rounded-xl bg-gradient-to-r from-coral/30 to-violet/30" />
+                        <div className="h-4 w-full rounded-lg bg-muted-foreground/10" />
+                        <div className="h-4 w-5/6 rounded-lg bg-muted-foreground/10" />
+                        <div className="h-12 w-full rounded-xl gradient-primary opacity-80" />
+                      </div>
+                      <div className="md:col-span-2 space-y-4">
+                        <div className="h-8 w-2/3 rounded-lg bg-foreground/15" />
+                        <div className="h-4 w-full rounded-lg bg-muted-foreground/10" />
+                        <div className="h-4 w-full rounded-lg bg-muted-foreground/10" />
+                        <div className="h-4 w-4/5 rounded-lg bg-muted-foreground/10" />
+                        <div className="h-4 w-full rounded-lg bg-muted-foreground/10" />
+                        <div className="h-4 w-3/4 rounded-lg bg-muted-foreground/10" />
+                      </div>
+                    </div>
+                  </div>
                 </div>
               </div>
             </div>
             
             {/* Social proof */}
-            <div className="mt-16 lg:mt-24 flex flex-col items-center gap-4 animate-fade-in" style={{ animationDelay: "0.5s" }}>
+            <div className="mt-16 flex flex-col items-center gap-4 animate-fade-in" style={{ animationDelay: "0.5s" }}>
               <div className="flex items-center gap-1">
                 {[...Array(5)].map((_, i) => (
                   <Star key={i} className="h-5 w-5 fill-warning text-warning" />
