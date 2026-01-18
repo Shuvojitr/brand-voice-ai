@@ -12,7 +12,7 @@ import { useTemplates } from "@/hooks/useTemplates";
 import { useAllTemplateCategories } from "@/hooks/useTemplateCategories";
 import { useAllTemplateIcons } from "@/hooks/useTemplateIcons";
 import { getIconByName } from "@/lib/icon-utils";
-import { Search, Plus, Pencil, Eye, EyeOff, Trash2, Folder } from "lucide-react";
+import { Search, Plus, Pencil, Eye, EyeOff, Trash2, Folder, Layout } from "lucide-react";
 import * as LucideIconsAll from "lucide-react";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
@@ -82,7 +82,7 @@ export default function ManagerTemplates() {
   const [searchQuery, setSearchQuery] = useState("");
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editingTemplate, setEditingTemplate] = useState<any>(null);
-  const [dialogTab, setDialogTab] = useState<"edit" | "preview">("edit");
+  const [dialogTab, setDialogTab] = useState<"edit" | "preview" | "template">("edit");
   const [formData, setFormData] = useState({
     name: "",
     description: "",
@@ -753,11 +753,15 @@ export default function ManagerTemplates() {
             </DialogDescription>
           </DialogHeader>
           
-          <Tabs value={dialogTab} onValueChange={(v) => setDialogTab(v as "edit" | "preview")} className="flex-1 flex flex-col overflow-hidden">
+          <Tabs value={dialogTab} onValueChange={(v) => setDialogTab(v as "edit" | "preview" | "template")} className="flex-1 flex flex-col overflow-hidden">
             <TabsList className="w-fit">
               <TabsTrigger value="edit">
                 <Pencil className="h-4 w-4 mr-2" />
                 Edit
+              </TabsTrigger>
+              <TabsTrigger value="template">
+                <Layout className="h-4 w-4 mr-2" />
+                Template Form
               </TabsTrigger>
               <TabsTrigger value="preview">
                 <Eye className="h-4 w-4 mr-2" />
@@ -859,6 +863,117 @@ export default function ManagerTemplates() {
                   />
                   <Label>Active</Label>
                 </div>
+              </div>
+            </TabsContent>
+            
+            <TabsContent value="template" className="flex-1 overflow-hidden mt-4">
+              <div className="h-full flex flex-col gap-4">
+                <p className="text-sm text-muted-foreground">
+                  This preview shows how the template form will appear to users when they create content.
+                </p>
+                
+                <ScrollArea className="flex-1 border rounded-lg bg-background">
+                  <div className="p-6">
+                    {!promptPreview.isValid ? (
+                      <div className="text-sm text-destructive bg-destructive/10 p-3 rounded-md">
+                        ⚠️ Form schema JSON is invalid. Fix the JSON to see the template preview.
+                      </div>
+                    ) : promptPreview.fields.length === 0 ? (
+                      <div className="text-center py-12 text-muted-foreground">
+                        No form fields defined. Add fields to the Form Schema JSON.
+                      </div>
+                    ) : (
+                      <div className="space-y-6">
+                        {/* Template Header Preview */}
+                        <div className="border-b pb-4">
+                          <div className="flex items-center gap-3 mb-2">
+                            {formData.icon && (() => {
+                              const IconComp = getIconByName(formData.icon);
+                              return <IconComp className="h-6 w-6 text-primary" />;
+                            })()}
+                            <h3 className="text-xl font-semibold">{formData.name || "Template Name"}</h3>
+                          </div>
+                          {formData.description && (
+                            <p className="text-muted-foreground text-sm">{formData.description}</p>
+                          )}
+                        </div>
+                        
+                        {/* Form Fields Preview */}
+                        <div className="space-y-4">
+                          {promptPreview.fields.map((field: any) => (
+                            <div key={field.id} className="space-y-2">
+                              <Label className="flex items-center gap-1">
+                                {field.label}
+                                {field.required && <span className="text-destructive">*</span>}
+                              </Label>
+                              
+                              {field.type === "text" && (
+                                <Input 
+                                  placeholder={field.placeholder || `Enter ${field.label.toLowerCase()}...`}
+                                  disabled
+                                  className="bg-muted/30"
+                                />
+                              )}
+                              
+                              {field.type === "textarea" && (
+                                <Textarea 
+                                  placeholder={field.placeholder || `Enter ${field.label.toLowerCase()}...`}
+                                  rows={3}
+                                  disabled
+                                  className="bg-muted/30"
+                                />
+                              )}
+                              
+                              {field.type === "number" && (
+                                <Input 
+                                  type="number"
+                                  placeholder={field.placeholder || "0"}
+                                  disabled
+                                  className="bg-muted/30 w-32"
+                                />
+                              )}
+                              
+                              {field.type === "select" && (
+                                <Select disabled>
+                                  <SelectTrigger className="bg-muted/30">
+                                    <SelectValue placeholder={field.placeholder || `Select ${field.label.toLowerCase()}`} />
+                                  </SelectTrigger>
+                                  <SelectContent>
+                                    {field.options?.map((opt: any) => (
+                                      <SelectItem key={opt.value} value={opt.value}>
+                                        {opt.label}
+                                      </SelectItem>
+                                    ))}
+                                  </SelectContent>
+                                </Select>
+                              )}
+                              
+                              {field.type === "toggle" && (
+                                <div className="flex items-center gap-2">
+                                  <Switch disabled />
+                                  <span className="text-sm text-muted-foreground">
+                                    {field.placeholder || "Toggle option"}
+                                  </span>
+                                </div>
+                              )}
+                              
+                              {field.description && (
+                                <p className="text-xs text-muted-foreground">{field.description}</p>
+                              )}
+                            </div>
+                          ))}
+                        </div>
+                        
+                        {/* Generate Button Preview */}
+                        <div className="pt-4 border-t">
+                          <Button disabled className="w-full">
+                            Generate Content
+                          </Button>
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                </ScrollArea>
               </div>
             </TabsContent>
             
