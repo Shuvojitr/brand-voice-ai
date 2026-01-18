@@ -17,9 +17,8 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { Plus, Pencil, Trash2, Search, Folder, Eye, Layers } from "lucide-react";
+import { Plus, Pencil, Trash2, Search, Folder, Eye, icons as LucideIcons } from "lucide-react";
 import * as LucideIconsAll from "lucide-react";
-import { VisualFormBuilder, type FormField } from "@/components/admin/VisualFormBuilder";
 
 const aiModels = [
   { value: "default", label: "Use Default (from AI Settings)" },
@@ -38,7 +37,7 @@ interface TemplateFormData {
   icon: string;
   slug: string;
   system_prompt: string;
-  form_fields: FormField[];
+  form_schema_json: string;
   is_active: boolean;
   model: string;
 }
@@ -50,7 +49,7 @@ const emptyFormData: TemplateFormData = {
   icon: "FileText",
   slug: "",
   system_prompt: "",
-  form_fields: [],
+  form_schema_json: "[]",
   is_active: true,
   model: "default",
 };
@@ -113,7 +112,7 @@ export default function AdminTemplates() {
   const [selectedTemplate, setSelectedTemplate] = useState<any>(null);
   const [formData, setFormData] = useState<TemplateFormData>(emptyFormData);
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [dialogTab, setDialogTab] = useState<"edit" | "form" | "preview">("edit");
+  const [dialogTab, setDialogTab] = useState<"edit" | "preview">("edit");
   
   // Category management state
   const [categoryDialogOpen, setCategoryDialogOpen] = useState(false);
@@ -131,25 +130,34 @@ export default function AdminTemplates() {
 
   // Generate prompt preview
   const promptPreview = useMemo(() => {
-    const fields = formData.form_fields;
-    
-    // Build user prompt from sample inputs (same logic as edge function)
-    const userPromptParts: string[] = [];
-    for (const field of fields) {
-      const sampleValue = getSampleValue(field);
-      userPromptParts.push(`${field.id}: ${sampleValue}`);
+    try {
+      const fields = JSON.parse(formData.form_schema_json || "[]");
+      
+      // Build user prompt from sample inputs (same logic as edge function)
+      const userPromptParts: string[] = [];
+      for (const field of fields) {
+        const sampleValue = getSampleValue(field);
+        userPromptParts.push(`${field.id}: ${sampleValue}`);
+      }
+      
+      const languageInstruction = "\n\nWrite your response in clear, fluent English.";
+      const userPrompt = userPromptParts.join("\n") + languageInstruction;
+      
+      return {
+        systemPrompt: formData.system_prompt || "(No system prompt defined)",
+        userPrompt: userPrompt || "(No input fields defined)",
+        fields,
+        isValid: true,
+      };
+    } catch {
+      return {
+        systemPrompt: formData.system_prompt || "(No system prompt defined)",
+        userPrompt: "(Invalid form schema JSON)",
+        fields: [],
+        isValid: false,
+      };
     }
-    
-    const languageInstruction = "\n\nWrite your response in clear, fluent English.";
-    const userPrompt = userPromptParts.join("\n") + languageInstruction;
-    
-    return {
-      systemPrompt: formData.system_prompt || "(No system prompt defined)",
-      userPrompt: fields.length > 0 ? userPrompt : "(No input fields defined)",
-      fields,
-      isValid: true,
-    };
-  }, [formData.form_fields, formData.system_prompt]);
+  }, [formData.form_schema_json, formData.system_prompt]);
 
   // Fetch templates
   const { data: templates, isLoading } = useQuery({
@@ -214,16 +222,6 @@ export default function AdminTemplates() {
 
   const handleOpenEdit = (template: any) => {
     setSelectedTemplate(template);
-    // Parse form_schema_json to FormField[]
-    let parsedFields: FormField[] = [];
-    try {
-      const schema = template.form_schema_json;
-      if (Array.isArray(schema)) {
-        parsedFields = schema as FormField[];
-      }
-    } catch {
-      parsedFields = [];
-    }
     setFormData({
       name: template.name,
       description: template.description || "",
@@ -231,7 +229,7 @@ export default function AdminTemplates() {
       icon: template.icon || "FileText",
       slug: template.slug,
       system_prompt: template.system_prompt,
-      form_fields: parsedFields,
+      form_schema_json: JSON.stringify(template.form_schema_json || [], null, 2),
       is_active: template.is_active,
       model: template.model || "default",
     });
@@ -248,12 +246,13 @@ export default function AdminTemplates() {
       return;
     }
 
-    // Validate that all fields have labels
-    const invalidFields = formData.form_fields.filter(f => !f.label.trim());
-    if (invalidFields.length > 0) {
+    let parsedSchema;
+    try {
+      parsedSchema = JSON.parse(formData.form_schema_json);
+    } catch {
       toast({
-        title: "Invalid Fields",
-        description: "All form fields must have a label.",
+        title: "Invalid JSON",
+        description: "Form schema must be valid JSON.",
         variant: "destructive",
       });
       return;
@@ -268,7 +267,7 @@ export default function AdminTemplates() {
         icon: formData.icon,
         slug: formData.slug,
         system_prompt: formData.system_prompt,
-        form_schema_json: formData.form_fields as unknown as import("@/integrations/supabase/types").Json,
+        form_schema_json: parsedSchema,
         is_active: formData.is_active,
         model: formData.model === "default" ? null : formData.model,
       };
@@ -776,25 +775,21 @@ export default function AdminTemplates() {
 
       {/* Template Create/Edit Dialog */}
       <Dialog open={dialogOpen} onOpenChange={(open) => { setDialogOpen(open); if (!open) setDialogTab("edit"); }}>
-        <DialogContent className="max-w-5xl max-h-[90vh] overflow-hidden flex flex-col">
+        <DialogContent className="max-w-3xl max-h-[90vh] overflow-hidden flex flex-col">
           <DialogHeader>
             <DialogTitle>
               {selectedTemplate ? "Edit Template" : "Create Template"}
             </DialogTitle>
             <DialogDescription>
-              Configure the template settings, build the form, and preview how the prompt will look.
+              Configure the template settings and preview how the prompt will look.
             </DialogDescription>
           </DialogHeader>
           
-          <Tabs value={dialogTab} onValueChange={(v) => setDialogTab(v as "edit" | "form" | "preview")} className="flex-1 flex flex-col overflow-hidden">
+          <Tabs value={dialogTab} onValueChange={(v) => setDialogTab(v as "edit" | "preview")} className="flex-1 flex flex-col overflow-hidden">
             <TabsList className="w-fit">
               <TabsTrigger value="edit">
                 <Pencil className="h-4 w-4 mr-2" />
-                Settings
-              </TabsTrigger>
-              <TabsTrigger value="form">
-                <Layers className="h-4 w-4 mr-2" />
-                Form Builder
+                Edit
               </TabsTrigger>
               <TabsTrigger value="preview">
                 <Eye className="h-4 w-4 mr-2" />
@@ -914,6 +909,21 @@ export default function AdminTemplates() {
                   />
                 </div>
 
+                <div>
+                  <Label htmlFor="form_schema">Form Schema (JSON)</Label>
+                  <Textarea
+                    id="form_schema"
+                    value={formData.form_schema_json}
+                    onChange={(e) => setFormData({ ...formData, form_schema_json: e.target.value })}
+                    placeholder='[{"id": "topic", "type": "text", "label": "Topic", "required": true}]'
+                    rows={6}
+                    className="font-mono text-sm"
+                  />
+                  <p className="text-xs text-muted-foreground mt-1">
+                    Define input fields as JSON array. Each field needs: id, type, label. The field <code className="bg-muted px-1 rounded">id</code> becomes the key in the user prompt.
+                  </p>
+                </div>
+
                 <div className="flex items-center gap-2">
                   <Switch
                     id="is_active"
@@ -922,16 +932,6 @@ export default function AdminTemplates() {
                   />
                   <Label htmlFor="is_active">Active</Label>
                 </div>
-              </div>
-            </TabsContent>
-            
-            <TabsContent value="form" className="flex-1 overflow-y-auto mt-4">
-              <div className="pr-2">
-                <VisualFormBuilder
-                  fields={formData.form_fields}
-                  onChange={(fields) => setFormData({ ...formData, form_fields: fields })}
-                  showPreview={true}
-                />
               </div>
             </TabsContent>
             
@@ -980,9 +980,9 @@ export default function AdminTemplates() {
                       </pre>
                     </div>
                     
-                    {formData.form_fields.length === 0 && (
-                      <div className="text-sm text-muted-foreground bg-muted/50 p-3 rounded-md">
-                        ℹ️ Add fields in the "Form Builder" tab to see the user prompt preview.
+                    {!promptPreview.isValid && (
+                      <div className="text-sm text-destructive bg-destructive/10 p-3 rounded-md">
+                        ⚠️ Form schema JSON is invalid. Fix the JSON to see the user prompt preview.
                       </div>
                     )}
                   </div>
