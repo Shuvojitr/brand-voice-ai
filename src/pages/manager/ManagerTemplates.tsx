@@ -866,13 +866,13 @@ export default function ManagerTemplates() {
               </div>
             </TabsContent>
             
-            <TabsContent value="template" className="flex-1 overflow-hidden mt-4">
+            <TabsContent value="template" className="flex-1 overflow-hidden mt-4 min-h-0">
               <div className="h-full flex flex-col gap-4">
-                <p className="text-sm text-muted-foreground">
+                <p className="text-sm text-muted-foreground flex-shrink-0">
                   This preview shows how the template form will appear to users when they create content.
                 </p>
                 
-                <ScrollArea className="flex-1 border rounded-lg bg-background">
+                <ScrollArea className="flex-1 min-h-0 border rounded-lg bg-background">
                   <div className="p-6">
                     {!promptPreview.isValid ? (
                       <div className="text-sm text-destructive bg-destructive/10 p-3 rounded-md">
@@ -977,15 +977,15 @@ export default function ManagerTemplates() {
               </div>
             </TabsContent>
             
-            <TabsContent value="preview" className="flex-1 overflow-hidden mt-4">
+            <TabsContent value="preview" className="flex-1 overflow-hidden mt-4 min-h-0">
               <div className="h-full flex flex-col gap-4">
-                <p className="text-sm text-muted-foreground">
+                <p className="text-sm text-muted-foreground flex-shrink-0">
                   This preview shows how the prompt will be sent to the AI with sample input values.
                 </p>
                 
                 {/* Input fields preview */}
                 {promptPreview.fields.length > 0 && (
-                  <div className="rounded-lg border bg-muted/30 p-3">
+                  <div className="rounded-lg border bg-muted/30 p-3 flex-shrink-0">
                     <h4 className="text-sm font-medium mb-2">Sample Input Values:</h4>
                     <div className="grid grid-cols-2 gap-2 text-sm">
                       {promptPreview.fields.map((field: any) => (
@@ -998,7 +998,7 @@ export default function ManagerTemplates() {
                   </div>
                 )}
                 
-                <ScrollArea className="flex-1 border rounded-lg">
+                <ScrollArea className="flex-1 min-h-0 border rounded-lg">
                   <div className="p-4 space-y-4">
                     {/* System prompt section */}
                     <div>
