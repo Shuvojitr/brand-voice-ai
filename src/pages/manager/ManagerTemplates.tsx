@@ -7,7 +7,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { ScrollArea } from "@/components/ui/scroll-area";
+
 import { useTemplates } from "@/hooks/useTemplates";
 import { useAllTemplateCategories } from "@/hooks/useTemplateCategories";
 import { useAllTemplateIcons } from "@/hooks/useTemplateIcons";
@@ -745,7 +745,7 @@ export default function ManagerTemplates() {
 
       {/* Template Dialog */}
       <Dialog open={dialogOpen} onOpenChange={(open) => { setDialogOpen(open); if (!open) setDialogTab("edit"); }}>
-        <DialogContent className="max-w-3xl max-h-[90vh] overflow-hidden flex flex-col">
+        <DialogContent className="max-w-3xl h-[90vh] max-h-[90vh] overflow-hidden flex flex-col min-h-0">
           <DialogHeader>
             <DialogTitle>{editingTemplate ? "Edit Template" : "Create Template"}</DialogTitle>
             <DialogDescription>
@@ -753,7 +753,7 @@ export default function ManagerTemplates() {
             </DialogDescription>
           </DialogHeader>
           
-          <Tabs value={dialogTab} onValueChange={(v) => setDialogTab(v as "edit" | "preview" | "template")} className="flex-1 flex flex-col overflow-hidden">
+          <Tabs value={dialogTab} onValueChange={(v) => setDialogTab(v as "edit" | "preview" | "template")} className="flex-1 min-h-0 flex flex-col overflow-hidden">
             <TabsList className="w-fit">
               <TabsTrigger value="edit">
                 <Pencil className="h-4 w-4 mr-2" />
@@ -769,7 +769,7 @@ export default function ManagerTemplates() {
               </TabsTrigger>
             </TabsList>
             
-            <TabsContent value="edit" className="flex-1 overflow-y-auto mt-4">
+            <TabsContent value="edit" className="flex-1 min-h-0 overflow-y-auto mt-4">
               <div className="space-y-4 pr-2">
                 <div className="grid grid-cols-2 gap-4">
                   <div className="space-y-2">
@@ -872,7 +872,7 @@ export default function ManagerTemplates() {
                   This preview shows how the template form will appear to users when they create content.
                 </p>
                 
-                <ScrollArea className="flex-1 min-h-0 border rounded-lg bg-background">
+                <div className="flex-1 min-h-0 overflow-y-auto border rounded-lg bg-background">
                   <div className="p-6">
                     {!promptPreview.isValid ? (
                       <div className="text-sm text-destructive bg-destructive/10 p-3 rounded-md">
@@ -973,7 +973,7 @@ export default function ManagerTemplates() {
                       </div>
                     )}
                   </div>
-                </ScrollArea>
+                </div>
               </div>
             </TabsContent>
             
@@ -998,7 +998,7 @@ export default function ManagerTemplates() {
                   </div>
                 )}
                 
-                <ScrollArea className="flex-1 min-h-0 border rounded-lg">
+                <div className="flex-1 min-h-0 overflow-y-auto border rounded-lg bg-background">
                   <div className="p-4 space-y-4">
                     {/* System prompt section */}
                     <div>
@@ -1028,7 +1028,7 @@ export default function ManagerTemplates() {
                       </div>
                     )}
                   </div>
-                </ScrollArea>
+                </div>
               </div>
             </TabsContent>
           </Tabs>

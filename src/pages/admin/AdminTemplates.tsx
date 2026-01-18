@@ -13,7 +13,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { ScrollArea } from "@/components/ui/scroll-area";
+
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
@@ -775,7 +775,7 @@ export default function AdminTemplates() {
 
       {/* Template Create/Edit Dialog */}
       <Dialog open={dialogOpen} onOpenChange={(open) => { setDialogOpen(open); if (!open) setDialogTab("edit"); }}>
-        <DialogContent className="max-w-3xl max-h-[90vh] overflow-hidden flex flex-col">
+        <DialogContent className="max-w-3xl h-[90vh] max-h-[90vh] overflow-hidden flex flex-col min-h-0">
           <DialogHeader>
             <DialogTitle>
               {selectedTemplate ? "Edit Template" : "Create Template"}
@@ -785,7 +785,7 @@ export default function AdminTemplates() {
             </DialogDescription>
           </DialogHeader>
           
-          <Tabs value={dialogTab} onValueChange={(v) => setDialogTab(v as "edit" | "preview" | "template")} className="flex-1 flex flex-col overflow-hidden">
+          <Tabs value={dialogTab} onValueChange={(v) => setDialogTab(v as "edit" | "preview" | "template")} className="flex-1 min-h-0 flex flex-col overflow-hidden">
             <TabsList className="w-fit">
               <TabsTrigger value="edit">
                 <Pencil className="h-4 w-4 mr-2" />
@@ -801,7 +801,7 @@ export default function AdminTemplates() {
               </TabsTrigger>
             </TabsList>
             
-            <TabsContent value="edit" className="flex-1 overflow-y-auto mt-4">
+            <TabsContent value="edit" className="flex-1 min-h-0 overflow-y-auto mt-4">
               <div className="space-y-4 pr-2">
                 <div>
                   <Label htmlFor="name">Name *</Label>
@@ -945,7 +945,7 @@ export default function AdminTemplates() {
                   This preview shows how the template form will appear to users when they create content.
                 </p>
                 
-                <ScrollArea className="flex-1 min-h-0 border rounded-lg bg-background">
+                <div className="flex-1 min-h-0 overflow-y-auto border rounded-lg bg-background">
                   <div className="p-6">
                     {!promptPreview.isValid ? (
                       <div className="text-sm text-destructive bg-destructive/10 p-3 rounded-md">
@@ -1046,7 +1046,7 @@ export default function AdminTemplates() {
                       </div>
                     )}
                   </div>
-                </ScrollArea>
+                </div>
               </div>
             </TabsContent>
             
@@ -1071,7 +1071,7 @@ export default function AdminTemplates() {
                   </div>
                 )}
                 
-                <ScrollArea className="flex-1 min-h-0 border rounded-lg">
+                <div className="flex-1 min-h-0 overflow-y-auto border rounded-lg bg-background">
                   <div className="p-4 space-y-4">
                     {/* System prompt section */}
                     <div>
@@ -1101,7 +1101,7 @@ export default function AdminTemplates() {
                       </div>
                     )}
                   </div>
-                </ScrollArea>
+                </div>
               </div>
             </TabsContent>
           </Tabs>
