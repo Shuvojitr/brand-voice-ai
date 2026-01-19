@@ -959,6 +959,14 @@ Deno.serve(async (req) => {
         .from("profiles")
         .select("*", { count: "exact", head: true });
 
+      // Get users from last month for growth calculation
+      const lastMonthDate = new Date();
+      lastMonthDate.setMonth(lastMonthDate.getMonth() - 1);
+      const { count: lastMonthUsers } = await supabaseAdmin
+        .from("profiles")
+        .select("*", { count: "exact", head: true })
+        .lt("created_at", lastMonthDate.toISOString());
+
       // Get total words generated
       const { data: wordsData } = await supabaseAdmin
         .from("documents")
@@ -976,13 +984,185 @@ Deno.serve(async (req) => {
         .from("organizations")
         .select("*", { count: "exact", head: true });
 
+      // Get active subscriptions breakdown
+      const { data: orgsData } = await supabaseAdmin
+        .from("organizations")
+        .select("subscription_tier, subscription_status");
+
+      const activeSubscriptions = orgsData?.filter(o => o.subscription_status === "active") || [];
+      const proCount = activeSubscriptions.filter(o => o.subscription_tier === "pro" || o.subscription_tier === "enterprise").length;
+      const starterCount = activeSubscriptions.filter(o => o.subscription_tier === "starter").length;
+      const freeCount = activeSubscriptions.filter(o => o.subscription_tier === "free" || !o.subscription_tier).length;
+
+      // Calculate MRR from active subscriptions with plan prices
+      const { data: plansData } = await supabaseAdmin
+        .from("plans")
+        .select("slug, price");
+
+      const planPrices: Record<string, number> = {};
+      plansData?.forEach(p => { planPrices[p.slug] = Number(p.price) || 0; });
+
+      let totalMRR = 0;
+      activeSubscriptions.forEach(org => {
+        if (org.subscription_tier && planPrices[org.subscription_tier]) {
+          totalMRR += planPrices[org.subscription_tier];
+        }
+      });
+
+      // Calculate user growth percentage
+      const currentUsers = usersCount || 0;
+      const previousUsers = lastMonthUsers || 0;
+      const userGrowth = previousUsers > 0 
+        ? Math.round(((currentUsers - previousUsers) / previousUsers) * 100) 
+        : currentUsers > 0 ? 100 : 0;
+
       return new Response(JSON.stringify({
         totalUsers: usersCount || 0,
         totalWords: totalWords,
         totalDocuments: docsCount || 0,
         totalOrganizations: orgsCount || 0,
-        totalRevenue: 0, // Mock for now
+        totalMRR: totalMRR,
+        userGrowth: userGrowth,
+        activeSubscriptions: activeSubscriptions.length,
+        proSubscriptions: proCount,
+        starterSubscriptions: starterCount,
+        freeSubscriptions: freeCount,
       }), {
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
+    // Revenue chart data - last 6 months
+    if (action === "revenue-chart") {
+      const { data: orgsData } = await supabaseAdmin
+        .from("organizations")
+        .select("subscription_tier, subscription_status, created_at, updated_at");
+
+      const { data: plansData } = await supabaseAdmin
+        .from("plans")
+        .select("slug, price");
+
+      const planPrices: Record<string, number> = {};
+      plansData?.forEach(p => { planPrices[p.slug] = Number(p.price) || 0; });
+
+      // Generate last 6 months data
+      const months = [];
+      for (let i = 5; i >= 0; i--) {
+        const date = new Date();
+        date.setMonth(date.getMonth() - i);
+        const monthKey = date.toLocaleString('en-US', { month: 'short', year: '2-digit' });
+        
+        // Calculate MRR for this month (simplified: count active orgs at that time)
+        // For demo, we'll show increasing trend based on org creation dates
+        const monthEnd = new Date(date.getFullYear(), date.getMonth() + 1, 0);
+        const activeOrgsInMonth = orgsData?.filter(org => {
+          const createdAt = new Date(org.created_at);
+          return createdAt <= monthEnd && org.subscription_status === "active";
+        }) || [];
+
+        let monthlyMRR = 0;
+        activeOrgsInMonth.forEach(org => {
+          if (org.subscription_tier && planPrices[org.subscription_tier]) {
+            monthlyMRR += planPrices[org.subscription_tier];
+          }
+        });
+
+        months.push({
+          month: monthKey,
+          revenue: monthlyMRR,
+        });
+      }
+
+      return new Response(JSON.stringify(months), {
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
+    // Usage chart data - last 7 days words generated
+    if (action === "usage-chart") {
+      const days = [];
+      for (let i = 6; i >= 0; i--) {
+        const date = new Date();
+        date.setDate(date.getDate() - i);
+        const dayStart = new Date(date.getFullYear(), date.getMonth(), date.getDate());
+        const dayEnd = new Date(date.getFullYear(), date.getMonth(), date.getDate() + 1);
+
+        const { data: docsData } = await supabaseAdmin
+          .from("documents")
+          .select("initial_word_count")
+          .gte("created_at", dayStart.toISOString())
+          .lt("created_at", dayEnd.toISOString());
+
+        const wordsGenerated = docsData?.reduce((sum, doc) => sum + (doc.initial_word_count || 0), 0) || 0;
+
+        days.push({
+          day: dayStart.toLocaleDateString('en-US', { weekday: 'short' }),
+          date: dayStart.toLocaleDateString('en-US', { month: 'short', day: 'numeric' }),
+          words: wordsGenerated,
+        });
+      }
+
+      return new Response(JSON.stringify(days), {
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
+    // Live activity feed - recent content generations and signups
+    if (action === "live-activity") {
+      const limit = parseInt(url.searchParams.get("limit") || "15");
+
+      // Get recent documents with user info
+      const { data: recentDocs } = await supabaseAdmin
+        .from("documents")
+        .select("id, title, template_type, initial_word_count, created_at, user_id")
+        .order("created_at", { ascending: false })
+        .limit(limit);
+
+      // Get recent signups
+      const { data: recentSignups } = await supabaseAdmin
+        .from("profiles")
+        .select("id, email, full_name, created_at")
+        .order("created_at", { ascending: false })
+        .limit(limit);
+
+      // Get user emails for documents
+      const userIds = [...new Set(recentDocs?.map(d => d.user_id) || [])];
+      const { data: userProfiles } = await supabaseAdmin
+        .from("profiles")
+        .select("id, email")
+        .in("id", userIds.length > 0 ? userIds : ["00000000-0000-0000-0000-000000000000"]);
+
+      // Combine and sort by time
+      const activities: any[] = [];
+
+      recentDocs?.forEach(doc => {
+        const userEmail = userProfiles?.find(p => p.id === doc.user_id)?.email || "Unknown";
+        activities.push({
+          id: doc.id,
+          type: "content_generated",
+          description: `${userEmail} generated ${doc.template_type || "content"} (${doc.initial_word_count || 0} words)`,
+          email: userEmail,
+          templateType: doc.template_type,
+          wordCount: doc.initial_word_count || 0,
+          timestamp: doc.created_at,
+        });
+      });
+
+      recentSignups?.forEach(signup => {
+        activities.push({
+          id: signup.id,
+          type: "new_signup",
+          description: `${signup.email} signed up`,
+          email: signup.email,
+          name: signup.full_name,
+          timestamp: signup.created_at,
+        });
+      });
+
+      // Sort by timestamp descending
+      activities.sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime());
+
+      return new Response(JSON.stringify(activities.slice(0, limit)), {
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }

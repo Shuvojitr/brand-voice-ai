@@ -1,72 +1,206 @@
 import { AdminLayout } from "@/components/admin";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { Users, DollarSign, FileText, Building2 } from "lucide-react";
-import { useAdminStats, useRecentSignups } from "@/hooks/useAdminStats";
+import { Badge } from "@/components/ui/badge";
+import { 
+  Users, 
+  DollarSign, 
+  FileText, 
+  TrendingUp, 
+  TrendingDown,
+  Activity,
+  UserPlus,
+  Zap,
+  Crown,
+  RefreshCw
+} from "lucide-react";
+import { useAdminStats, useRevenueChart, useUsageChart, useLiveActivity } from "@/hooks/useAdminStats";
 import { formatDistanceToNow } from "date-fns";
+import { 
+  BarChart, 
+  Bar, 
+  XAxis, 
+  YAxis, 
+  CartesianGrid, 
+  Tooltip, 
+  ResponsiveContainer,
+  AreaChart,
+  Area
+} from "recharts";
+import { ChartContainer, ChartTooltip, ChartTooltipContent } from "@/components/ui/chart";
+import { useEffect, useState } from "react";
+import { Button } from "@/components/ui/button";
+import { useQueryClient } from "@tanstack/react-query";
 
 export default function AdminOverview() {
-  const { data: stats, isLoading: statsLoading } = useAdminStats();
-  const { data: recentSignups, isLoading: signupsLoading } = useRecentSignups(10);
+  const { data: stats, isLoading: statsLoading, refetch: refetchStats } = useAdminStats();
+  const { data: revenueData, isLoading: revenueLoading } = useRevenueChart();
+  const { data: usageData, isLoading: usageLoading } = useUsageChart();
+  const { data: activities, isLoading: activitiesLoading, dataUpdatedAt } = useLiveActivity(15);
+  const queryClient = useQueryClient();
+  
+  const [lastRefresh, setLastRefresh] = useState<Date>(new Date());
+  const [isRefreshing, setIsRefreshing] = useState(false);
+
+  // Update last refresh time when data updates
+  useEffect(() => {
+    if (dataUpdatedAt) {
+      setLastRefresh(new Date(dataUpdatedAt));
+    }
+  }, [dataUpdatedAt]);
+
+  const handleManualRefresh = async () => {
+    setIsRefreshing(true);
+    await queryClient.invalidateQueries({ queryKey: ["admin-live-activity"] });
+    await refetchStats();
+    setIsRefreshing(false);
+    setLastRefresh(new Date());
+  };
+
+  const formatNumber = (num: number): string => {
+    if (num >= 1000000) return `${(num / 1000000).toFixed(1)}M`;
+    if (num >= 1000) return `${(num / 1000).toFixed(1)}K`;
+    return num.toString();
+  };
+
+  const formatCurrency = (num: number): string => {
+    return new Intl.NumberFormat('en-US', {
+      style: 'currency',
+      currency: 'USD',
+      minimumFractionDigits: 0,
+      maximumFractionDigits: 0,
+    }).format(num);
+  };
 
   const statsCards = [
     {
       label: "Total Users",
-      value: stats?.totalUsers.toLocaleString() || "0",
+      value: stats?.totalUsers ? formatNumber(stats.totalUsers) : "0",
       icon: Users,
-      description: "Registered accounts",
+      trend: stats?.userGrowth || 0,
+      trendLabel: "vs last month",
+      color: "text-blue-500",
+      bgColor: "bg-blue-500/10",
     },
     {
-      label: "Total Revenue",
-      value: `$${stats?.totalRevenue.toLocaleString() || "0"}`,
+      label: "Monthly Recurring Revenue",
+      value: stats?.totalMRR ? formatCurrency(stats.totalMRR) : "$0",
       icon: DollarSign,
-      description: "From Stripe (mock)",
+      description: `${stats?.activeSubscriptions || 0} active subscriptions`,
+      color: "text-green-500",
+      bgColor: "bg-green-500/10",
     },
     {
       label: "Words Generated",
-      value: stats?.totalWords.toLocaleString() || "0",
+      value: stats?.totalWords ? formatNumber(stats.totalWords) : "0",
       icon: FileText,
       description: "All time",
+      color: "text-purple-500",
+      bgColor: "bg-purple-500/10",
     },
     {
-      label: "Organizations",
-      value: stats?.totalOrganizations.toLocaleString() || "0",
-      icon: Building2,
-      description: "Total workspaces",
+      label: "Active Subscriptions",
+      value: stats?.activeSubscriptions?.toString() || "0",
+      icon: Crown,
+      description: `${stats?.proSubscriptions || 0} Pro • ${stats?.starterSubscriptions || 0} Starter • ${stats?.freeSubscriptions || 0} Free`,
+      color: "text-amber-500",
+      bgColor: "bg-amber-500/10",
     },
   ];
+
+  const revenueChartConfig = {
+    revenue: {
+      label: "Revenue",
+      color: "hsl(var(--primary))",
+    },
+  };
+
+  const usageChartConfig = {
+    words: {
+      label: "Words",
+      color: "hsl(var(--primary))",
+    },
+  };
+
+  const getActivityIcon = (type: string) => {
+    switch (type) {
+      case "new_signup":
+        return <UserPlus className="h-4 w-4 text-green-500" />;
+      case "content_generated":
+        return <Zap className="h-4 w-4 text-blue-500" />;
+      default:
+        return <Activity className="h-4 w-4 text-muted-foreground" />;
+    }
+  };
+
+  const getActivityBadge = (type: string) => {
+    switch (type) {
+      case "new_signup":
+        return <Badge variant="outline" className="bg-green-500/10 text-green-600 border-green-500/20">New User</Badge>;
+      case "content_generated":
+        return <Badge variant="outline" className="bg-blue-500/10 text-blue-600 border-blue-500/20">Content</Badge>;
+      default:
+        return null;
+    }
+  };
 
   return (
     <AdminLayout>
       <div className="space-y-8">
-        <div>
-          <h1 className="text-3xl font-bold">Admin Overview</h1>
-          <p className="text-muted-foreground mt-1">
-            Platform-wide statistics and recent activity.
-          </p>
+        {/* Header */}
+        <div className="flex items-center justify-between">
+          <div>
+            <h1 className="text-3xl font-bold">Analytics Command Center</h1>
+            <p className="text-muted-foreground mt-1">
+              Real-time overview of your platform's performance
+            </p>
+          </div>
+          <div className="flex items-center gap-2 text-sm text-muted-foreground">
+            <div className="flex items-center gap-1">
+              <div className="w-2 h-2 rounded-full bg-green-500 animate-pulse" />
+              <span>Live</span>
+            </div>
+            <span>•</span>
+            <span>Auto-refresh: 30s</span>
+          </div>
         </div>
 
-        {/* Stats Grid */}
+        {/* KPI Cards */}
         <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
           {statsCards.map((stat) => (
-            <Card key={stat.label}>
+            <Card key={stat.label} className="relative overflow-hidden">
               <CardHeader className="flex flex-row items-center justify-between pb-2">
                 <CardTitle className="text-sm font-medium text-muted-foreground">
                   {stat.label}
                 </CardTitle>
-                <stat.icon className="h-4 w-4 text-muted-foreground" />
+                <div className={`p-2 rounded-lg ${stat.bgColor}`}>
+                  <stat.icon className={`h-4 w-4 ${stat.color}`} />
+                </div>
               </CardHeader>
               <CardContent>
                 {statsLoading ? (
                   <>
                     <Skeleton className="h-8 w-20 mb-1" />
-                    <Skeleton className="h-4 w-24" />
+                    <Skeleton className="h-4 w-32" />
                   </>
                 ) : (
                   <>
                     <div className="text-2xl font-bold">{stat.value}</div>
-                    <p className="text-xs text-muted-foreground mt-1">{stat.description}</p>
+                    {stat.trend !== undefined ? (
+                      <div className="flex items-center gap-1 mt-1">
+                        {stat.trend >= 0 ? (
+                          <TrendingUp className="h-3 w-3 text-green-500" />
+                        ) : (
+                          <TrendingDown className="h-3 w-3 text-red-500" />
+                        )}
+                        <span className={`text-xs font-medium ${stat.trend >= 0 ? 'text-green-500' : 'text-red-500'}`}>
+                          {stat.trend >= 0 ? '+' : ''}{stat.trend}%
+                        </span>
+                        <span className="text-xs text-muted-foreground">{stat.trendLabel}</span>
+                      </div>
+                    ) : (
+                      <p className="text-xs text-muted-foreground mt-1">{stat.description}</p>
+                    )}
                   </>
                 )}
               </CardContent>
@@ -74,46 +208,197 @@ export default function AdminOverview() {
           ))}
         </div>
 
-        {/* Recent Signups */}
+        {/* Charts Row */}
+        <div className="grid gap-6 lg:grid-cols-2">
+          {/* Revenue Chart */}
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <DollarSign className="h-5 w-5 text-green-500" />
+                Revenue Trend
+              </CardTitle>
+              <CardDescription>Monthly recurring revenue over the last 6 months</CardDescription>
+            </CardHeader>
+            <CardContent>
+              {revenueLoading ? (
+                <Skeleton className="h-[250px] w-full" />
+              ) : revenueData && revenueData.length > 0 ? (
+                <ChartContainer config={revenueChartConfig} className="h-[250px] w-full">
+                  <ResponsiveContainer width="100%" height="100%">
+                    <BarChart data={revenueData} margin={{ top: 10, right: 10, left: 0, bottom: 0 }}>
+                      <CartesianGrid strokeDasharray="3 3" className="stroke-muted" />
+                      <XAxis 
+                        dataKey="month" 
+                        tick={{ fontSize: 12 }}
+                        tickLine={false}
+                        axisLine={false}
+                        className="text-muted-foreground"
+                      />
+                      <YAxis 
+                        tick={{ fontSize: 12 }}
+                        tickLine={false}
+                        axisLine={false}
+                        tickFormatter={(value) => `$${value}`}
+                        className="text-muted-foreground"
+                      />
+                      <ChartTooltip 
+                        content={<ChartTooltipContent />}
+                        formatter={(value) => [`$${value}`, "Revenue"]}
+                      />
+                      <Bar 
+                        dataKey="revenue" 
+                        fill="hsl(var(--primary))" 
+                        radius={[4, 4, 0, 0]}
+                      />
+                    </BarChart>
+                  </ResponsiveContainer>
+                </ChartContainer>
+              ) : (
+                <div className="h-[250px] flex items-center justify-center text-muted-foreground">
+                  No revenue data available
+                </div>
+              )}
+            </CardContent>
+          </Card>
+
+          {/* Usage Chart */}
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <FileText className="h-5 w-5 text-purple-500" />
+                Content Generation
+              </CardTitle>
+              <CardDescription>Words generated per day over the last 7 days</CardDescription>
+            </CardHeader>
+            <CardContent>
+              {usageLoading ? (
+                <Skeleton className="h-[250px] w-full" />
+              ) : usageData && usageData.length > 0 ? (
+                <ChartContainer config={usageChartConfig} className="h-[250px] w-full">
+                  <ResponsiveContainer width="100%" height="100%">
+                    <AreaChart data={usageData} margin={{ top: 10, right: 10, left: 0, bottom: 0 }}>
+                      <defs>
+                        <linearGradient id="colorWords" x1="0" y1="0" x2="0" y2="1">
+                          <stop offset="5%" stopColor="hsl(var(--primary))" stopOpacity={0.3}/>
+                          <stop offset="95%" stopColor="hsl(var(--primary))" stopOpacity={0}/>
+                        </linearGradient>
+                      </defs>
+                      <CartesianGrid strokeDasharray="3 3" className="stroke-muted" />
+                      <XAxis 
+                        dataKey="day" 
+                        tick={{ fontSize: 12 }}
+                        tickLine={false}
+                        axisLine={false}
+                        className="text-muted-foreground"
+                      />
+                      <YAxis 
+                        tick={{ fontSize: 12 }}
+                        tickLine={false}
+                        axisLine={false}
+                        tickFormatter={(value) => formatNumber(value)}
+                        className="text-muted-foreground"
+                      />
+                      <ChartTooltip 
+                        content={<ChartTooltipContent />}
+                        formatter={(value) => [formatNumber(Number(value)), "Words"]}
+                      />
+                      <Area 
+                        type="monotone" 
+                        dataKey="words" 
+                        stroke="hsl(var(--primary))" 
+                        fillOpacity={1} 
+                        fill="url(#colorWords)" 
+                        strokeWidth={2}
+                      />
+                    </AreaChart>
+                  </ResponsiveContainer>
+                </ChartContainer>
+              ) : (
+                <div className="h-[250px] flex items-center justify-center text-muted-foreground">
+                  No usage data available
+                </div>
+              )}
+            </CardContent>
+          </Card>
+        </div>
+
+        {/* Live Activity Feed */}
         <Card>
           <CardHeader>
-            <CardTitle>Recent Signups</CardTitle>
-            <CardDescription>New users who joined the platform</CardDescription>
+            <div className="flex items-center justify-between">
+              <div>
+                <CardTitle className="flex items-center gap-2">
+                  <Activity className="h-5 w-5 text-primary" />
+                  Live Activity Feed
+                  <div className="w-2 h-2 rounded-full bg-green-500 animate-pulse" />
+                </CardTitle>
+                <CardDescription>
+                  Real-time actions happening on your platform • Last updated {formatDistanceToNow(lastRefresh, { addSuffix: true })}
+                </CardDescription>
+              </div>
+              <Button 
+                variant="outline" 
+                size="sm"
+                onClick={handleManualRefresh}
+                disabled={isRefreshing}
+              >
+                <RefreshCw className={`h-4 w-4 mr-2 ${isRefreshing ? 'animate-spin' : ''}`} />
+                Refresh
+              </Button>
+            </div>
           </CardHeader>
           <CardContent>
-            {signupsLoading ? (
-              <div className="space-y-3">
+            {activitiesLoading ? (
+              <div className="space-y-4">
                 {[1, 2, 3, 4, 5].map((i) => (
-                  <Skeleton key={i} className="h-12 w-full" />
+                  <div key={i} className="flex items-center gap-4">
+                    <Skeleton className="h-10 w-10 rounded-full" />
+                    <div className="flex-1">
+                      <Skeleton className="h-4 w-full mb-2" />
+                      <Skeleton className="h-3 w-24" />
+                    </div>
+                  </div>
                 ))}
               </div>
-            ) : recentSignups && recentSignups.length > 0 ? (
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead>Name</TableHead>
-                    <TableHead>Email</TableHead>
-                    <TableHead>Joined</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {recentSignups.map((user) => (
-                    <TableRow key={user.id}>
-                      <TableCell className="font-medium">
-                        {user.full_name || "—"}
-                      </TableCell>
-                      <TableCell>{user.email}</TableCell>
-                      <TableCell className="text-muted-foreground">
-                        {user.created_at
-                          ? formatDistanceToNow(new Date(user.created_at), { addSuffix: true })
-                          : "—"}
-                      </TableCell>
-                    </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
+            ) : activities && activities.length > 0 ? (
+              <div className="space-y-1">
+                {activities.map((activity, index) => (
+                  <div 
+                    key={activity.id + "-" + index}
+                    className="flex items-center gap-4 p-3 rounded-lg hover:bg-muted/50 transition-colors"
+                  >
+                    <div className="flex-shrink-0 w-10 h-10 rounded-full bg-muted flex items-center justify-center">
+                      {getActivityIcon(activity.type)}
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center gap-2 flex-wrap">
+                        <span className="font-medium text-sm truncate">{activity.email}</span>
+                        {getActivityBadge(activity.type)}
+                        {activity.type === "content_generated" && activity.templateType && (
+                          <Badge variant="secondary" className="text-xs">
+                            {activity.templateType}
+                          </Badge>
+                        )}
+                      </div>
+                      <p className="text-sm text-muted-foreground truncate">
+                        {activity.type === "content_generated" 
+                          ? `Generated ${activity.wordCount?.toLocaleString() || 0} words`
+                          : "Just signed up"
+                        }
+                      </p>
+                    </div>
+                    <div className="flex-shrink-0 text-xs text-muted-foreground whitespace-nowrap">
+                      {formatDistanceToNow(new Date(activity.timestamp), { addSuffix: true })}
+                    </div>
+                  </div>
+                ))}
+              </div>
             ) : (
-              <p className="text-muted-foreground text-center py-8">No users yet.</p>
+              <div className="text-center py-12 text-muted-foreground">
+                <Activity className="h-12 w-12 mx-auto mb-4 opacity-50" />
+                <p>No recent activity yet</p>
+                <p className="text-sm">Activity will appear here as users interact with your platform</p>
+              </div>
             )}
           </CardContent>
         </Card>
