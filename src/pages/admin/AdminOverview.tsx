@@ -12,7 +12,8 @@ import {
   UserPlus,
   Zap,
   Crown,
-  RefreshCw
+  RefreshCw,
+  Radio
 } from "lucide-react";
 import { useAdminStats, useRevenueChart, useUsageChart, useLiveActivity } from "@/hooks/useAdminStats";
 import { formatDistanceToNow } from "date-fns";
@@ -22,40 +23,172 @@ import {
   XAxis, 
   YAxis, 
   CartesianGrid, 
-  Tooltip, 
   ResponsiveContainer,
   AreaChart,
   Area
 } from "recharts";
 import { ChartContainer, ChartTooltip, ChartTooltipContent } from "@/components/ui/chart";
-import { useEffect, useState } from "react";
+import { useEffect, useState, useCallback, useRef } from "react";
 import { Button } from "@/components/ui/button";
 import { useQueryClient } from "@tanstack/react-query";
+import { supabase } from "@/integrations/supabase/client";
+import { toast } from "sonner";
+
+interface RealtimeActivity {
+  id: string;
+  type: "content_generated" | "new_signup";
+  description: string;
+  email: string;
+  templateType?: string;
+  wordCount?: number;
+  name?: string;
+  timestamp: string;
+  isNew?: boolean;
+}
 
 export default function AdminOverview() {
   const { data: stats, isLoading: statsLoading, refetch: refetchStats } = useAdminStats();
   const { data: revenueData, isLoading: revenueLoading } = useRevenueChart();
   const { data: usageData, isLoading: usageLoading } = useUsageChart();
-  const { data: activities, isLoading: activitiesLoading, dataUpdatedAt } = useLiveActivity(15);
+  const { data: initialActivities, isLoading: activitiesLoading } = useLiveActivity(15);
   const queryClient = useQueryClient();
   
   const [lastRefresh, setLastRefresh] = useState<Date>(new Date());
   const [isRefreshing, setIsRefreshing] = useState(false);
+  const [realtimeActivities, setRealtimeActivities] = useState<RealtimeActivity[]>([]);
+  const [isRealtimeConnected, setIsRealtimeConnected] = useState(false);
+  const initializedRef = useRef(false);
 
-  // Update last refresh time when data updates
+  // Initialize activities from initial data
   useEffect(() => {
-    if (dataUpdatedAt) {
-      setLastRefresh(new Date(dataUpdatedAt));
+    if (initialActivities && !initializedRef.current) {
+      setRealtimeActivities(initialActivities);
+      initializedRef.current = true;
     }
-  }, [dataUpdatedAt]);
+  }, [initialActivities]);
 
-  const handleManualRefresh = async () => {
+  // Subscribe to realtime changes
+  useEffect(() => {
+    // Subscribe to documents table for content generation
+    const documentsChannel = supabase
+      .channel('admin-documents-realtime')
+      .on(
+        'postgres_changes',
+        {
+          event: 'INSERT',
+          schema: 'public',
+          table: 'documents',
+        },
+        async (payload) => {
+          console.log('New document created:', payload);
+          const newDoc = payload.new as any;
+          
+          // Fetch user email for this document
+          const { data: profile } = await supabase
+            .from('profiles')
+            .select('email')
+            .eq('id', newDoc.user_id)
+            .single();
+
+          const email = profile?.email || 'Unknown user';
+          
+          const newActivity: RealtimeActivity = {
+            id: newDoc.id,
+            type: 'content_generated',
+            description: `${email} generated ${newDoc.template_type || 'content'} (${newDoc.initial_word_count || 0} words)`,
+            email: email,
+            templateType: newDoc.template_type,
+            wordCount: newDoc.initial_word_count || 0,
+            timestamp: newDoc.created_at,
+            isNew: true,
+          };
+
+          setRealtimeActivities(prev => {
+            // Remove the isNew flag from previous items
+            const updated = prev.map(a => ({ ...a, isNew: false }));
+            // Add new activity at the beginning, keep max 15
+            return [newActivity, ...updated].slice(0, 15);
+          });
+
+          setLastRefresh(new Date());
+          
+          // Also refresh stats
+          refetchStats();
+          
+          toast.info('New content generated', {
+            description: `${email} generated ${newDoc.initial_word_count || 0} words`,
+          });
+        }
+      )
+      .subscribe((status) => {
+        console.log('Documents channel status:', status);
+        if (status === 'SUBSCRIBED') {
+          setIsRealtimeConnected(true);
+        }
+      });
+
+    // Subscribe to profiles table for new signups
+    const profilesChannel = supabase
+      .channel('admin-profiles-realtime')
+      .on(
+        'postgres_changes',
+        {
+          event: 'INSERT',
+          schema: 'public',
+          table: 'profiles',
+        },
+        (payload) => {
+          console.log('New user signed up:', payload);
+          const newProfile = payload.new as any;
+          
+          const newActivity: RealtimeActivity = {
+            id: newProfile.id,
+            type: 'new_signup',
+            description: `${newProfile.email} signed up`,
+            email: newProfile.email || 'Unknown',
+            name: newProfile.full_name,
+            timestamp: newProfile.created_at,
+            isNew: true,
+          };
+
+          setRealtimeActivities(prev => {
+            const updated = prev.map(a => ({ ...a, isNew: false }));
+            return [newActivity, ...updated].slice(0, 15);
+          });
+
+          setLastRefresh(new Date());
+          
+          // Also refresh stats
+          refetchStats();
+          
+          toast.success('New user signed up!', {
+            description: newProfile.email,
+          });
+        }
+      )
+      .subscribe((status) => {
+        console.log('Profiles channel status:', status);
+      });
+
+    return () => {
+      supabase.removeChannel(documentsChannel);
+      supabase.removeChannel(profilesChannel);
+      setIsRealtimeConnected(false);
+    };
+  }, [refetchStats]);
+
+  const handleManualRefresh = useCallback(async () => {
     setIsRefreshing(true);
     await queryClient.invalidateQueries({ queryKey: ["admin-live-activity"] });
     await refetchStats();
+    // Reset to fetch fresh data
+    initializedRef.current = false;
     setIsRefreshing(false);
     setLastRefresh(new Date());
-  };
+  }, [queryClient, refetchStats]);
+
+  // Use realtime activities if available, otherwise fall back to initial
+  const activities = realtimeActivities.length > 0 ? realtimeActivities : initialActivities;
 
   const formatNumber = (num: number): string => {
     if (num >= 1000000) return `${(num / 1000000).toFixed(1)}M`;
@@ -155,13 +288,20 @@ export default function AdminOverview() {
               Real-time overview of your platform's performance
             </p>
           </div>
-          <div className="flex items-center gap-2 text-sm text-muted-foreground">
-            <div className="flex items-center gap-1">
-              <div className="w-2 h-2 rounded-full bg-green-500 animate-pulse" />
-              <span>Live</span>
+          <div className="flex items-center gap-3 text-sm">
+            <div className="flex items-center gap-2 px-3 py-1.5 rounded-full bg-muted">
+              {isRealtimeConnected ? (
+                <>
+                  <Radio className="h-4 w-4 text-green-500 animate-pulse" />
+                  <span className="text-green-600 font-medium">Realtime Connected</span>
+                </>
+              ) : (
+                <>
+                  <div className="w-2 h-2 rounded-full bg-yellow-500" />
+                  <span className="text-muted-foreground">Connecting...</span>
+                </>
+              )}
             </div>
-            <span>•</span>
-            <span>Auto-refresh: 30s</span>
           </div>
         </div>
 
@@ -365,14 +505,27 @@ export default function AdminOverview() {
                 {activities.map((activity, index) => (
                   <div 
                     key={activity.id + "-" + index}
-                    className="flex items-center gap-4 p-3 rounded-lg hover:bg-muted/50 transition-colors"
+                    className={`flex items-center gap-4 p-3 rounded-lg hover:bg-muted/50 transition-all duration-500 ${
+                      (activity as RealtimeActivity).isNew 
+                        ? 'bg-primary/5 border border-primary/20 animate-pulse' 
+                        : ''
+                    }`}
                   >
-                    <div className="flex-shrink-0 w-10 h-10 rounded-full bg-muted flex items-center justify-center">
+                    <div className={`flex-shrink-0 w-10 h-10 rounded-full flex items-center justify-center ${
+                      (activity as RealtimeActivity).isNew 
+                        ? 'bg-primary/10 ring-2 ring-primary/30' 
+                        : 'bg-muted'
+                    }`}>
                       {getActivityIcon(activity.type)}
                     </div>
                     <div className="flex-1 min-w-0">
                       <div className="flex items-center gap-2 flex-wrap">
                         <span className="font-medium text-sm truncate">{activity.email}</span>
+                        {(activity as RealtimeActivity).isNew && (
+                          <Badge className="bg-primary text-primary-foreground text-xs animate-pulse">
+                            NEW
+                          </Badge>
+                        )}
                         {getActivityBadge(activity.type)}
                         {activity.type === "content_generated" && activity.templateType && (
                           <Badge variant="secondary" className="text-xs">
