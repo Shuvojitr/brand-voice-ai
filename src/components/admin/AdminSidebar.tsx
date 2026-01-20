@@ -1,4 +1,4 @@
-import { LayoutDashboard, Users, FileText, Settings, ArrowLeft, DollarSign, Palette, MessageSquareQuote, HelpCircle, Key, FileStack, Search, Activity, Home, LifeBuoy, Ticket, MessageCircle, Bot } from "lucide-react";
+import { LayoutDashboard, Users, FileText, Settings, ArrowLeft, DollarSign, Palette, MessageSquareQuote, HelpCircle, Key, FileStack, Search, Activity, Home, LifeBuoy, Ticket, MessageCircle, Bot, BarChart3 } from "lucide-react";
 import { NavLink } from "@/components/NavLink";
 import { useLocation } from "react-router-dom";
 import {
@@ -19,6 +19,7 @@ import { Link } from "react-router-dom";
 
 const adminNavItems = [
   { title: "Overview", url: "/admin", icon: LayoutDashboard },
+  { title: "Analytics", url: "/admin/analytics", icon: BarChart3 },
   { title: "Users", url: "/admin/users", icon: Users },
   { title: "Support Tickets", url: "/admin/tickets", icon: Ticket },
   { title: "Live Chats", url: "/admin/live-chats", icon: MessageCircle },

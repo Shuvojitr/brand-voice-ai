@@ -34,6 +34,7 @@ interface LiveActivity {
   wordCount?: number;
   name?: string;
   timestamp: string;
+  isNew?: boolean;
 }
 
 async function fetchAdminData<T>(action: string, params?: Record<string, string>): Promise<T> {
