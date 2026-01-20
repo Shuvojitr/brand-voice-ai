@@ -2,6 +2,7 @@ import { AdminLayout } from "@/components/admin";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
 import { 
   Users, 
   DollarSign, 
@@ -13,26 +14,17 @@ import {
   Zap,
   Crown,
   RefreshCw,
-  Radio
+  Radio,
+  BarChart3,
+  ArrowRight
 } from "lucide-react";
-import { useAdminStats, useRevenueChart, useUsageChart, useLiveActivity } from "@/hooks/useAdminStats";
+import { useAdminStats, useLiveActivity } from "@/hooks/useAdminStats";
 import { formatDistanceToNow } from "date-fns";
-import { 
-  BarChart, 
-  Bar, 
-  XAxis, 
-  YAxis, 
-  CartesianGrid, 
-  ResponsiveContainer,
-  AreaChart,
-  Area
-} from "recharts";
-import { ChartContainer, ChartTooltip, ChartTooltipContent } from "@/components/ui/chart";
 import { useEffect, useState, useCallback, useRef } from "react";
-import { Button } from "@/components/ui/button";
 import { useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
+import { Link } from "react-router-dom";
 
 interface RealtimeActivity {
   id: string;
@@ -48,8 +40,6 @@ interface RealtimeActivity {
 
 export default function AdminOverview() {
   const { data: stats, isLoading: statsLoading, refetch: refetchStats } = useAdminStats();
-  const { data: revenueData, isLoading: revenueLoading } = useRevenueChart();
-  const { data: usageData, isLoading: usageLoading } = useUsageChart();
   const { data: initialActivities, isLoading: activitiesLoading } = useLiveActivity(15);
   const queryClient = useQueryClient();
   
@@ -241,20 +231,6 @@ export default function AdminOverview() {
     },
   ];
 
-  const revenueChartConfig = {
-    revenue: {
-      label: "Revenue",
-      color: "hsl(var(--primary))",
-    },
-  };
-
-  const usageChartConfig = {
-    words: {
-      label: "Words",
-      color: "hsl(var(--primary))",
-    },
-  };
-
   const getActivityIcon = (type: string) => {
     switch (type) {
       case "new_signup":
@@ -283,7 +259,7 @@ export default function AdminOverview() {
         {/* Header */}
         <div className="flex items-center justify-between">
           <div>
-            <h1 className="text-3xl font-bold">Analytics Command Center</h1>
+            <h1 className="text-3xl font-bold">Overview</h1>
             <p className="text-muted-foreground mt-1">
               Real-time overview of your platform's performance
             </p>
@@ -348,119 +324,26 @@ export default function AdminOverview() {
           ))}
         </div>
 
-        {/* Charts Row */}
-        <div className="grid gap-6 lg:grid-cols-2">
-          {/* Revenue Chart */}
-          <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <DollarSign className="h-5 w-5 text-green-500" />
-                Revenue Trend
-              </CardTitle>
-              <CardDescription>Monthly recurring revenue over the last 6 months</CardDescription>
-            </CardHeader>
-            <CardContent>
-              {revenueLoading ? (
-                <Skeleton className="h-[250px] w-full" />
-              ) : revenueData && revenueData.length > 0 ? (
-                <ChartContainer config={revenueChartConfig} className="h-[250px] w-full">
-                  <ResponsiveContainer width="100%" height="100%">
-                    <BarChart data={revenueData} margin={{ top: 10, right: 10, left: 0, bottom: 0 }}>
-                      <CartesianGrid strokeDasharray="3 3" className="stroke-muted" />
-                      <XAxis 
-                        dataKey="month" 
-                        tick={{ fontSize: 12 }}
-                        tickLine={false}
-                        axisLine={false}
-                        className="text-muted-foreground"
-                      />
-                      <YAxis 
-                        tick={{ fontSize: 12 }}
-                        tickLine={false}
-                        axisLine={false}
-                        tickFormatter={(value) => `$${value}`}
-                        className="text-muted-foreground"
-                      />
-                      <ChartTooltip 
-                        content={<ChartTooltipContent />}
-                        formatter={(value) => [`$${value}`, "Revenue"]}
-                      />
-                      <Bar 
-                        dataKey="revenue" 
-                        fill="hsl(var(--primary))" 
-                        radius={[4, 4, 0, 0]}
-                      />
-                    </BarChart>
-                  </ResponsiveContainer>
-                </ChartContainer>
-              ) : (
-                <div className="h-[250px] flex items-center justify-center text-muted-foreground">
-                  No revenue data available
-                </div>
-              )}
-            </CardContent>
-          </Card>
-
-          {/* Usage Chart */}
-          <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <FileText className="h-5 w-5 text-purple-500" />
-                Content Generation
-              </CardTitle>
-              <CardDescription>Words generated per day over the last 7 days</CardDescription>
-            </CardHeader>
-            <CardContent>
-              {usageLoading ? (
-                <Skeleton className="h-[250px] w-full" />
-              ) : usageData && usageData.length > 0 ? (
-                <ChartContainer config={usageChartConfig} className="h-[250px] w-full">
-                  <ResponsiveContainer width="100%" height="100%">
-                    <AreaChart data={usageData} margin={{ top: 10, right: 10, left: 0, bottom: 0 }}>
-                      <defs>
-                        <linearGradient id="colorWords" x1="0" y1="0" x2="0" y2="1">
-                          <stop offset="5%" stopColor="hsl(var(--primary))" stopOpacity={0.3}/>
-                          <stop offset="95%" stopColor="hsl(var(--primary))" stopOpacity={0}/>
-                        </linearGradient>
-                      </defs>
-                      <CartesianGrid strokeDasharray="3 3" className="stroke-muted" />
-                      <XAxis 
-                        dataKey="day" 
-                        tick={{ fontSize: 12 }}
-                        tickLine={false}
-                        axisLine={false}
-                        className="text-muted-foreground"
-                      />
-                      <YAxis 
-                        tick={{ fontSize: 12 }}
-                        tickLine={false}
-                        axisLine={false}
-                        tickFormatter={(value) => formatNumber(value)}
-                        className="text-muted-foreground"
-                      />
-                      <ChartTooltip 
-                        content={<ChartTooltipContent />}
-                        formatter={(value) => [formatNumber(Number(value)), "Words"]}
-                      />
-                      <Area 
-                        type="monotone" 
-                        dataKey="words" 
-                        stroke="hsl(var(--primary))" 
-                        fillOpacity={1} 
-                        fill="url(#colorWords)" 
-                        strokeWidth={2}
-                      />
-                    </AreaChart>
-                  </ResponsiveContainer>
-                </ChartContainer>
-              ) : (
-                <div className="h-[250px] flex items-center justify-center text-muted-foreground">
-                  No usage data available
-                </div>
-              )}
-            </CardContent>
-          </Card>
-        </div>
+        {/* Quick Link to Analytics */}
+        <Card className="bg-gradient-to-r from-primary/5 to-primary/10 border-primary/20">
+          <CardContent className="flex items-center justify-between py-4">
+            <div className="flex items-center gap-3">
+              <div className="p-2 rounded-lg bg-primary/10">
+                <BarChart3 className="h-5 w-5 text-primary" />
+              </div>
+              <div>
+                <h3 className="font-semibold">View Detailed Analytics</h3>
+                <p className="text-sm text-muted-foreground">Charts, trends, and subscription distribution</p>
+              </div>
+            </div>
+            <Button asChild variant="outline" className="gap-2">
+              <Link to="/admin/analytics">
+                View Analytics
+                <ArrowRight className="h-4 w-4" />
+              </Link>
+            </Button>
+          </CardContent>
+        </Card>
 
         {/* Live Activity Feed */}
         <Card>
@@ -478,79 +361,65 @@ export default function AdminOverview() {
               </div>
               <Button 
                 variant="outline" 
-                size="sm"
+                size="sm" 
                 onClick={handleManualRefresh}
                 disabled={isRefreshing}
+                className="gap-2"
               >
-                <RefreshCw className={`h-4 w-4 mr-2 ${isRefreshing ? 'animate-spin' : ''}`} />
+                <RefreshCw className={`h-4 w-4 ${isRefreshing ? 'animate-spin' : ''}`} />
                 Refresh
               </Button>
             </div>
           </CardHeader>
           <CardContent>
-            {activitiesLoading ? (
+            {activitiesLoading && !activities ? (
               <div className="space-y-4">
-                {[1, 2, 3, 4, 5].map((i) => (
+                {[...Array(5)].map((_, i) => (
                   <div key={i} className="flex items-center gap-4">
-                    <Skeleton className="h-10 w-10 rounded-full" />
+                    <Skeleton className="h-8 w-8 rounded-full" />
                     <div className="flex-1">
-                      <Skeleton className="h-4 w-full mb-2" />
-                      <Skeleton className="h-3 w-24" />
+                      <Skeleton className="h-4 w-3/4 mb-2" />
+                      <Skeleton className="h-3 w-1/2" />
                     </div>
                   </div>
                 ))}
               </div>
             ) : activities && activities.length > 0 ? (
-              <div className="space-y-1">
+              <div className="space-y-4">
                 {activities.map((activity, index) => (
                   <div 
-                    key={activity.id + "-" + index}
-                    className={`flex items-center gap-4 p-3 rounded-lg hover:bg-muted/50 transition-all duration-500 ${
-                      (activity as RealtimeActivity).isNew 
+                    key={`${activity.id}-${index}`} 
+                    className={`flex items-start gap-4 p-3 rounded-lg transition-all ${
+                      activity.isNew 
                         ? 'bg-primary/5 border border-primary/20 animate-pulse' 
-                        : ''
+                        : 'hover:bg-muted/50'
                     }`}
                   >
-                    <div className={`flex-shrink-0 w-10 h-10 rounded-full flex items-center justify-center ${
-                      (activity as RealtimeActivity).isNew 
-                        ? 'bg-primary/10 ring-2 ring-primary/30' 
-                        : 'bg-muted'
-                    }`}>
-                      {getActivityIcon(activity.type)}
+                    <div className="flex-shrink-0 mt-0.5">
+                      <div className="p-2 rounded-full bg-muted">
+                        {getActivityIcon(activity.type)}
+                      </div>
                     </div>
                     <div className="flex-1 min-w-0">
                       <div className="flex items-center gap-2 flex-wrap">
-                        <span className="font-medium text-sm truncate">{activity.email}</span>
-                        {(activity as RealtimeActivity).isNew && (
-                          <Badge className="bg-primary text-primary-foreground text-xs animate-pulse">
-                            NEW
-                          </Badge>
+                        <p className="text-sm font-medium truncate">{activity.description}</p>
+                        {activity.isNew && (
+                          <Badge variant="default" className="text-xs">NEW</Badge>
                         )}
                         {getActivityBadge(activity.type)}
-                        {activity.type === "content_generated" && activity.templateType && (
-                          <Badge variant="secondary" className="text-xs">
-                            {activity.templateType}
-                          </Badge>
-                        )}
                       </div>
-                      <p className="text-sm text-muted-foreground truncate">
-                        {activity.type === "content_generated" 
-                          ? `Generated ${activity.wordCount?.toLocaleString() || 0} words`
-                          : "Just signed up"
-                        }
+                      <p className="text-xs text-muted-foreground mt-1">
+                        {formatDistanceToNow(new Date(activity.timestamp), { addSuffix: true })}
                       </p>
-                    </div>
-                    <div className="flex-shrink-0 text-xs text-muted-foreground whitespace-nowrap">
-                      {formatDistanceToNow(new Date(activity.timestamp), { addSuffix: true })}
                     </div>
                   </div>
                 ))}
               </div>
             ) : (
-              <div className="text-center py-12 text-muted-foreground">
-                <Activity className="h-12 w-12 mx-auto mb-4 opacity-50" />
-                <p>No recent activity yet</p>
-                <p className="text-sm">Activity will appear here as users interact with your platform</p>
+              <div className="text-center py-8 text-muted-foreground">
+                <Activity className="h-12 w-12 mx-auto mb-3 opacity-50" />
+                <p>No recent activity</p>
+                <p className="text-sm">New signups and content generations will appear here in real-time</p>
               </div>
             )}
           </CardContent>
