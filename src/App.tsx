@@ -5,6 +5,7 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
 import { HelmetProvider } from "react-helmet-async";
 import { useFavicon } from "@/hooks/useFavicon";
+import { useAnalyticsTracking } from "@/hooks/useAnalyticsTracking";
 import { GlobalSeoHead } from "@/components/GlobalSeoHead";
 import Index from "./pages/Index";
 import Auth from "./pages/Auth";
@@ -59,6 +60,7 @@ const queryClient = new QueryClient();
 
 function AppContent() {
   useFavicon();
+  useAnalyticsTracking();
   
   return (
     <>
