@@ -83,6 +83,209 @@ export type Database = {
         }
         Relationships: []
       }
+      analytics_daily_stats: {
+        Row: {
+          avg_pages_per_session: number | null
+          avg_session_duration: number | null
+          bounce_rate: number | null
+          content_generations: number | null
+          created_at: string
+          date: string
+          desktop_visits: number | null
+          direct_visits: number | null
+          email_visits: number | null
+          id: string
+          mobile_visits: number | null
+          new_visitors: number | null
+          organic_visits: number | null
+          paid_visits: number | null
+          referral_visits: number | null
+          returning_visitors: number | null
+          signups: number | null
+          social_visits: number | null
+          subscriptions: number | null
+          tablet_visits: number | null
+          total_page_views: number | null
+          total_revenue: number | null
+          total_sessions: number | null
+          total_visitors: number | null
+          unique_visitors: number | null
+          updated_at: string
+        }
+        Insert: {
+          avg_pages_per_session?: number | null
+          avg_session_duration?: number | null
+          bounce_rate?: number | null
+          content_generations?: number | null
+          created_at?: string
+          date: string
+          desktop_visits?: number | null
+          direct_visits?: number | null
+          email_visits?: number | null
+          id?: string
+          mobile_visits?: number | null
+          new_visitors?: number | null
+          organic_visits?: number | null
+          paid_visits?: number | null
+          referral_visits?: number | null
+          returning_visitors?: number | null
+          signups?: number | null
+          social_visits?: number | null
+          subscriptions?: number | null
+          tablet_visits?: number | null
+          total_page_views?: number | null
+          total_revenue?: number | null
+          total_sessions?: number | null
+          total_visitors?: number | null
+          unique_visitors?: number | null
+          updated_at?: string
+        }
+        Update: {
+          avg_pages_per_session?: number | null
+          avg_session_duration?: number | null
+          bounce_rate?: number | null
+          content_generations?: number | null
+          created_at?: string
+          date?: string
+          desktop_visits?: number | null
+          direct_visits?: number | null
+          email_visits?: number | null
+          id?: string
+          mobile_visits?: number | null
+          new_visitors?: number | null
+          organic_visits?: number | null
+          paid_visits?: number | null
+          referral_visits?: number | null
+          returning_visitors?: number | null
+          signups?: number | null
+          social_visits?: number | null
+          subscriptions?: number | null
+          tablet_visits?: number | null
+          total_page_views?: number | null
+          total_revenue?: number | null
+          total_sessions?: number | null
+          total_visitors?: number | null
+          unique_visitors?: number | null
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      analytics_events: {
+        Row: {
+          anonymous_id: string | null
+          browser: string | null
+          browser_version: string | null
+          city: string | null
+          conversion_type: string | null
+          conversion_value: number | null
+          country: string | null
+          created_at: string
+          device_type: string | null
+          event_name: string | null
+          event_type: string
+          id: string
+          is_new_visitor: boolean | null
+          operating_system: string | null
+          page_path: string | null
+          page_title: string | null
+          previous_page_path: string | null
+          properties: Json | null
+          referrer: string | null
+          referrer_domain: string | null
+          region: string | null
+          screen_height: number | null
+          screen_width: number | null
+          scroll_depth: number | null
+          session_id: string
+          time_on_page: number | null
+          traffic_source: string | null
+          user_id: string | null
+          utm_campaign: string | null
+          utm_content: string | null
+          utm_medium: string | null
+          utm_source: string | null
+          utm_term: string | null
+        }
+        Insert: {
+          anonymous_id?: string | null
+          browser?: string | null
+          browser_version?: string | null
+          city?: string | null
+          conversion_type?: string | null
+          conversion_value?: number | null
+          country?: string | null
+          created_at?: string
+          device_type?: string | null
+          event_name?: string | null
+          event_type: string
+          id?: string
+          is_new_visitor?: boolean | null
+          operating_system?: string | null
+          page_path?: string | null
+          page_title?: string | null
+          previous_page_path?: string | null
+          properties?: Json | null
+          referrer?: string | null
+          referrer_domain?: string | null
+          region?: string | null
+          screen_height?: number | null
+          screen_width?: number | null
+          scroll_depth?: number | null
+          session_id: string
+          time_on_page?: number | null
+          traffic_source?: string | null
+          user_id?: string | null
+          utm_campaign?: string | null
+          utm_content?: string | null
+          utm_medium?: string | null
+          utm_source?: string | null
+          utm_term?: string | null
+        }
+        Update: {
+          anonymous_id?: string | null
+          browser?: string | null
+          browser_version?: string | null
+          city?: string | null
+          conversion_type?: string | null
+          conversion_value?: number | null
+          country?: string | null
+          created_at?: string
+          device_type?: string | null
+          event_name?: string | null
+          event_type?: string
+          id?: string
+          is_new_visitor?: boolean | null
+          operating_system?: string | null
+          page_path?: string | null
+          page_title?: string | null
+          previous_page_path?: string | null
+          properties?: Json | null
+          referrer?: string | null
+          referrer_domain?: string | null
+          region?: string | null
+          screen_height?: number | null
+          screen_width?: number | null
+          scroll_depth?: number | null
+          session_id?: string
+          time_on_page?: number | null
+          traffic_source?: string | null
+          user_id?: string | null
+          utm_campaign?: string | null
+          utm_content?: string | null
+          utm_medium?: string | null
+          utm_source?: string | null
+          utm_term?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "analytics_events_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       api_keys: {
         Row: {
           created_at: string | null
