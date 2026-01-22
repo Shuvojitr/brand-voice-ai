@@ -21,14 +21,70 @@ interface SessionData {
   pageViews: number;
   referrer: string;
   utmParams: Record<string, string>;
+  geoData?: GeoData;
+}
+
+interface GeoData {
+  country: string;
+  countryCode: string;
+  region: string;
+  city: string;
 }
 
 const SESSION_KEY = "analytics_session";
 const VISITOR_KEY = "analytics_visitor";
 const SESSION_TIMEOUT = 30 * 60 * 1000; // 30 minutes
 
+const GEO_KEY = "analytics_geo";
+const GEO_CACHE_TTL = 24 * 60 * 60 * 1000; // 24 hours
+
 function generateId(): string {
   return `${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
+}
+
+// Fetch geolocation data from free IP-API
+async function fetchGeoData(): Promise<GeoData | null> {
+  try {
+    // Check cache first
+    const cached = localStorage.getItem(GEO_KEY);
+    if (cached) {
+      const { data, timestamp } = JSON.parse(cached);
+      if (Date.now() - timestamp < GEO_CACHE_TTL) {
+        return data as GeoData;
+      }
+    }
+
+    // Fetch from ip-api.com (free, no API key required, 45 req/min limit)
+    const response = await fetch("http://ip-api.com/json/?fields=status,country,countryCode,regionName,city");
+    
+    if (!response.ok) {
+      throw new Error("Geolocation API failed");
+    }
+
+    const result = await response.json();
+    
+    if (result.status !== "success") {
+      throw new Error("Geolocation lookup failed");
+    }
+
+    const geoData: GeoData = {
+      country: result.country || "Unknown",
+      countryCode: result.countryCode || "XX",
+      region: result.regionName || "",
+      city: result.city || "",
+    };
+
+    // Cache the result
+    localStorage.setItem(GEO_KEY, JSON.stringify({
+      data: geoData,
+      timestamp: Date.now(),
+    }));
+
+    return geoData;
+  } catch (error) {
+    console.warn("Geolocation fetch failed:", error);
+    return null;
+  }
 }
 
 function getDeviceType(): string {
@@ -179,6 +235,15 @@ export async function trackEvent(event: TrackingEvent): Promise<void> {
     const { browser, version: browserVersion } = getBrowserInfo();
     const utmParams = session.utmParams;
 
+    // Get geolocation data (from cache or fetch)
+    let geoData = session.geoData;
+    if (!geoData) {
+      geoData = await fetchGeoData() || undefined;
+      if (geoData) {
+        updateSession({ geoData });
+      }
+    }
+
     const { data: { user } } = await supabase.auth.getUser();
 
     const eventData = {
@@ -205,6 +270,9 @@ export async function trackEvent(event: TrackingEvent): Promise<void> {
       operating_system: getOS(),
       screen_width: window.screen.width,
       screen_height: window.screen.height,
+      country: geoData?.country || null,
+      region: geoData?.region || null,
+      city: geoData?.city || null,
       time_on_page: event.time_on_page || null,
       scroll_depth: event.scroll_depth || null,
       conversion_type: event.conversion_type || null,
