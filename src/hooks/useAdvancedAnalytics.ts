@@ -82,6 +82,13 @@ export interface RealtimeVisitor {
   startTime: string;
 }
 
+export interface CountryStats {
+  country: string;
+  countryCode: string;
+  visitors: number;
+  percentage: number;
+}
+
 // Fetch visitor stats for a date range
 export function useVisitorStats(days: number = 7) {
   return useQuery({
@@ -602,5 +609,83 @@ export function useRealtimeVisitors() {
       return Array.from(sessionsMap.values());
     },
     refetchInterval: 10000, // Refresh every 10 seconds
+  });
+}
+
+// Fetch visitor locations by country
+export function useCountryStats(days: number = 7) {
+  return useQuery({
+    queryKey: ["analytics-country-stats", days],
+    queryFn: async (): Promise<CountryStats[]> => {
+      const startDate = startOfDay(subDays(new Date(), days)).toISOString();
+      const endDate = endOfDay(new Date()).toISOString();
+
+      const { data: events, error } = await supabase
+        .from("analytics_events")
+        .select("session_id, country")
+        .eq("event_type", "page_view")
+        .gte("created_at", startDate)
+        .lte("created_at", endDate);
+
+      if (error) throw error;
+
+      // Get unique sessions per country
+      const sessionsByCountry: Record<string, Set<string>> = {};
+      events?.forEach(e => {
+        const country = e.country || "Unknown";
+        if (!sessionsByCountry[country]) sessionsByCountry[country] = new Set();
+        sessionsByCountry[country].add(e.session_id);
+      });
+
+      const totalSessions = new Set(events?.map(e => e.session_id) || []).size;
+
+      // Map country names to codes
+      const countryCodeMap: Record<string, string> = {
+        "United States": "US",
+        "Canada": "CA",
+        "Brazil": "BR",
+        "United Kingdom": "GB",
+        "Germany": "DE",
+        "France": "FR",
+        "Spain": "ES",
+        "Italy": "IT",
+        "Russia": "RU",
+        "China": "CN",
+        "Japan": "JP",
+        "India": "IN",
+        "Australia": "AU",
+        "South Africa": "ZA",
+        "Nigeria": "NG",
+        "Egypt": "EG",
+        "Mexico": "MX",
+        "Argentina": "AR",
+        "South Korea": "KR",
+        "Indonesia": "ID",
+        "Pakistan": "PK",
+        "Bangladesh": "BD",
+        "Philippines": "PH",
+        "Vietnam": "VN",
+        "Thailand": "TH",
+        "Turkey": "TR",
+        "Saudi Arabia": "SA",
+        "UAE": "AE",
+        "Poland": "PL",
+        "Netherlands": "NL",
+        "Sweden": "SE",
+        "Norway": "NO",
+        "Finland": "FI",
+        "Ukraine": "UA",
+        "Unknown": "XX",
+      };
+
+      return Object.entries(sessionsByCountry)
+        .map(([country, sessions]) => ({
+          country,
+          countryCode: countryCodeMap[country] || country.substring(0, 2).toUpperCase(),
+          visitors: sessions.size,
+          percentage: totalSessions > 0 ? Math.round((sessions.size / totalSessions) * 100) : 0,
+        }))
+        .sort((a, b) => b.visitors - a.visitors);
+    },
   });
 }

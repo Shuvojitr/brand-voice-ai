@@ -9,3 +9,4 @@ export { RealtimeVisitorsCard } from "./RealtimeVisitorsCard";
 export { ConversionsCard } from "./ConversionsCard";
 export { UserCostAnalysisTable } from "./UserCostAnalysisTable";
 export { BrowserStatsChart } from "./BrowserStatsChart";
+export { WorldMapChart } from "./WorldMapChart";

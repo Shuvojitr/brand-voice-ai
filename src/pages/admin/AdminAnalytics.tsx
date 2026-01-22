@@ -24,6 +24,7 @@ import {
   useUserCostAnalysis,
   useConversions,
   useRealtimeVisitors,
+  useCountryStats,
 } from "@/hooks/useAdvancedAnalytics";
 import {
   AnalyticsDateFilter,
@@ -37,6 +38,7 @@ import {
   ConversionsCard,
   UserCostAnalysisTable,
   BrowserStatsChart,
+  WorldMapChart,
 } from "@/components/analytics";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -74,6 +76,7 @@ export default function AdminAnalytics() {
   const { data: userCostAnalysis, isLoading: costLoading } = useUserCostAnalysis(20);
   const { data: conversions, isLoading: conversionsLoading } = useConversions(dateRange);
   const { data: realtimeVisitors, isLoading: realtimeLoading } = useRealtimeVisitors();
+  const { data: countryStats, isLoading: countryLoading } = useCountryStats(dateRange);
 
   const formatNumber = (num: number): string => {
     if (num >= 1000000) return `${(num / 1000000).toFixed(1)}M`;
@@ -177,6 +180,11 @@ export default function AdminAnalytics() {
 
           {/* Acquisition Tab */}
           <TabsContent value="acquisition" className="space-y-6">
+            {/* World Map */}
+            <div className="grid gap-6">
+              <WorldMapChart data={countryStats} isLoading={countryLoading} />
+            </div>
+
             <div className="grid gap-6 lg:grid-cols-3">
               <TrafficSourcesChart data={trafficSources} isLoading={trafficLoading} />
               <VisitorTrendChart data={dailyTrend} isLoading={trendLoading} />
