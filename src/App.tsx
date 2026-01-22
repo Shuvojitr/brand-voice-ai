@@ -58,14 +58,19 @@ import ManagerLiveChats from "./pages/manager/ManagerLiveChats";
 
 const queryClient = new QueryClient();
 
+function AnalyticsWrapper({ children }: { children: React.ReactNode }) {
+  useAnalyticsTracking();
+  return <>{children}</>;
+}
+
 function AppContent() {
   useFavicon();
-  useAnalyticsTracking();
   
   return (
     <>
       <GlobalSeoHead />
       <BrowserRouter>
+      <AnalyticsWrapper>
       <Routes>
         <Route path="/" element={<Index />} />
         <Route path="/login" element={<Auth />} />
@@ -121,6 +126,7 @@ function AppContent() {
         {/* 404 fallback */}
         <Route path="/404" element={<NotFound />} />
       </Routes>
+      </AnalyticsWrapper>
     </BrowserRouter>
     </>
   );
