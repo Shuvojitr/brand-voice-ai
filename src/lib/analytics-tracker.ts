@@ -42,7 +42,7 @@ function generateId(): string {
   return `${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
 }
 
-// Fetch geolocation data from free IP-API
+// Fetch geolocation data from free HTTPS geolocation API
 async function fetchGeoData(): Promise<GeoData | null> {
   try {
     // Check cache first
@@ -54,33 +54,48 @@ async function fetchGeoData(): Promise<GeoData | null> {
       }
     }
 
-    // Fetch from ip-api.com (free, no API key required, 45 req/min limit)
-    const response = await fetch("http://ip-api.com/json/?fields=status,country,countryCode,regionName,city");
+    // Try ipapi.co first (HTTPS, free tier: 1000 req/day)
+    let geoData: GeoData | null = null;
     
-    if (!response.ok) {
-      throw new Error("Geolocation API failed");
+    try {
+      const response = await fetch("https://ipapi.co/json/");
+      if (response.ok) {
+        const result = await response.json();
+        if (!result.error) {
+          geoData = {
+            country: result.country_name || "Unknown",
+            countryCode: result.country_code || "XX",
+            region: result.region || "",
+            city: result.city || "",
+          };
+        }
+      }
+    } catch {
+      // Fall back to ipwho.is (HTTPS, free, no rate limit mentioned)
+      const fallbackResponse = await fetch("https://ipwho.is/");
+      if (fallbackResponse.ok) {
+        const result = await fallbackResponse.json();
+        if (result.success) {
+          geoData = {
+            country: result.country || "Unknown",
+            countryCode: result.country_code || "XX",
+            region: result.region || "",
+            city: result.city || "",
+          };
+        }
+      }
     }
 
-    const result = await response.json();
-    
-    if (result.status !== "success") {
-      throw new Error("Geolocation lookup failed");
+    if (geoData) {
+      // Cache the result
+      localStorage.setItem(GEO_KEY, JSON.stringify({
+        data: geoData,
+        timestamp: Date.now(),
+      }));
+      return geoData;
     }
 
-    const geoData: GeoData = {
-      country: result.country || "Unknown",
-      countryCode: result.countryCode || "XX",
-      region: result.regionName || "",
-      city: result.city || "",
-    };
-
-    // Cache the result
-    localStorage.setItem(GEO_KEY, JSON.stringify({
-      data: geoData,
-      timestamp: Date.now(),
-    }));
-
-    return geoData;
+    return null;
   } catch (error) {
     console.warn("Geolocation fetch failed:", error);
     return null;
