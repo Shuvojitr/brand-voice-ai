@@ -1301,6 +1301,51 @@ export type Database = {
         }
         Relationships: []
       }
+      third_party_integrations: {
+        Row: {
+          body_end_code: string | null
+          body_start_code: string | null
+          category: string
+          created_at: string
+          description: string | null
+          head_code: string | null
+          id: string
+          is_active: boolean
+          name: string
+          slug: string
+          sort_order: number | null
+          updated_at: string
+        }
+        Insert: {
+          body_end_code?: string | null
+          body_start_code?: string | null
+          category?: string
+          created_at?: string
+          description?: string | null
+          head_code?: string | null
+          id?: string
+          is_active?: boolean
+          name: string
+          slug: string
+          sort_order?: number | null
+          updated_at?: string
+        }
+        Update: {
+          body_end_code?: string | null
+          body_start_code?: string | null
+          category?: string
+          created_at?: string
+          description?: string | null
+          head_code?: string | null
+          id?: string
+          is_active?: boolean
+          name?: string
+          slug?: string
+          sort_order?: number | null
+          updated_at?: string
+        }
+        Relationships: []
+      }
       ticket_replies: {
         Row: {
           created_at: string
