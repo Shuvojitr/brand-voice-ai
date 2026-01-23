@@ -7,6 +7,7 @@ import { HelmetProvider } from "react-helmet-async";
 import { useFavicon } from "@/hooks/useFavicon";
 import { useAnalyticsTracking } from "@/hooks/useAnalyticsTracking";
 import { GlobalSeoHead } from "@/components/GlobalSeoHead";
+import { ThirdPartyScripts } from "@/components/ThirdPartyScripts";
 import Index from "./pages/Index";
 import Auth from "./pages/Auth";
 import ForgotPassword from "./pages/ForgotPassword";
@@ -47,6 +48,7 @@ import AdminSupportTickets from "./pages/admin/AdminSupportTickets";
 import AdminLiveChats from "./pages/admin/AdminLiveChats";
 import AdminAiSettings from "./pages/admin/AdminAiSettings";
 import AdminAnalytics from "./pages/admin/AdminAnalytics";
+import AdminIntegrations from "./pages/admin/AdminIntegrations";
 import ManagerOverview from "./pages/manager/ManagerOverview";
 import ManagerTemplates from "./pages/manager/ManagerTemplates";
 import ManagerPages from "./pages/manager/ManagerPages";
@@ -69,6 +71,7 @@ function AppContent() {
   return (
     <>
       <GlobalSeoHead />
+      <ThirdPartyScripts />
       <BrowserRouter>
       <AnalyticsWrapper>
       <Routes>
@@ -112,6 +115,7 @@ function AppContent() {
         <Route path="/admin/seo" element={<AdminSeo />} />
         <Route path="/admin/activity" element={<AdminActivityLog />} />
         <Route path="/admin/settings" element={<AdminSettings />} />
+        <Route path="/admin/integrations" element={<AdminIntegrations />} />
         {/* Manager Routes */}
         <Route path="/manager" element={<ManagerOverview />} />
         <Route path="/manager/templates" element={<ManagerTemplates />} />
