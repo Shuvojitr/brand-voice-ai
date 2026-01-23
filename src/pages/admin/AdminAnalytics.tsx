@@ -69,7 +69,6 @@ export default function AdminAnalytics() {
   const { data: engagementStats, isLoading: engagementLoading } = useEngagementStats(dateRange);
   const { data: trafficSources, isLoading: trafficLoading } = useTrafficSources(dateRange);
   const { data: topPages, isLoading: pagesLoading } = useTopPages(dateRange, 10);
-  const { data: allPages, isLoading: allPagesLoading } = useTopPages(dateRange, 500);
   const { data: deviceStats, isLoading: devicesLoading } = useDeviceStats(dateRange);
   const { data: browserStats, isLoading: browserLoading } = useBrowserStats(dateRange);
   const { data: dailyTrend, isLoading: trendLoading } = useDailyVisitorTrend(dateRange);
@@ -158,18 +157,25 @@ export default function AdminAnalytics() {
             {/* Segmentation - Browser & Top Pages */}
             <div className="grid gap-6 lg:grid-cols-2">
               <BrowserStatsChart data={browserStats} isLoading={browserLoading} />
-              <TopPagesTable data={topPages} isLoading={pagesLoading} allPagesData={allPages} allPagesLoading={allPagesLoading} />
+              <TopPagesTable data={topPages} isLoading={pagesLoading} />
             </div>
           </TabsContent>
 
           {/* Engagement Tab */}
           <TabsContent value="engagement" className="space-y-6">
-            <TopPagesTable 
-              data={topPages} 
-              isLoading={pagesLoading} 
-              allPagesData={allPages}
-              allPagesLoading={allPagesLoading}
+            <VisitorStatsCards
+              visitorStats={visitorStats}
+              engagementStats={engagementStats}
+              isLoading={visitorLoading || engagementLoading}
             />
+
+            <div className="grid gap-6 lg:grid-cols-2">
+              <TopPagesTable data={topPages} isLoading={pagesLoading} />
+              <ConversionsCard data={conversions} isLoading={conversionsLoading} />
+            </div>
+
+            {/* Most Popular Templates */}
+            <TemplateUsageChart data={templateUsage} isLoading={templateLoading} />
           </TabsContent>
 
           {/* Acquisition Tab */}
