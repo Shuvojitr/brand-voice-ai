@@ -11,6 +11,7 @@ import {
   TestimonialsSection, 
   FAQSection, 
   PopularTemplatesSection,
+  BlogSection,
   HeroSkeleton,
   FeaturesSkeleton,
   StepsSkeleton,
@@ -619,6 +620,9 @@ export default function Index() {
 
       {/* FAQ Section */}
       <FAQSection />
+
+      {/* Blog Section */}
+      <BlogSection />
 
       {/* CTA Section - Show skeleton if loading or no data */}
       {homepageLoading || !ctaContent ? (
