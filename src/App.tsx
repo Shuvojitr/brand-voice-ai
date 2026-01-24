@@ -30,6 +30,7 @@ import Banned from "./pages/Banned";
 import StaticPage from "./pages/StaticPage";
 import MyTickets from "./pages/MyTickets";
 import LiveChat from "./pages/LiveChat";
+import Blog from "./pages/Blog";
 import AdminOverview from "./pages/admin/AdminOverview";
 import AdminUsers from "./pages/admin/AdminUsers";
 import AdminTemplates from "./pages/admin/AdminTemplates";
@@ -97,6 +98,7 @@ function AppContent() {
         <Route path="/dashboard/live-chat" element={<LiveChat />} />
         <Route path="/dashboard/getting-started" element={<GettingStarted />} />
         <Route path="/docs" element={<Docs />} />
+        <Route path="/blog" element={<Blog />} />
         {/* Admin Routes */}
         <Route path="/admin" element={<AdminOverview />} />
         <Route path="/admin/analytics" element={<AdminAnalytics />} />
