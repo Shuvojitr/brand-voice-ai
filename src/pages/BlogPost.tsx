@@ -1,0 +1,334 @@
+import { Link, useParams } from "react-router-dom";
+import { Layout } from "@/components/layout";
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Separator } from "@/components/ui/separator";
+import { Skeleton } from "@/components/ui/skeleton";
+import {
+  Calendar,
+  Clock,
+  User,
+  ArrowLeft,
+  ArrowRight,
+  Share2,
+  Twitter,
+  Facebook,
+  Linkedin,
+  Link2,
+  Check,
+} from "lucide-react";
+import { useBlogPost, useBlogPosts } from "@/hooks/useBlogPosts";
+import { format } from "date-fns";
+import { useState, useMemo } from "react";
+import { toast } from "@/hooks/use-toast";
+
+export default function BlogPostPage() {
+  const { slug } = useParams<{ slug: string }>();
+  const { data: post, isLoading } = useBlogPost(slug || "");
+  const { data: allPosts } = useBlogPosts();
+  const [copied, setCopied] = useState(false);
+
+  // Get related posts (same category or shared tags)
+  const relatedPosts = useMemo(() => {
+    if (!post || !allPosts) return [];
+
+    return allPosts
+      .filter((p) => {
+        if (p.id === post.id) return false;
+        // Same category
+        if (p.category === post.category) return true;
+        // Shared tags
+        if (post.tags && p.tags) {
+          return post.tags.some((tag) => p.tags?.includes(tag));
+        }
+        return false;
+      })
+      .slice(0, 3);
+  }, [post, allPosts]);
+
+  const currentUrl = typeof window !== "undefined" ? window.location.href : "";
+  const shareText = post ? `${post.title} - Check out this article!` : "";
+
+  const handleCopyLink = async () => {
+    try {
+      await navigator.clipboard.writeText(currentUrl);
+      setCopied(true);
+      toast({ title: "Link copied to clipboard!" });
+      setTimeout(() => setCopied(false), 2000);
+    } catch {
+      toast({ title: "Failed to copy link", variant: "destructive" });
+    }
+  };
+
+  const shareOnTwitter = () => {
+    window.open(
+      `https://twitter.com/intent/tweet?text=${encodeURIComponent(shareText)}&url=${encodeURIComponent(currentUrl)}`,
+      "_blank"
+    );
+  };
+
+  const shareOnFacebook = () => {
+    window.open(
+      `https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(currentUrl)}`,
+      "_blank"
+    );
+  };
+
+  const shareOnLinkedIn = () => {
+    window.open(
+      `https://www.linkedin.com/sharing/share-offsite/?url=${encodeURIComponent(currentUrl)}`,
+      "_blank"
+    );
+  };
+
+  if (isLoading) {
+    return (
+      <Layout>
+        <div className="container py-12 md:py-20 max-w-4xl">
+          <Skeleton className="h-8 w-32 mb-6" />
+          <Skeleton className="h-12 w-3/4 mb-4" />
+          <Skeleton className="h-6 w-1/2 mb-8" />
+          <Skeleton className="h-64 w-full mb-8" />
+          <div className="space-y-4">
+            <Skeleton className="h-4 w-full" />
+            <Skeleton className="h-4 w-full" />
+            <Skeleton className="h-4 w-3/4" />
+          </div>
+        </div>
+      </Layout>
+    );
+  }
+
+  if (!post) {
+    return (
+      <Layout>
+        <div className="container py-20 text-center">
+          <h1 className="text-3xl font-bold mb-4">Post Not Found</h1>
+          <p className="text-muted-foreground mb-8">
+            The blog post you're looking for doesn't exist or has been removed.
+          </p>
+          <Button asChild>
+            <Link to="/blog">
+              <ArrowLeft className="mr-2 h-4 w-4" />
+              Back to Blog
+            </Link>
+          </Button>
+        </div>
+      </Layout>
+    );
+  }
+
+  return (
+    <Layout>
+      <article className="container py-12 md:py-20">
+        {/* Back Link */}
+        <Link
+          to="/blog"
+          className="inline-flex items-center text-sm text-muted-foreground hover:text-foreground mb-8 transition-colors"
+        >
+          <ArrowLeft className="mr-2 h-4 w-4" />
+          Back to Blog
+        </Link>
+
+        {/* Header */}
+        <header className="max-w-3xl mx-auto text-center mb-12">
+          {/* Category */}
+          {post.category && (
+            <Badge variant="secondary" className="mb-4">
+              {post.category}
+            </Badge>
+          )}
+
+          {/* Title */}
+          <h1 className="text-4xl md:text-5xl font-bold tracking-tight mb-6">
+            {post.title}
+          </h1>
+
+          {/* Meta */}
+          <div className="flex items-center justify-center gap-6 text-sm text-muted-foreground mb-6">
+            <div className="flex items-center gap-2">
+              <User className="h-4 w-4" />
+              <span>{post.author_name || "Admin"}</span>
+            </div>
+            {post.published_at && (
+              <div className="flex items-center gap-2">
+                <Calendar className="h-4 w-4" />
+                <span>{format(new Date(post.published_at), "MMMM d, yyyy")}</span>
+              </div>
+            )}
+            {post.read_time_minutes && (
+              <div className="flex items-center gap-2">
+                <Clock className="h-4 w-4" />
+                <span>{post.read_time_minutes} min read</span>
+              </div>
+            )}
+          </div>
+
+          {/* Tags */}
+          {post.tags && post.tags.length > 0 && (
+            <div className="flex items-center justify-center gap-2 flex-wrap">
+              {post.tags.map((tag) => (
+                <Badge key={tag} variant="outline" className="text-xs">
+                  {tag}
+                </Badge>
+              ))}
+            </div>
+          )}
+        </header>
+
+        {/* Featured Image */}
+        {post.featured_image && (
+          <div className="max-w-4xl mx-auto mb-12">
+            <div className="relative rounded-2xl overflow-hidden shadow-lg">
+              <img
+                src={post.featured_image}
+                alt={post.title}
+                className="w-full h-auto object-cover"
+              />
+            </div>
+          </div>
+        )}
+
+        {/* Content */}
+        <div className="max-w-3xl mx-auto">
+          <div className="prose prose-lg dark:prose-invert max-w-none">
+            {/* Render content - for now as plain text, could add markdown support */}
+            <div className="whitespace-pre-wrap text-foreground leading-relaxed">
+              {post.content}
+            </div>
+          </div>
+
+          <Separator className="my-12" />
+
+          {/* Share Section */}
+          <div className="flex flex-col sm:flex-row items-center justify-between gap-6 py-6">
+            <div className="flex items-center gap-2 text-muted-foreground">
+              <Share2 className="h-5 w-5" />
+              <span className="font-medium">Share this article</span>
+            </div>
+
+            <div className="flex items-center gap-2">
+              <Button
+                variant="outline"
+                size="icon"
+                onClick={shareOnTwitter}
+                title="Share on Twitter"
+              >
+                <Twitter className="h-4 w-4" />
+              </Button>
+              <Button
+                variant="outline"
+                size="icon"
+                onClick={shareOnFacebook}
+                title="Share on Facebook"
+              >
+                <Facebook className="h-4 w-4" />
+              </Button>
+              <Button
+                variant="outline"
+                size="icon"
+                onClick={shareOnLinkedIn}
+                title="Share on LinkedIn"
+              >
+                <Linkedin className="h-4 w-4" />
+              </Button>
+              <Button
+                variant="outline"
+                size="icon"
+                onClick={handleCopyLink}
+                title="Copy link"
+              >
+                {copied ? (
+                  <Check className="h-4 w-4 text-success" />
+                ) : (
+                  <Link2 className="h-4 w-4" />
+                )}
+              </Button>
+            </div>
+          </div>
+        </div>
+
+        {/* Related Posts */}
+        {relatedPosts.length > 0 && (
+          <section className="mt-16 pt-12 border-t">
+            <div className="max-w-5xl mx-auto">
+              <h2 className="text-2xl font-bold text-center mb-8">
+                Related <span className="gradient-text">Posts</span>
+              </h2>
+
+              <div className="grid gap-6 md:grid-cols-3">
+                {relatedPosts.map((relatedPost) => (
+                  <Card
+                    key={relatedPost.id}
+                    className="group overflow-hidden border-border/50 bg-card/50 backdrop-blur hover:border-primary/50 transition-all duration-300"
+                  >
+                    {/* Featured Image */}
+                    {relatedPost.featured_image ? (
+                      <div className="relative h-40 overflow-hidden">
+                        <img
+                          src={relatedPost.featured_image}
+                          alt={relatedPost.title}
+                          className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-105"
+                        />
+                      </div>
+                    ) : (
+                      <div className="h-40 bg-gradient-to-br from-primary/10 via-violet/10 to-cyan/10 flex items-center justify-center">
+                        <span className="text-3xl font-bold text-muted-foreground/20">
+                          {relatedPost.title.charAt(0)}
+                        </span>
+                      </div>
+                    )}
+
+                    <CardHeader className="pb-2">
+                      {relatedPost.category && (
+                        <Badge variant="secondary" className="text-xs w-fit">
+                          {relatedPost.category}
+                        </Badge>
+                      )}
+                      <CardTitle className="text-base leading-tight group-hover:text-primary transition-colors line-clamp-2">
+                        <Link to={`/blog/${relatedPost.slug}`}>
+                          {relatedPost.title}
+                        </Link>
+                      </CardTitle>
+                    </CardHeader>
+
+                    <CardContent>
+                      <CardDescription className="line-clamp-2 text-sm">
+                        {relatedPost.excerpt}
+                      </CardDescription>
+
+                      <Link
+                        to={`/blog/${relatedPost.slug}`}
+                        className="inline-flex items-center text-sm font-medium text-primary hover:underline mt-3"
+                      >
+                        Read More
+                        <ArrowRight className="ml-1 h-4 w-4 transition-transform group-hover:translate-x-1" />
+                      </Link>
+                    </CardContent>
+                  </Card>
+                ))}
+              </div>
+            </div>
+          </section>
+        )}
+
+        {/* CTA */}
+        <div className="max-w-2xl mx-auto mt-16 text-center">
+          <Card className="p-8 bg-gradient-to-br from-primary/5 via-violet/5 to-cyan/5 border-primary/20">
+            <h3 className="text-xl font-bold mb-2">Want to create content like this?</h3>
+            <p className="text-muted-foreground mb-6">
+              Start generating high-quality content with our AI-powered platform.
+            </p>
+            <Button variant="gradient" size="lg" asChild>
+              <Link to="/signup">
+                Get Started Free
+                <ArrowRight className="ml-2 h-4 w-4" />
+              </Link>
+            </Button>
+          </Card>
+        </div>
+      </article>
+    </Layout>
+  );
+}
