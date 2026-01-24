@@ -49,6 +49,7 @@ import AdminLiveChats from "./pages/admin/AdminLiveChats";
 import AdminAiSettings from "./pages/admin/AdminAiSettings";
 import AdminAnalytics from "./pages/admin/AdminAnalytics";
 import AdminIntegrations from "./pages/admin/AdminIntegrations";
+import AdminBlogPosts from "./pages/admin/AdminBlogPosts";
 import ManagerOverview from "./pages/manager/ManagerOverview";
 import ManagerTemplates from "./pages/manager/ManagerTemplates";
 import ManagerPages from "./pages/manager/ManagerPages";
@@ -116,6 +117,7 @@ function AppContent() {
         <Route path="/admin/activity" element={<AdminActivityLog />} />
         <Route path="/admin/settings" element={<AdminSettings />} />
         <Route path="/admin/integrations" element={<AdminIntegrations />} />
+        <Route path="/admin/blog" element={<AdminBlogPosts />} />
         {/* Manager Routes */}
         <Route path="/manager" element={<ManagerOverview />} />
         <Route path="/manager/templates" element={<ManagerTemplates />} />
