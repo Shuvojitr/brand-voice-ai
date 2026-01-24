@@ -5,6 +5,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Switch } from "@/components/ui/switch";
+import { RichTextEditor } from "@/components/ui/rich-text-editor";
 import { Badge } from "@/components/ui/badge";
 import {
   Table,
@@ -473,13 +474,12 @@ export default function AdminBlogPosts() {
             </div>
 
             <div className="grid gap-2">
-              <Label htmlFor="content">Content</Label>
-              <Textarea
-                id="content"
-                value={content}
-                onChange={(e) => setContent(e.target.value)}
-                placeholder="Full post content (supports markdown)"
-                rows={6}
+              <Label>Content</Label>
+              <RichTextEditor
+                content={content}
+                onChange={setContent}
+                placeholder="Write your blog post content..."
+                className="min-h-[300px]"
               />
             </div>
 
