@@ -1,4 +1,4 @@
-import { useState, useRef, useEffect } from "react";
+import { useState, useRef, useEffect, useCallback } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { AdminLayout } from "@/components/admin";
 import { Button } from "@/components/ui/button";
@@ -6,6 +6,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Switch } from "@/components/ui/switch";
+import { Badge } from "@/components/ui/badge";
 import { RichTextEditor } from "@/components/ui/rich-text-editor";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -16,27 +17,30 @@ import {
   Loader2,
   Save,
   Eye,
+  Check,
+  Cloud,
+  CloudOff,
 } from "lucide-react";
 import {
-  useBlogPost,
-  useCreateBlogPost,
-  useUpdateBlogPost,
   BlogPostInput,
 } from "@/hooks/useBlogPosts";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "@/hooks/use-toast";
+
+type SaveStatus = "saved" | "saving" | "unsaved" | "error";
 
 export default function AdminBlogPostEditor() {
   const { postId } = useParams();
   const navigate = useNavigate();
   const isEditing = !!postId;
 
-  const createPost = useCreateBlogPost();
-  const updatePost = useUpdateBlogPost();
-
   const [isUploading, setIsUploading] = useState(false);
   const [isLoading, setIsLoading] = useState(isEditing);
+  const [saveStatus, setSaveStatus] = useState<SaveStatus>("saved");
+  const [currentPostId, setCurrentPostId] = useState<string | null>(postId || null);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const autoSaveTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const lastSavedDataRef = useRef<string>("");
 
   // Form state
   const [title, setTitle] = useState("");
@@ -50,6 +54,115 @@ export default function AdminBlogPostEditor() {
   const [tags, setTags] = useState("");
   const [isPublished, setIsPublished] = useState(false);
   const [isFeatured, setIsFeatured] = useState(false);
+
+  // Create a hash of current form data to detect changes
+  const getFormDataHash = useCallback(() => {
+    return JSON.stringify({
+      title, slug, excerpt, content, featuredImage,
+      category, authorName, readTimeMinutes, tags,
+      isPublished, isFeatured
+    });
+  }, [title, slug, excerpt, content, featuredImage, category, authorName, readTimeMinutes, tags, isPublished, isFeatured]);
+
+  // Auto-save function
+  const autoSave = useCallback(async () => {
+    const currentHash = getFormDataHash();
+    
+    // Don't save if nothing changed or no title
+    if (currentHash === lastSavedDataRef.current || !title.trim()) {
+      return;
+    }
+
+    setSaveStatus("saving");
+
+    const input: BlogPostInput = {
+      title,
+      slug: slug || title.toLowerCase().replace(/\s+/g, "-").replace(/[^a-z0-9-]/g, ""),
+      excerpt,
+      content,
+      featured_image: featuredImage || undefined,
+      category,
+      author_name: authorName,
+      read_time_minutes: readTimeMinutes,
+      tags: tags ? tags.split(",").map((t) => t.trim()).filter(Boolean) : [],
+      is_published: isPublished,
+      is_featured: isFeatured,
+      published_at: isPublished ? new Date().toISOString() : undefined,
+    };
+
+    try {
+      if (currentPostId) {
+        // Update existing post
+        const { error } = await supabase
+          .from("blog_posts")
+          .update(input)
+          .eq("id", currentPostId);
+
+        if (error) throw error;
+      } else {
+        // Create new post (first auto-save)
+        const { data, error } = await supabase
+          .from("blog_posts")
+          .insert(input)
+          .select()
+          .single();
+
+        if (error) throw error;
+        
+        // Update URL to include the new post ID without navigation
+        setCurrentPostId(data.id);
+        window.history.replaceState(null, "", `/admin/blog/edit/${data.id}`);
+      }
+
+      lastSavedDataRef.current = currentHash;
+      setSaveStatus("saved");
+    } catch (error: any) {
+      console.error("Auto-save error:", error);
+      setSaveStatus("error");
+    }
+  }, [title, slug, excerpt, content, featuredImage, category, authorName, readTimeMinutes, tags, isPublished, isFeatured, currentPostId, getFormDataHash]);
+
+  // Schedule auto-save with debounce
+  const scheduleAutoSave = useCallback(() => {
+    if (autoSaveTimeoutRef.current) {
+      clearTimeout(autoSaveTimeoutRef.current);
+    }
+    
+    setSaveStatus("unsaved");
+    
+    autoSaveTimeoutRef.current = setTimeout(() => {
+      autoSave();
+    }, 2000); // 2 second debounce
+  }, [autoSave]);
+
+  // Watch for changes and trigger auto-save
+  useEffect(() => {
+    if (!isLoading && title.trim()) {
+      scheduleAutoSave();
+    }
+  }, [title, slug, excerpt, content, featuredImage, category, authorName, readTimeMinutes, tags, isPublished, isFeatured, isLoading, scheduleAutoSave]);
+
+  // Cleanup timeout on unmount
+  useEffect(() => {
+    return () => {
+      if (autoSaveTimeoutRef.current) {
+        clearTimeout(autoSaveTimeoutRef.current);
+      }
+    };
+  }, []);
+
+  // Warn user about unsaved changes before leaving
+  useEffect(() => {
+    const handleBeforeUnload = (e: BeforeUnloadEvent) => {
+      if (saveStatus === "unsaved" || saveStatus === "saving") {
+        e.preventDefault();
+        e.returnValue = "";
+      }
+    };
+
+    window.addEventListener("beforeunload", handleBeforeUnload);
+    return () => window.removeEventListener("beforeunload", handleBeforeUnload);
+  }, [saveStatus]);
 
   // Load existing post data if editing
   useEffect(() => {
@@ -80,6 +193,21 @@ export default function AdminBlogPostEditor() {
         setTags(data.tags?.join(", ") || "");
         setIsPublished(data.is_published || false);
         setIsFeatured(data.is_featured || false);
+        
+        // Set initial hash to prevent immediate auto-save
+        lastSavedDataRef.current = JSON.stringify({
+          title: data.title,
+          slug: data.slug,
+          excerpt: data.excerpt || "",
+          content: data.content || "",
+          featuredImage: data.featured_image || "",
+          category: data.category || "General",
+          authorName: data.author_name || "Admin",
+          readTimeMinutes: data.read_time_minutes || 5,
+          tags: data.tags?.join(", ") || "",
+          isPublished: data.is_published || false,
+          isFeatured: data.is_featured || false
+        });
       }
     } catch (error: any) {
       toast({
@@ -157,7 +285,7 @@ export default function AdminBlogPostEditor() {
     setSlug(title.toLowerCase().replace(/\s+/g, "-").replace(/[^a-z0-9-]/g, ""));
   };
 
-  const handleSubmit = async () => {
+  const handleManualSave = async () => {
     if (!title) {
       toast({
         title: "Title required",
@@ -167,36 +295,71 @@ export default function AdminBlogPostEditor() {
       return;
     }
 
-    const input: BlogPostInput = {
-      title,
-      slug: slug || title.toLowerCase().replace(/\s+/g, "-").replace(/[^a-z0-9-]/g, ""),
-      excerpt,
-      content,
-      featured_image: featuredImage || undefined,
-      category,
-      author_name: authorName,
-      read_time_minutes: readTimeMinutes,
-      tags: tags ? tags.split(",").map((t) => t.trim()).filter(Boolean) : [],
-      is_published: isPublished,
-      is_featured: isFeatured,
-      published_at: isPublished ? new Date().toISOString() : undefined,
-    };
-
-    try {
-      if (isEditing && postId) {
-        await updatePost.mutateAsync({ id: postId, ...input });
-      } else {
-        await createPost.mutateAsync(input);
-      }
-      navigate("/admin/blog");
-    } catch (error) {
-      // Error handling is done in the mutation hooks
+    // Clear any pending auto-save
+    if (autoSaveTimeoutRef.current) {
+      clearTimeout(autoSaveTimeoutRef.current);
     }
+
+    await autoSave();
+    toast({ title: "Post saved successfully" });
+  };
+
+  const handlePublish = async () => {
+    if (!title) {
+      toast({
+        title: "Title required",
+        description: "Please enter a title for your blog post",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    // Clear any pending auto-save
+    if (autoSaveTimeoutRef.current) {
+      clearTimeout(autoSaveTimeoutRef.current);
+    }
+
+    await autoSave();
+    navigate("/admin/blog");
   };
 
   const handlePreview = () => {
-    if (slug) {
-      window.open(`/blog/${slug}`, "_blank");
+    const previewSlug = slug || title.toLowerCase().replace(/\s+/g, "-").replace(/[^a-z0-9-]/g, "");
+    if (previewSlug) {
+      window.open(`/blog/${previewSlug}`, "_blank");
+    }
+  };
+
+  const renderSaveStatus = () => {
+    switch (saveStatus) {
+      case "saving":
+        return (
+          <Badge variant="secondary" className="gap-1">
+            <Loader2 className="h-3 w-3 animate-spin" />
+            Saving...
+          </Badge>
+        );
+      case "saved":
+        return (
+          <Badge variant="secondary" className="gap-1 bg-success/10 text-success border-success/20">
+            <Check className="h-3 w-3" />
+            Saved
+          </Badge>
+        );
+      case "unsaved":
+        return (
+          <Badge variant="secondary" className="gap-1">
+            <Cloud className="h-3 w-3" />
+            Unsaved changes
+          </Badge>
+        );
+      case "error":
+        return (
+          <Badge variant="destructive" className="gap-1">
+            <CloudOff className="h-3 w-3" />
+            Save failed
+          </Badge>
+        );
     }
   };
 
@@ -232,36 +395,47 @@ export default function AdminBlogPostEditor() {
               <ArrowLeft className="h-5 w-5" />
             </Button>
             <div>
-              <h1 className="text-3xl font-bold">
-                {isEditing ? "Edit Blog Post" : "Create Blog Post"}
-              </h1>
+              <div className="flex items-center gap-3">
+                <h1 className="text-3xl font-bold">
+                  {currentPostId ? "Edit Blog Post" : "Create Blog Post"}
+                </h1>
+                {renderSaveStatus()}
+              </div>
               <p className="text-muted-foreground mt-1">
-                {isEditing
-                  ? "Update your blog post content and settings"
-                  : "Write and publish a new blog post"}
+                {currentPostId
+                  ? "Changes are saved automatically"
+                  : "Start typing to auto-save your draft"}
               </p>
             </div>
           </div>
           <div className="flex items-center gap-2">
-            {isEditing && slug && (
+            {currentPostId && (slug || title) && (
               <Button variant="outline" onClick={handlePreview}>
                 <Eye className="h-4 w-4 mr-2" />
                 Preview
               </Button>
             )}
             <Button
-              onClick={handleSubmit}
-              disabled={!title || createPost.isPending || updatePost.isPending || isUploading}
+              variant="outline"
+              onClick={handleManualSave}
+              disabled={!title || saveStatus === "saving" || isUploading}
             >
-              {createPost.isPending || updatePost.isPending ? (
+              <Save className="h-4 w-4 mr-2" />
+              Save
+            </Button>
+            <Button
+              onClick={handlePublish}
+              disabled={!title || saveStatus === "saving" || isUploading}
+            >
+              {saveStatus === "saving" ? (
                 <>
                   <Loader2 className="h-4 w-4 mr-2 animate-spin" />
                   Saving...
                 </>
               ) : (
                 <>
-                  <Save className="h-4 w-4 mr-2" />
-                  {isEditing ? "Update" : "Publish"}
+                  <Check className="h-4 w-4 mr-2" />
+                  Done
                 </>
               )}
             </Button>
