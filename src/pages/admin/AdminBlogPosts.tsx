@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useRef } from "react";
 import { AdminLayout } from "@/components/admin";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -41,7 +41,10 @@ import {
   EyeOff,
   Star,
   Calendar,
-  Clock,
+  Upload,
+  X,
+  ImageIcon,
+  Loader2,
 } from "lucide-react";
 import {
   useAllBlogPosts,
@@ -52,6 +55,8 @@ import {
   BlogPostInput,
 } from "@/hooks/useBlogPosts";
 import { formatDistanceToNow } from "date-fns";
+import { supabase } from "@/integrations/supabase/client";
+import { toast } from "@/hooks/use-toast";
 
 export default function AdminBlogPosts() {
   const { data: posts, isLoading } = useAllBlogPosts();
@@ -63,6 +68,9 @@ export default function AdminBlogPosts() {
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [selectedPost, setSelectedPost] = useState<BlogPost | null>(null);
   const [postToDelete, setPostToDelete] = useState<string | null>(null);
+  const [isUploading, setIsUploading] = useState(false);
+
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   // Form state
   const [title, setTitle] = useState("");
@@ -111,6 +119,72 @@ export default function AdminBlogPosts() {
     setIsPublished(post.is_published || false);
     setIsFeatured(post.is_featured || false);
     setDialogOpen(true);
+  };
+
+  const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    // Validate file type
+    if (!file.type.startsWith("image/")) {
+      toast({
+        title: "Invalid file type",
+        description: "Please upload an image file (JPG, PNG, GIF, WebP)",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    // Validate file size (max 5MB)
+    if (file.size > 5 * 1024 * 1024) {
+      toast({
+        title: "File too large",
+        description: "Please upload an image smaller than 5MB",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    setIsUploading(true);
+
+    try {
+      // Generate unique filename
+      const fileExt = file.name.split(".").pop();
+      const fileName = `${Date.now()}-${Math.random().toString(36).substring(7)}.${fileExt}`;
+      const filePath = `featured/${fileName}`;
+
+      // Upload to Supabase Storage
+      const { error: uploadError } = await supabase.storage
+        .from("blog-images")
+        .upload(filePath, file);
+
+      if (uploadError) throw uploadError;
+
+      // Get public URL
+      const { data: { publicUrl } } = supabase.storage
+        .from("blog-images")
+        .getPublicUrl(filePath);
+
+      setFeaturedImage(publicUrl);
+      toast({ title: "Image uploaded successfully" });
+    } catch (error: any) {
+      console.error("Upload error:", error);
+      toast({
+        title: "Upload failed",
+        description: error.message || "Failed to upload image",
+        variant: "destructive",
+      });
+    } finally {
+      setIsUploading(false);
+      // Reset file input
+      if (fileInputRef.current) {
+        fileInputRef.current.value = "";
+      }
+    }
+  };
+
+  const removeImage = () => {
+    setFeaturedImage("");
   };
 
   const handleSubmit = async () => {
@@ -183,6 +257,7 @@ export default function AdminBlogPosts() {
             <Table>
               <TableHeader>
                 <TableRow>
+                  <TableHead>Image</TableHead>
                   <TableHead>Title</TableHead>
                   <TableHead>Category</TableHead>
                   <TableHead>Status</TableHead>
@@ -194,6 +269,19 @@ export default function AdminBlogPosts() {
               <TableBody>
                 {posts.map((post) => (
                   <TableRow key={post.id}>
+                    <TableCell>
+                      {post.featured_image ? (
+                        <img
+                          src={post.featured_image}
+                          alt={post.title}
+                          className="h-10 w-14 object-cover rounded"
+                        />
+                      ) : (
+                        <div className="h-10 w-14 bg-muted rounded flex items-center justify-center">
+                          <ImageIcon className="h-4 w-4 text-muted-foreground" />
+                        </div>
+                      )}
+                    </TableCell>
                     <TableCell>
                       <div className="flex flex-col">
                         <span className="font-medium">{post.title}</span>
@@ -311,6 +399,68 @@ export default function AdminBlogPosts() {
               />
             </div>
 
+            {/* Featured Image Upload */}
+            <div className="grid gap-2">
+              <Label>Featured Image</Label>
+              {featuredImage ? (
+                <div className="relative">
+                  <img
+                    src={featuredImage}
+                    alt="Featured preview"
+                    className="w-full h-48 object-cover rounded-lg border"
+                  />
+                  <Button
+                    type="button"
+                    variant="destructive"
+                    size="icon"
+                    className="absolute top-2 right-2"
+                    onClick={removeImage}
+                  >
+                    <X className="h-4 w-4" />
+                  </Button>
+                </div>
+              ) : (
+                <div
+                  className="border-2 border-dashed rounded-lg p-8 text-center hover:border-primary/50 transition-colors cursor-pointer"
+                  onClick={() => fileInputRef.current?.click()}
+                >
+                  {isUploading ? (
+                    <div className="flex flex-col items-center gap-2">
+                      <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+                      <p className="text-sm text-muted-foreground">Uploading...</p>
+                    </div>
+                  ) : (
+                    <div className="flex flex-col items-center gap-2">
+                      <Upload className="h-8 w-8 text-muted-foreground" />
+                      <p className="text-sm text-muted-foreground">
+                        Click to upload or drag and drop
+                      </p>
+                      <p className="text-xs text-muted-foreground">
+                        PNG, JPG, GIF, WebP up to 5MB
+                      </p>
+                    </div>
+                  )}
+                </div>
+              )}
+              <input
+                ref={fileInputRef}
+                type="file"
+                accept="image/*"
+                className="hidden"
+                onChange={handleImageUpload}
+              />
+              {/* Fallback URL input */}
+              <div className="flex items-center gap-2 mt-2">
+                <span className="text-xs text-muted-foreground">or enter URL:</span>
+                <Input
+                  value={featuredImage}
+                  onChange={(e) => setFeaturedImage(e.target.value)}
+                  placeholder="https://..."
+                  className="flex-1 text-xs h-8"
+                />
+              </div>
+            </div>
+
             <div className="grid gap-2">
               <Label htmlFor="excerpt">Excerpt</Label>
               <Textarea
@@ -354,26 +504,15 @@ export default function AdminBlogPosts() {
               </div>
             </div>
 
-            <div className="grid grid-cols-2 gap-4">
-              <div className="grid gap-2">
-                <Label htmlFor="featuredImage">Featured Image URL</Label>
-                <Input
-                  id="featuredImage"
-                  value={featuredImage}
-                  onChange={(e) => setFeaturedImage(e.target.value)}
-                  placeholder="https://..."
-                />
-              </div>
-              <div className="grid gap-2">
-                <Label htmlFor="readTime">Read Time (minutes)</Label>
-                <Input
-                  id="readTime"
-                  type="number"
-                  value={readTimeMinutes}
-                  onChange={(e) => setReadTimeMinutes(Number(e.target.value))}
-                  min={1}
-                />
-              </div>
+            <div className="grid gap-2">
+              <Label htmlFor="readTime">Read Time (minutes)</Label>
+              <Input
+                id="readTime"
+                type="number"
+                value={readTimeMinutes}
+                onChange={(e) => setReadTimeMinutes(Number(e.target.value))}
+                min={1}
+              />
             </div>
 
             <div className="grid gap-2">
@@ -413,7 +552,7 @@ export default function AdminBlogPosts() {
             <Button
               onClick={handleSubmit}
               disabled={
-                !title || createPost.isPending || updatePost.isPending
+                !title || createPost.isPending || updatePost.isPending || isUploading
               }
             >
               {createPost.isPending || updatePost.isPending
