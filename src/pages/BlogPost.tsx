@@ -19,6 +19,7 @@ import {
   Check,
 } from "lucide-react";
 import { useBlogPost, useBlogPosts } from "@/hooks/useBlogPosts";
+import { MarkdownRenderer } from "@/components/blog/MarkdownRenderer";
 import { format } from "date-fns";
 import { useState, useMemo } from "react";
 import { toast } from "@/hooks/use-toast";
@@ -190,14 +191,13 @@ export default function BlogPostPage() {
           </div>
         )}
 
-        {/* Content */}
+        {/* Content with Markdown Rendering */}
         <div className="max-w-3xl mx-auto">
-          <div className="prose prose-lg dark:prose-invert max-w-none">
-            {/* Render content - for now as plain text, could add markdown support */}
-            <div className="whitespace-pre-wrap text-foreground leading-relaxed">
-              {post.content}
-            </div>
-          </div>
+          {post.content ? (
+            <MarkdownRenderer content={post.content} />
+          ) : (
+            <p className="text-muted-foreground italic">No content available.</p>
+          )}
 
           <Separator className="my-12" />
 
