@@ -93,10 +93,6 @@ export default function Blog() {
 
         <div className="container relative py-16 md:py-24">
           <div className="mx-auto max-w-3xl text-center mb-12">
-            <Badge variant="outline" className="mb-6 gap-2">
-              <Sparkles className="h-3 w-3" />
-              Our Blog
-            </Badge>
             <h1 className="text-4xl font-bold tracking-tight md:text-5xl lg:text-6xl mb-6">
               Insights & <span className="gradient-text">Inspiration</span>
             </h1>
