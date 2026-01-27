@@ -5,10 +5,10 @@ import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
-import { Card, CardContent } from "@/components/ui/card";
-import { Search, Calendar, Clock, User, ArrowRight, ChevronLeft, ChevronRight, BookOpen, TrendingUp } from "lucide-react";
+import { Card } from "@/components/ui/card";
+import { Search, ArrowRight, Mail, Sparkles } from "lucide-react";
 import { useBlogPosts } from "@/hooks/useBlogPosts";
-import { formatDistanceToNow, format } from "date-fns";
+import { format } from "date-fns";
 import { cn } from "@/lib/utils";
 
 const POSTS_PER_PAGE = 6;
@@ -17,7 +17,7 @@ export default function Blog() {
   const { data: posts, isLoading } = useBlogPosts();
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedCategory, setSelectedCategory] = useState<string>("all");
-  const [currentPage, setCurrentPage] = useState(1);
+  const [visibleCount, setVisibleCount] = useState(POSTS_PER_PAGE);
 
   // Get unique categories from posts
   const categories = useMemo(() => {
@@ -65,75 +65,193 @@ export default function Blog() {
     });
   }, [posts, searchQuery, selectedCategory, featuredPost, secondaryPosts]);
 
-  // Pagination
-  const totalPages = Math.ceil(filteredPosts.length / POSTS_PER_PAGE);
-  const paginatedPosts = useMemo(() => {
-    const start = (currentPage - 1) * POSTS_PER_PAGE;
-    return filteredPosts.slice(start, start + POSTS_PER_PAGE);
-  }, [filteredPosts, currentPage]);
+  // Visible posts based on load more
+  const visiblePosts = useMemo(() => {
+    return filteredPosts.slice(0, visibleCount);
+  }, [filteredPosts, visibleCount]);
 
-  // Reset to page 1 when filters change
+  const hasMorePosts = visibleCount < filteredPosts.length;
+
+  // Reset when filters change
   const handleSearchChange = (value: string) => {
     setSearchQuery(value);
-    setCurrentPage(1);
+    setVisibleCount(POSTS_PER_PAGE);
   };
 
   const handleCategoryChange = (value: string) => {
     setSelectedCategory(value);
-    setCurrentPage(1);
+    setVisibleCount(POSTS_PER_PAGE);
+  };
+
+  const loadMore = () => {
+    setVisibleCount((prev) => prev + POSTS_PER_PAGE);
   };
 
   const showFeaturedSection = searchQuery === "" && selectedCategory === "all" && featuredPost;
 
   return (
     <Layout>
-      {/* Minimal Header */}
-      <section className="border-b border-border/40 bg-background">
-        <div className="container py-8 md:py-12">
-          <div className="flex flex-col md:flex-row md:items-end md:justify-between gap-6">
-            <div>
-              <div className="flex items-center gap-2 mb-3">
-                <BookOpen className="h-5 w-5 text-primary" />
-                <span className="text-sm font-medium text-primary">Blog</span>
+      {/* Hero Header */}
+      <section className="py-12 md:py-16 text-center">
+        <div className="container">
+          <Badge variant="outline" className="mb-6 text-xs font-medium tracking-wider uppercase">
+            Engineering Blog
+          </Badge>
+          <h1 className="text-4xl md:text-5xl lg:text-6xl font-bold tracking-tight mb-4">
+            Words, <span className="italic font-serif">Reinvented.</span>
+          </h1>
+          <p className="text-muted-foreground text-lg max-w-2xl mx-auto">
+            Deep dives into Large Language Models, prompt engineering strategies, and the future of creative work.
+          </p>
+        </div>
+      </section>
+
+      {/* Featured Section */}
+      {showFeaturedSection && !isLoading && (
+        <section className="container mb-12">
+          <div className="grid lg:grid-cols-3 gap-6">
+            {/* Main Featured Post */}
+            <Link
+              to={`/blog/${featuredPost.slug}`}
+              className="lg:col-span-2 group"
+            >
+              <div className="relative h-full min-h-[400px] overflow-hidden rounded-2xl">
+                {featuredPost.featured_image ? (
+                  <img
+                    src={featuredPost.featured_image}
+                    alt={featuredPost.title}
+                    className="absolute inset-0 w-full h-full object-cover transition-transform duration-700 group-hover:scale-105"
+                  />
+                ) : (
+                  <div className="absolute inset-0 bg-gradient-to-br from-primary/30 via-primary/20 to-muted" />
+                )}
+                <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/40 to-transparent" />
+                
+                {/* Content */}
+                <div className="absolute bottom-0 left-0 right-0 p-6 md:p-8">
+                  <div className="flex items-center gap-3 mb-4">
+                    {featuredPost.category && (
+                      <Badge className="bg-foreground/90 text-background hover:bg-foreground text-xs">
+                        {featuredPost.category}
+                      </Badge>
+                    )}
+                    {featuredPost.read_time_minutes && (
+                      <span className="text-white/70 text-sm">
+                        {featuredPost.read_time_minutes} min read
+                      </span>
+                    )}
+                  </div>
+                  
+                  <h2 className="text-2xl md:text-3xl font-bold text-white leading-tight mb-4 max-w-xl">
+                    {featuredPost.title}
+                  </h2>
+                  
+                  {featuredPost.author_name && (
+                    <div className="flex items-center gap-3">
+                      {featuredPost.author_avatar ? (
+                        <img
+                          src={featuredPost.author_avatar}
+                          alt={featuredPost.author_name}
+                          className="h-10 w-10 rounded-full object-cover border-2 border-white/20"
+                        />
+                      ) : (
+                        <div className="h-10 w-10 rounded-full bg-white/20 flex items-center justify-center text-white font-medium">
+                          {featuredPost.author_name.charAt(0)}
+                        </div>
+                      )}
+                      <div>
+                        <p className="text-white font-medium text-sm">{featuredPost.author_name}</p>
+                        <p className="text-white/60 text-xs">Author</p>
+                      </div>
+                    </div>
+                  )}
+                </div>
               </div>
-              <h1 className="text-3xl md:text-4xl font-bold tracking-tight">
-                Latest Articles
-              </h1>
-            </div>
-            
-            {/* Search */}
-            <div className="relative w-full md:w-80">
-              <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-              <Input
-                placeholder="Search articles..."
-                value={searchQuery}
-                onChange={(e) => handleSearchChange(e.target.value)}
-                className="pl-10 h-11 rounded-xl bg-muted/50 border-0 focus-visible:ring-1"
-              />
+            </Link>
+
+            {/* Secondary Posts */}
+            <div className="flex flex-col gap-6">
+              {/* Text Card */}
+              {secondaryPosts[0] && (
+                <Link
+                  to={`/blog/${secondaryPosts[0].slug}`}
+                  className="group flex-1"
+                >
+                  <Card className="h-full p-6 flex flex-col justify-between hover:shadow-lg transition-shadow">
+                    <div>
+                      {secondaryPosts[0].category && (
+                        <span className="text-[10px] font-semibold tracking-wider uppercase text-muted-foreground">
+                          {secondaryPosts[0].category}
+                        </span>
+                      )}
+                      <h3 className="text-lg font-semibold mt-2 leading-snug group-hover:text-primary transition-colors">
+                        {secondaryPosts[0].title}
+                      </h3>
+                    </div>
+                    <div className="flex items-center justify-between mt-4">
+                      {secondaryPosts[0].published_at && (
+                        <span className="text-xs text-muted-foreground">
+                          {format(new Date(secondaryPosts[0].published_at), "MMM d, yyyy")}
+                        </span>
+                      )}
+                      <ArrowRight className="h-4 w-4 text-muted-foreground group-hover:text-primary group-hover:translate-x-1 transition-all" />
+                    </div>
+                  </Card>
+                </Link>
+              )}
+
+              {/* Dark Feature Card */}
+              {secondaryPosts[1] && (
+                <Link
+                  to={`/blog/${secondaryPosts[1].slug}`}
+                  className="group flex-1"
+                >
+                  <Card className="h-full p-6 bg-foreground text-background flex flex-col justify-between hover:bg-foreground/90 transition-colors">
+                    <div>
+                      <span className="text-[10px] font-semibold tracking-wider uppercase text-primary-foreground/70">
+                        New Feature
+                      </span>
+                      <h3 className="text-lg font-semibold mt-2 leading-snug">
+                        {secondaryPosts[1].title}
+                      </h3>
+                      {secondaryPosts[1].excerpt && (
+                        <p className="text-sm text-background/70 mt-3 line-clamp-2">
+                          {secondaryPosts[1].excerpt}
+                        </p>
+                      )}
+                    </div>
+                  </Card>
+                </Link>
+              )}
             </div>
           </div>
+        </section>
+      )}
 
+      {/* Filters & Search */}
+      <section className="container mb-10">
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
           {/* Category Tabs */}
-          <div className="flex items-center gap-1 mt-8 overflow-x-auto pb-2 -mb-2 scrollbar-hide">
+          <div className="flex items-center gap-1 overflow-x-auto pb-2 sm:pb-0 -mx-4 px-4 sm:mx-0 sm:px-0 scrollbar-hide">
             <button
               onClick={() => handleCategoryChange("all")}
               className={cn(
-                "px-4 py-2 text-sm font-medium rounded-lg transition-colors whitespace-nowrap",
+                "px-4 py-2 text-sm font-medium rounded-full transition-colors whitespace-nowrap",
                 selectedCategory === "all"
-                  ? "bg-primary text-primary-foreground"
+                  ? "bg-foreground text-background"
                   : "text-muted-foreground hover:text-foreground hover:bg-muted"
               )}
             >
-              All
+              All Posts
             </button>
             {categories.map((cat) => (
               <button
                 key={cat}
                 onClick={() => handleCategoryChange(cat)}
                 className={cn(
-                  "px-4 py-2 text-sm font-medium rounded-lg transition-colors whitespace-nowrap",
+                  "px-4 py-2 text-sm font-medium rounded-full transition-colors whitespace-nowrap",
                   selectedCategory === cat
-                    ? "bg-primary text-primary-foreground"
+                    ? "bg-foreground text-background"
                     : "text-muted-foreground hover:text-foreground hover:bg-muted"
                 )}
               >
@@ -141,239 +259,124 @@ export default function Blog() {
               </button>
             ))}
           </div>
+
+          {/* Search */}
+          <div className="relative w-full sm:w-64">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+            <Input
+              placeholder="Search articles..."
+              value={searchQuery}
+              onChange={(e) => handleSearchChange(e.target.value)}
+              className="pl-9 h-10 rounded-full bg-muted/50 border-border/50"
+            />
+          </div>
         </div>
       </section>
 
-      <div className="container py-10 md:py-14">
-        {/* Featured Section - Magazine Layout */}
-        {showFeaturedSection && !isLoading && (
-          <div className="mb-14">
-            <div className="grid lg:grid-cols-5 gap-6">
-              {/* Main Featured Post - Takes 3 columns */}
-              <Link
-                to={`/blog/${featuredPost.slug}`}
-                className="lg:col-span-3 group"
-              >
-                <Card className="h-full overflow-hidden border-0 bg-transparent shadow-none">
-                  <div className="relative aspect-[16/10] overflow-hidden rounded-2xl">
-                    {featuredPost.featured_image ? (
-                      <img
-                        src={featuredPost.featured_image}
-                        alt={featuredPost.title}
-                        className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-105"
-                      />
-                    ) : (
-                      <div className="w-full h-full bg-gradient-to-br from-primary/20 via-primary/10 to-muted flex items-center justify-center">
-                        <BookOpen className="h-16 w-16 text-primary/30" />
-                      </div>
-                    )}
-                    <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/20 to-transparent" />
-                    
-                    {/* Content Overlay */}
-                    <div className="absolute bottom-0 left-0 right-0 p-6 md:p-8">
-                      <div className="flex items-center gap-2 mb-3">
-                        <Badge className="bg-primary/90 hover:bg-primary text-primary-foreground border-0">
-                          <TrendingUp className="h-3 w-3 mr-1" />
-                          Featured
-                        </Badge>
-                        {featuredPost.category && (
-                          <Badge variant="secondary" className="bg-white/20 text-white border-0 backdrop-blur-sm">
-                            {featuredPost.category}
-                          </Badge>
-                        )}
-                      </div>
-                      <h2 className="text-2xl md:text-3xl lg:text-4xl font-bold text-white leading-tight mb-3 group-hover:text-primary-foreground/90 transition-colors">
-                        {featuredPost.title}
-                      </h2>
-                      <p className="text-white/80 line-clamp-2 text-base md:text-lg mb-4 max-w-2xl">
-                        {featuredPost.excerpt}
-                      </p>
-                      <div className="flex items-center gap-4 text-white/70 text-sm">
-                        {featuredPost.author_name && (
-                          <div className="flex items-center gap-2">
-                            {featuredPost.author_avatar ? (
-                              <img
-                                src={featuredPost.author_avatar}
-                                alt={featuredPost.author_name}
-                                className="h-6 w-6 rounded-full object-cover ring-2 ring-white/30"
-                              />
-                            ) : (
-                              <div className="h-6 w-6 rounded-full bg-white/20 flex items-center justify-center">
-                                <User className="h-3 w-3" />
-                              </div>
-                            )}
-                            <span>{featuredPost.author_name}</span>
-                          </div>
-                        )}
-                        {featuredPost.published_at && (
-                          <span>{format(new Date(featuredPost.published_at), "MMM d, yyyy")}</span>
-                        )}
-                        {featuredPost.read_time_minutes && (
-                          <span>{featuredPost.read_time_minutes} min read</span>
-                        )}
-                      </div>
-                    </div>
-                  </div>
-                </Card>
-              </Link>
-
-              {/* Secondary Posts - Takes 2 columns */}
-              <div className="lg:col-span-2 flex flex-col gap-6">
-                {secondaryPosts.map((post) => (
-                  <Link
-                    key={post.id}
-                    to={`/blog/${post.slug}`}
-                    className="group flex-1"
-                  >
-                    <Card className="h-full overflow-hidden border-0 bg-transparent shadow-none">
-                      <div className="relative aspect-[16/9] lg:aspect-auto lg:h-full overflow-hidden rounded-2xl">
-                        {post.featured_image ? (
-                          <img
-                            src={post.featured_image}
-                            alt={post.title}
-                            className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-105"
-                          />
-                        ) : (
-                          <div className="w-full h-full bg-gradient-to-br from-muted via-muted/80 to-muted/50 flex items-center justify-center">
-                            <BookOpen className="h-10 w-10 text-muted-foreground/30" />
-                          </div>
-                        )}
-                        <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/20 to-transparent" />
-                        
-                        <div className="absolute bottom-0 left-0 right-0 p-5">
-                          {post.category && (
-                            <Badge variant="secondary" className="bg-white/20 text-white border-0 backdrop-blur-sm mb-2">
-                              {post.category}
-                            </Badge>
-                          )}
-                          <h3 className="text-lg md:text-xl font-semibold text-white leading-snug line-clamp-2 group-hover:text-primary-foreground/90 transition-colors">
-                            {post.title}
-                          </h3>
-                          <div className="flex items-center gap-3 mt-2 text-white/70 text-xs">
-                            {post.published_at && (
-                              <span>{format(new Date(post.published_at), "MMM d")}</span>
-                            )}
-                            {post.read_time_minutes && (
-                              <span>{post.read_time_minutes} min</span>
-                            )}
-                          </div>
-                        </div>
-                      </div>
-                    </Card>
-                  </Link>
-                ))}
-              </div>
-            </div>
-          </div>
-        )}
-
-        {/* Results Header */}
-        {!isLoading && (
-          <div className="flex items-center justify-between mb-8">
-            <h2 className="text-lg font-semibold text-foreground">
-              {showFeaturedSection ? "More Articles" : "Articles"}
-            </h2>
-            <span className="text-sm text-muted-foreground">
-              {filteredPosts.length} {filteredPosts.length === 1 ? "article" : "articles"}
-            </span>
-          </div>
-        )}
-
-        {/* Posts Grid */}
+      {/* Posts Grid */}
+      <section className="container pb-16">
         {isLoading ? (
-          <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
+          <div className="grid gap-8 sm:grid-cols-2 lg:grid-cols-3">
             {[1, 2, 3, 4, 5, 6].map((i) => (
               <div key={i} className="space-y-3">
-                <Skeleton className="aspect-[16/10] w-full rounded-xl" />
-                <Skeleton className="h-4 w-20" />
+                <Skeleton className="aspect-[4/3] w-full rounded-xl" />
+                <Skeleton className="h-4 w-32" />
                 <Skeleton className="h-6 w-4/5" />
                 <Skeleton className="h-4 w-full" />
               </div>
             ))}
           </div>
-        ) : paginatedPosts.length > 0 ? (
-          <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
-            {paginatedPosts.map((post) => (
-              <Link
-                key={post.id}
-                to={`/blog/${post.slug}`}
-                className="group"
-              >
-                <article className="h-full flex flex-col">
-                  {/* Image */}
-                  <div className="relative aspect-[16/10] overflow-hidden rounded-xl mb-4">
-                    {post.featured_image ? (
-                      <img
-                        src={post.featured_image}
-                        alt={post.title}
-                        className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
-                      />
-                    ) : (
-                      <div className="w-full h-full bg-gradient-to-br from-muted via-muted/80 to-muted/50 flex items-center justify-center">
-                        <BookOpen className="h-8 w-8 text-muted-foreground/30" />
-                      </div>
-                    )}
-                  </div>
-
-                  {/* Content */}
-                  <div className="flex-1 flex flex-col">
-                    {/* Category & Date */}
-                    <div className="flex items-center gap-2 mb-2">
+        ) : visiblePosts.length > 0 ? (
+          <>
+            <div className="grid gap-8 sm:grid-cols-2 lg:grid-cols-3">
+              {visiblePosts.map((post, index) => (
+                <Link
+                  key={post.id}
+                  to={`/blog/${post.slug}`}
+                  className="group"
+                >
+                  <article>
+                    {/* Image */}
+                    <div className="relative aspect-[4/3] overflow-hidden rounded-xl mb-4">
+                      {post.featured_image ? (
+                        <img
+                          src={post.featured_image}
+                          alt={post.title}
+                          className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
+                        />
+                      ) : (
+                        <div className="w-full h-full bg-gradient-to-br from-muted via-muted/80 to-muted/50 flex items-center justify-center">
+                          <Sparkles className="h-8 w-8 text-muted-foreground/30" />
+                        </div>
+                      )}
+                      {/* Category Badge */}
                       {post.category && (
-                        <span className="text-xs font-medium text-primary">
+                        <Badge className="absolute top-3 right-3 bg-background/90 text-foreground hover:bg-background text-xs shadow-sm">
                           {post.category}
-                        </span>
+                        </Badge>
                       )}
-                      {post.category && post.published_at && (
-                        <span className="text-muted-foreground">·</span>
-                      )}
+                    </div>
+
+                    {/* Meta */}
+                    <div className="flex items-center gap-2 text-xs text-muted-foreground mb-2">
                       {post.published_at && (
-                        <span className="text-xs text-muted-foreground">
-                          {formatDistanceToNow(new Date(post.published_at), {
-                            addSuffix: true,
-                          })}
-                        </span>
+                        <span>{format(new Date(post.published_at), "MMM d, yyyy")}</span>
+                      )}
+                      {post.published_at && post.read_time_minutes && (
+                        <span>•</span>
+                      )}
+                      {post.read_time_minutes && (
+                        <span>{post.read_time_minutes} min read</span>
                       )}
                     </div>
 
                     {/* Title */}
-                    <h3 className="text-base font-semibold leading-snug mb-2 group-hover:text-primary transition-colors line-clamp-2">
+                    <h3 className="font-semibold leading-snug mb-2 group-hover:text-primary transition-colors line-clamp-2">
                       {post.title}
                     </h3>
 
                     {/* Excerpt */}
-                    <p className="text-sm text-muted-foreground line-clamp-2 mb-4 flex-1">
+                    <p className="text-sm text-muted-foreground line-clamp-2">
                       {post.excerpt}
                     </p>
+                  </article>
+                </Link>
+              ))}
 
-                    {/* Author & Read Time */}
-                    <div className="flex items-center gap-3 text-xs text-muted-foreground">
-                      <div className="flex items-center gap-1.5">
-                        {post.author_avatar ? (
-                          <img
-                            src={post.author_avatar}
-                            alt={post.author_name || "Author"}
-                            className="h-5 w-5 rounded-full object-cover"
-                          />
-                        ) : (
-                          <div className="h-5 w-5 rounded-full bg-muted flex items-center justify-center">
-                            <User className="h-2.5 w-2.5" />
-                          </div>
-                        )}
-                        <span>{post.author_name || "Admin"}</span>
-                      </div>
-                      {post.read_time_minutes && (
-                        <>
-                          <span>·</span>
-                          <span>{post.read_time_minutes} min read</span>
-                        </>
-                      )}
+              {/* Newsletter Card - Shows after 5 posts */}
+              {visiblePosts.length >= 5 && (
+                <div className="sm:col-span-1">
+                  <Card className="h-full p-6 border-dashed border-2 flex flex-col items-center justify-center text-center">
+                    <div className="h-12 w-12 rounded-full bg-primary/10 flex items-center justify-center mb-4">
+                      <Mail className="h-6 w-6 text-primary" />
                     </div>
-                  </div>
-                </article>
-              </Link>
-            ))}
-          </div>
+                    <h3 className="font-semibold mb-2">Don't miss a prompt</h3>
+                    <p className="text-sm text-muted-foreground mb-4">
+                      Join 50k+ writers getting weekly tips.
+                    </p>
+                    <Input
+                      type="email"
+                      placeholder="Email address"
+                      className="rounded-lg"
+                    />
+                  </Card>
+                </div>
+              )}
+            </div>
+
+            {/* Load More */}
+            {hasMorePosts && (
+              <div className="flex justify-center mt-12">
+                <Button
+                  variant="outline"
+                  onClick={loadMore}
+                  className="rounded-full px-8"
+                >
+                  Load older articles
+                </Button>
+              </div>
+            )}
+          </>
         ) : (
           <div className="text-center py-20 px-4">
             <div className="inline-flex items-center justify-center w-14 h-14 rounded-xl bg-muted mb-4">
@@ -391,70 +394,14 @@ export default function Blog() {
                   setSearchQuery("");
                   setSelectedCategory("all");
                 }}
-                className="rounded-lg"
+                className="rounded-full"
               >
                 Clear Filters
               </Button>
             )}
           </div>
         )}
-
-        {/* Pagination */}
-        {totalPages > 1 && (
-          <div className="flex items-center justify-center gap-1 mt-12">
-            <Button
-              variant="ghost"
-              size="icon"
-              onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
-              disabled={currentPage === 1}
-              className="rounded-lg h-9 w-9"
-            >
-              <ChevronLeft className="h-4 w-4" />
-            </Button>
-
-            {Array.from({ length: totalPages }, (_, i) => i + 1).map((page) => {
-              if (
-                page === 1 ||
-                page === totalPages ||
-                (page >= currentPage - 1 && page <= currentPage + 1)
-              ) {
-                return (
-                  <Button
-                    key={page}
-                    variant={page === currentPage ? "default" : "ghost"}
-                    size="icon"
-                    onClick={() => setCurrentPage(page)}
-                    className={cn(
-                      "rounded-lg h-9 w-9 text-sm",
-                      page === currentPage && "pointer-events-none"
-                    )}
-                  >
-                    {page}
-                  </Button>
-                );
-              }
-              if (page === currentPage - 2 || page === currentPage + 2) {
-                return (
-                  <span key={page} className="px-1 text-muted-foreground text-sm">
-                    ...
-                  </span>
-                );
-              }
-              return null;
-            })}
-
-            <Button
-              variant="ghost"
-              size="icon"
-              onClick={() => setCurrentPage((p) => Math.min(totalPages, p + 1))}
-              disabled={currentPage === totalPages}
-              className="rounded-lg h-9 w-9"
-            >
-              <ChevronRight className="h-4 w-4" />
-            </Button>
-          </div>
-        )}
-      </div>
+      </section>
     </Layout>
   );
 }
