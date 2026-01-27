@@ -20,6 +20,12 @@ export interface BlogPost {
   sort_order: number | null;
   created_at: string | null;
   updated_at: string | null;
+  // Draft revision fields
+  draft_title: string | null;
+  draft_excerpt: string | null;
+  draft_content: string | null;
+  draft_featured_image: string | null;
+  has_pending_changes: boolean | null;
 }
 
 export interface BlogPostInput {
@@ -37,6 +43,12 @@ export interface BlogPostInput {
   read_time_minutes?: number;
   tags?: string[];
   sort_order?: number;
+  // Draft revision fields
+  draft_title?: string | null;
+  draft_excerpt?: string | null;
+  draft_content?: string | null;
+  draft_featured_image?: string | null;
+  has_pending_changes?: boolean;
 }
 
 // Fetch all published blog posts (for landing page)

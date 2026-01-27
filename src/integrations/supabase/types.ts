@@ -344,8 +344,13 @@ export type Database = {
           category: string | null
           content: string | null
           created_at: string | null
+          draft_content: string | null
+          draft_excerpt: string | null
+          draft_featured_image: string | null
+          draft_title: string | null
           excerpt: string | null
           featured_image: string | null
+          has_pending_changes: boolean | null
           id: string
           is_featured: boolean | null
           is_published: boolean | null
@@ -363,8 +368,13 @@ export type Database = {
           category?: string | null
           content?: string | null
           created_at?: string | null
+          draft_content?: string | null
+          draft_excerpt?: string | null
+          draft_featured_image?: string | null
+          draft_title?: string | null
           excerpt?: string | null
           featured_image?: string | null
+          has_pending_changes?: boolean | null
           id?: string
           is_featured?: boolean | null
           is_published?: boolean | null
@@ -382,8 +392,13 @@ export type Database = {
           category?: string | null
           content?: string | null
           created_at?: string | null
+          draft_content?: string | null
+          draft_excerpt?: string | null
+          draft_featured_image?: string | null
+          draft_title?: string | null
           excerpt?: string | null
           featured_image?: string | null
+          has_pending_changes?: boolean | null
           id?: string
           is_featured?: boolean | null
           is_published?: boolean | null
