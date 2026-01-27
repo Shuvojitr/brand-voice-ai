@@ -171,10 +171,13 @@ export default function BlogPostPage() {
 
           {/* Meta */}
           <div className="flex items-center justify-center gap-6 text-sm text-muted-foreground mb-6">
-            <div className="flex items-center gap-2">
+            <Link
+              to={`/blog/author/${encodeURIComponent(post.author_name || "Admin")}`}
+              className="flex items-center gap-2 hover:text-foreground transition-colors"
+            >
               <User className="h-4 w-4" />
               <span>{post.author_name || "Admin"}</span>
-            </div>
+            </Link>
             {post.published_at && (
               <div className="flex items-center gap-2">
                 <Calendar className="h-4 w-4" />
