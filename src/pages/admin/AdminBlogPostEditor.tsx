@@ -11,6 +11,17 @@ import { RichTextEditor } from "@/components/ui/rich-text-editor";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
 import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "@/components/ui/alert-dialog";
+import {
   ArrowLeft,
   Upload,
   X,
@@ -20,6 +31,9 @@ import {
   Check,
   Cloud,
   CloudOff,
+  AlertTriangle,
+  RotateCcw,
+  Send,
 } from "lucide-react";
 import {
   BlogPostInput,
@@ -41,6 +55,20 @@ export default function AdminBlogPostEditor() {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const autoSaveTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const lastSavedDataRef = useRef<string>("");
+
+  // Track if this is a published post being edited
+  const [isPublishedPost, setIsPublishedPost] = useState(false);
+  const [hasPendingChanges, setHasPendingChanges] = useState(false);
+  const [isPublishingChanges, setIsPublishingChanges] = useState(false);
+  const [isDiscardingChanges, setIsDiscardingChanges] = useState(false);
+
+  // Store original published content for comparison/revert
+  const originalPublishedDataRef = useRef<{
+    title: string;
+    excerpt: string;
+    content: string;
+    featuredImage: string;
+  } | null>(null);
 
   // Form state
   const [title, setTitle] = useState("");
@@ -74,6 +102,26 @@ export default function AdminBlogPostEditor() {
     }
   }, [content, calculateReadingTime]);
 
+  // Check if current content differs from published content
+  const checkForPendingChanges = useCallback(() => {
+    if (!isPublishedPost || !originalPublishedDataRef.current) return false;
+    
+    const original = originalPublishedDataRef.current;
+    return (
+      title !== original.title ||
+      excerpt !== original.excerpt ||
+      content !== original.content ||
+      featuredImage !== original.featuredImage
+    );
+  }, [isPublishedPost, title, excerpt, content, featuredImage]);
+
+  // Update pending changes status when content changes
+  useEffect(() => {
+    if (isPublishedPost && originalPublishedDataRef.current) {
+      setHasPendingChanges(checkForPendingChanges());
+    }
+  }, [isPublishedPost, title, excerpt, content, featuredImage, checkForPendingChanges]);
+
   // Create a hash of current form data to detect changes
   const getFormDataHash = useCallback(() => {
     return JSON.stringify({
@@ -83,7 +131,7 @@ export default function AdminBlogPostEditor() {
     });
   }, [title, slug, excerpt, content, featuredImage, category, authorName, readTimeMinutes, tags, isPublished, isFeatured]);
 
-  // Auto-save function
+  // Auto-save function - saves to draft fields for published posts
   const autoSave = useCallback(async () => {
     const currentHash = getFormDataHash();
     
@@ -94,32 +142,84 @@ export default function AdminBlogPostEditor() {
 
     setSaveStatus("saving");
 
-    const input: BlogPostInput = {
-      title,
-      slug: slug || title.toLowerCase().replace(/\s+/g, "-").replace(/[^a-z0-9-]/g, ""),
-      excerpt,
-      content,
-      featured_image: featuredImage || undefined,
-      category,
-      author_name: authorName,
-      read_time_minutes: readTimeMinutes,
-      tags: tags ? tags.split(",").map((t) => t.trim()).filter(Boolean) : [],
-      is_published: isPublished,
-      is_featured: isFeatured,
-      published_at: isPublished ? new Date().toISOString() : undefined,
-    };
-
     try {
       if (currentPostId) {
-        // Update existing post
-        const { error } = await supabase
-          .from("blog_posts")
-          .update(input)
-          .eq("id", currentPostId);
+        if (isPublishedPost && isPublished) {
+          // For published posts: save changes to draft fields only
+          const hasDraftChanges = checkForPendingChanges();
+          
+          const updateData: Record<string, unknown> = {
+            // Always update these non-content fields directly
+            slug: slug || title.toLowerCase().replace(/\s+/g, "-").replace(/[^a-z0-9-]/g, ""),
+            category,
+            author_name: authorName,
+            read_time_minutes: readTimeMinutes,
+            tags: tags ? tags.split(",").map((t) => t.trim()).filter(Boolean) : [],
+            is_featured: isFeatured,
+          };
 
-        if (error) throw error;
+          if (hasDraftChanges) {
+            // Store content changes in draft fields
+            updateData.draft_title = title;
+            updateData.draft_excerpt = excerpt;
+            updateData.draft_content = content;
+            updateData.draft_featured_image = featuredImage || null;
+            updateData.has_pending_changes = true;
+          }
+
+          const { error } = await supabase
+            .from("blog_posts")
+            .update(updateData)
+            .eq("id", currentPostId);
+
+          if (error) throw error;
+        } else {
+          // For unpublished posts: update directly as before
+          const input: BlogPostInput = {
+            title,
+            slug: slug || title.toLowerCase().replace(/\s+/g, "-").replace(/[^a-z0-9-]/g, ""),
+            excerpt,
+            content,
+            featured_image: featuredImage || undefined,
+            category,
+            author_name: authorName,
+            read_time_minutes: readTimeMinutes,
+            tags: tags ? tags.split(",").map((t) => t.trim()).filter(Boolean) : [],
+            is_published: isPublished,
+            is_featured: isFeatured,
+            published_at: isPublished ? new Date().toISOString() : undefined,
+            // Clear draft fields when saving directly
+            draft_title: null,
+            draft_excerpt: null,
+            draft_content: null,
+            draft_featured_image: null,
+            has_pending_changes: false,
+          };
+
+          const { error } = await supabase
+            .from("blog_posts")
+            .update(input)
+            .eq("id", currentPostId);
+
+          if (error) throw error;
+        }
       } else {
-        // Create new post (first auto-save)
+        // Create new post (first auto-save) - always save directly
+        const input: BlogPostInput = {
+          title,
+          slug: slug || title.toLowerCase().replace(/\s+/g, "-").replace(/[^a-z0-9-]/g, ""),
+          excerpt,
+          content,
+          featured_image: featuredImage || undefined,
+          category,
+          author_name: authorName,
+          read_time_minutes: readTimeMinutes,
+          tags: tags ? tags.split(",").map((t) => t.trim()).filter(Boolean) : [],
+          is_published: isPublished,
+          is_featured: isFeatured,
+          published_at: isPublished ? new Date().toISOString() : undefined,
+        };
+
         const { data, error } = await supabase
           .from("blog_posts")
           .insert(input)
@@ -135,11 +235,117 @@ export default function AdminBlogPostEditor() {
 
       lastSavedDataRef.current = currentHash;
       setSaveStatus("saved");
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error("Auto-save error:", error);
       setSaveStatus("error");
     }
-  }, [title, slug, excerpt, content, featuredImage, category, authorName, readTimeMinutes, tags, isPublished, isFeatured, currentPostId, getFormDataHash]);
+  }, [title, slug, excerpt, content, featuredImage, category, authorName, readTimeMinutes, tags, isPublished, isFeatured, currentPostId, getFormDataHash, isPublishedPost, checkForPendingChanges]);
+
+  // Publish draft changes to live
+  const publishChanges = async () => {
+    if (!currentPostId || !hasPendingChanges) return;
+
+    setIsPublishingChanges(true);
+
+    try {
+      const { error } = await supabase
+        .from("blog_posts")
+        .update({
+          title,
+          excerpt,
+          content,
+          featured_image: featuredImage || null,
+          // Clear draft fields
+          draft_title: null,
+          draft_excerpt: null,
+          draft_content: null,
+          draft_featured_image: null,
+          has_pending_changes: false,
+          updated_at: new Date().toISOString(),
+        })
+        .eq("id", currentPostId);
+
+      if (error) throw error;
+
+      // Update original reference
+      originalPublishedDataRef.current = {
+        title,
+        excerpt,
+        content,
+        featuredImage,
+      };
+      
+      setHasPendingChanges(false);
+      toast({ title: "Changes published successfully", description: "Your updates are now live." });
+    } catch (error: unknown) {
+      console.error("Publish error:", error);
+      toast({
+        title: "Failed to publish changes",
+        description: error instanceof Error ? error.message : "Unknown error",
+        variant: "destructive",
+      });
+    } finally {
+      setIsPublishingChanges(false);
+    }
+  };
+
+  // Discard draft changes and revert to published version
+  const discardChanges = async () => {
+    if (!currentPostId || !originalPublishedDataRef.current) return;
+
+    setIsDiscardingChanges(true);
+
+    try {
+      const original = originalPublishedDataRef.current;
+
+      // Revert form state
+      setTitle(original.title);
+      setExcerpt(original.excerpt);
+      setContent(original.content);
+      setFeaturedImage(original.featuredImage);
+
+      // Clear draft fields in database
+      const { error } = await supabase
+        .from("blog_posts")
+        .update({
+          draft_title: null,
+          draft_excerpt: null,
+          draft_content: null,
+          draft_featured_image: null,
+          has_pending_changes: false,
+        })
+        .eq("id", currentPostId);
+
+      if (error) throw error;
+
+      setHasPendingChanges(false);
+      lastSavedDataRef.current = JSON.stringify({
+        title: original.title,
+        slug,
+        excerpt: original.excerpt,
+        content: original.content,
+        featuredImage: original.featuredImage,
+        category,
+        authorName,
+        readTimeMinutes,
+        tags,
+        isPublished,
+        isFeatured
+      });
+      setSaveStatus("saved");
+
+      toast({ title: "Changes discarded", description: "Reverted to the published version." });
+    } catch (error: unknown) {
+      console.error("Discard error:", error);
+      toast({
+        title: "Failed to discard changes",
+        description: error instanceof Error ? error.message : "Unknown error",
+        variant: "destructive",
+      });
+    } finally {
+      setIsDiscardingChanges(false);
+    }
+  };
 
   // Schedule auto-save with debounce
   const scheduleAutoSave = useCallback(() => {
@@ -201,37 +407,81 @@ export default function AdminBlogPostEditor() {
       if (error) throw error;
 
       if (data) {
-        setTitle(data.title);
+        const wasPublished = data.is_published || false;
+        setIsPublishedPost(wasPublished);
+        
+        // If post has pending draft changes, load the draft content
+        // Otherwise load the published content
+        const hasDraft = data.has_pending_changes && wasPublished;
+        
+        if (hasDraft && data.draft_title) {
+          setTitle(data.draft_title);
+        } else {
+          setTitle(data.title);
+        }
+        
         setSlug(data.slug);
-        setExcerpt(data.excerpt || "");
-        setContent(data.content || "");
-        setFeaturedImage(data.featured_image || "");
+        
+        if (hasDraft && data.draft_excerpt !== null) {
+          setExcerpt(data.draft_excerpt);
+        } else {
+          setExcerpt(data.excerpt || "");
+        }
+        
+        if (hasDraft && data.draft_content !== null) {
+          setContent(data.draft_content);
+        } else {
+          setContent(data.content || "");
+        }
+        
+        if (hasDraft && data.draft_featured_image !== null) {
+          setFeaturedImage(data.draft_featured_image);
+        } else {
+          setFeaturedImage(data.featured_image || "");
+        }
+        
         setCategory(data.category || "General");
         setAuthorName(data.author_name || "Admin");
         setReadTimeMinutes(data.read_time_minutes || 5);
         setTags(data.tags?.join(", ") || "");
-        setIsPublished(data.is_published || false);
+        setIsPublished(wasPublished);
         setIsFeatured(data.is_featured || false);
+        setHasPendingChanges(data.has_pending_changes || false);
+
+        // Store original published content for comparison
+        if (wasPublished) {
+          originalPublishedDataRef.current = {
+            title: data.title,
+            excerpt: data.excerpt || "",
+            content: data.content || "",
+            featuredImage: data.featured_image || "",
+          };
+        }
         
         // Set initial hash to prevent immediate auto-save
+        const loadedTitle = hasDraft && data.draft_title ? data.draft_title : data.title;
+        const loadedExcerpt = hasDraft && data.draft_excerpt !== null ? data.draft_excerpt : (data.excerpt || "");
+        const loadedContent = hasDraft && data.draft_content !== null ? data.draft_content : (data.content || "");
+        const loadedFeaturedImage = hasDraft && data.draft_featured_image !== null ? data.draft_featured_image : (data.featured_image || "");
+        
         lastSavedDataRef.current = JSON.stringify({
-          title: data.title,
+          title: loadedTitle,
           slug: data.slug,
-          excerpt: data.excerpt || "",
-          content: data.content || "",
-          featuredImage: data.featured_image || "",
+          excerpt: loadedExcerpt,
+          content: loadedContent,
+          featuredImage: loadedFeaturedImage,
           category: data.category || "General",
           authorName: data.author_name || "Admin",
           readTimeMinutes: data.read_time_minutes || 5,
           tags: data.tags?.join(", ") || "",
-          isPublished: data.is_published || false,
+          isPublished: wasPublished,
           isFeatured: data.is_featured || false
         });
       }
-    } catch (error: any) {
+    } catch (error: unknown) {
       toast({
         title: "Error loading post",
-        description: error.message,
+        description: error instanceof Error ? error.message : "Unknown error",
         variant: "destructive",
       });
       navigate("/admin/blog");
@@ -281,11 +531,11 @@ export default function AdminBlogPostEditor() {
 
       setFeaturedImage(publicUrl);
       toast({ title: "Image uploaded successfully" });
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error("Upload error:", error);
       toast({
         title: "Upload failed",
-        description: error.message || "Failed to upload image",
+        description: error instanceof Error ? error.message : "Failed to upload image",
         variant: "destructive",
       });
     } finally {
@@ -320,7 +570,7 @@ export default function AdminBlogPostEditor() {
     }
 
     await autoSave();
-    toast({ title: "Post saved successfully" });
+    toast({ title: "Draft saved successfully" });
   };
 
   const handlePublish = async () => {
@@ -362,7 +612,7 @@ export default function AdminBlogPostEditor() {
         return (
           <Badge variant="secondary" className="gap-1 bg-success/10 text-success border-success/20">
             <Check className="h-3 w-3" />
-            Saved
+            {isPublishedPost && hasPendingChanges ? "Draft saved" : "Saved"}
           </Badge>
         );
       case "unsaved":
@@ -403,6 +653,65 @@ export default function AdminBlogPostEditor() {
   return (
     <AdminLayout>
       <div className="space-y-6">
+        {/* Pending Changes Banner */}
+        {isPublishedPost && hasPendingChanges && (
+          <div className="bg-warning/10 border border-warning/30 rounded-lg p-4 flex items-center justify-between">
+            <div className="flex items-center gap-3">
+              <AlertTriangle className="h-5 w-5 text-warning" />
+              <div>
+                <p className="font-medium text-warning">You have unpublished changes</p>
+                <p className="text-sm text-muted-foreground">
+                  Your edits are saved as a draft. Publish to make them live or discard to revert.
+                </p>
+              </div>
+            </div>
+            <div className="flex items-center gap-2">
+              <AlertDialog>
+                <AlertDialogTrigger asChild>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    disabled={isDiscardingChanges}
+                  >
+                    {isDiscardingChanges ? (
+                      <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                    ) : (
+                      <RotateCcw className="h-4 w-4 mr-2" />
+                    )}
+                    Discard
+                  </Button>
+                </AlertDialogTrigger>
+                <AlertDialogContent>
+                  <AlertDialogHeader>
+                    <AlertDialogTitle>Discard changes?</AlertDialogTitle>
+                    <AlertDialogDescription>
+                      This will revert all your unpublished changes and restore the currently live version. This action cannot be undone.
+                    </AlertDialogDescription>
+                  </AlertDialogHeader>
+                  <AlertDialogFooter>
+                    <AlertDialogCancel>Cancel</AlertDialogCancel>
+                    <AlertDialogAction onClick={discardChanges}>
+                      Discard Changes
+                    </AlertDialogAction>
+                  </AlertDialogFooter>
+                </AlertDialogContent>
+              </AlertDialog>
+              <Button
+                size="sm"
+                onClick={publishChanges}
+                disabled={isPublishingChanges}
+              >
+                {isPublishingChanges ? (
+                  <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                ) : (
+                  <Send className="h-4 w-4 mr-2" />
+                )}
+                Publish Changes
+              </Button>
+            </div>
+          </div>
+        )}
+
         {/* Header */}
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-4">
@@ -419,9 +728,16 @@ export default function AdminBlogPostEditor() {
                   {currentPostId ? "Edit Blog Post" : "Create Blog Post"}
                 </h1>
                 {renderSaveStatus()}
+                {isPublishedPost && (
+                  <Badge variant="outline" className="bg-primary/10 text-primary">
+                    Published
+                  </Badge>
+                )}
               </div>
               <p className="text-muted-foreground mt-1">
-                {currentPostId
+                {isPublishedPost
+                  ? "Edits are saved as drafts. Publish to make changes live."
+                  : currentPostId
                   ? "Changes are saved automatically"
                   : "Start typing to auto-save your draft"}
               </p>
@@ -440,7 +756,7 @@ export default function AdminBlogPostEditor() {
               disabled={!title || saveStatus === "saving" || isUploading}
             >
               <Save className="h-4 w-4 mr-2" />
-              Save
+              Save Draft
             </Button>
             <Button
               onClick={handlePublish}
