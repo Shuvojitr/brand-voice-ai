@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Separator } from "@/components/ui/separator";
 import { Skeleton } from "@/components/ui/skeleton";
+import { Progress } from "@/components/ui/progress";
 import {
   Calendar,
   Clock,
@@ -21,10 +22,25 @@ import {
 import { useBlogPost, useBlogPosts } from "@/hooks/useBlogPosts";
 import { MarkdownRenderer } from "@/components/blog/MarkdownRenderer";
 import { format } from "date-fns";
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
 import { toast } from "@/hooks/use-toast";
 
 export default function BlogPostPage() {
+  const [scrollProgress, setScrollProgress] = useState(0);
+
+  useEffect(() => {
+    const handleScroll = () => {
+      const scrollTop = window.scrollY;
+      const scrollHeight = document.documentElement.scrollHeight - window.innerHeight;
+      const progress = scrollHeight > 0 ? (scrollTop / scrollHeight) * 100 : 0;
+      setScrollProgress(Math.min(100, Math.max(0, progress)));
+    };
+
+    window.addEventListener("scroll", handleScroll, { passive: true });
+    handleScroll(); // Initial calculation
+
+    return () => window.removeEventListener("scroll", handleScroll);
+  }, []);
   const { slug } = useParams<{ slug: string }>();
   const { data: post, isLoading } = useBlogPost(slug || "");
   const { data: allPosts } = useBlogPosts();
@@ -122,6 +138,11 @@ export default function BlogPostPage() {
 
   return (
     <Layout>
+      {/* Reading Progress Bar */}
+      <div className="fixed top-0 left-0 right-0 z-50 h-1 bg-muted/30">
+        <Progress value={scrollProgress} className="h-1 rounded-none bg-transparent [&>div]:bg-primary" />
+      </div>
+
       <article className="container py-12 md:py-20">
         {/* Back Link */}
         <Link

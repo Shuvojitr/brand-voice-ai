@@ -5,10 +5,11 @@ import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
-import { Search, Calendar, Clock, User, ArrowRight, ChevronLeft, ChevronRight, Sparkles } from "lucide-react";
+import { Search, Calendar, Clock, User, ArrowRight, ChevronLeft, ChevronRight, Sparkles, Mail, Loader2, CheckCircle } from "lucide-react";
 import { useBlogPosts } from "@/hooks/useBlogPosts";
 import { formatDistanceToNow, format } from "date-fns";
 import { cn } from "@/lib/utils";
+import { toast } from "@/hooks/use-toast";
 
 const POSTS_PER_PAGE = 6;
 
@@ -17,6 +18,36 @@ export default function Blog() {
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedCategory, setSelectedCategory] = useState<string>("all");
   const [currentPage, setCurrentPage] = useState(1);
+
+  // Newsletter form state
+  const [email, setEmail] = useState("");
+  const [isSubscribing, setIsSubscribing] = useState(false);
+  const [isSubscribed, setIsSubscribed] = useState(false);
+
+  const handleNewsletterSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!email || isSubscribing) return;
+
+    setIsSubscribing(true);
+    try {
+      // Simulate API call - in production, connect to your newsletter service
+      await new Promise((resolve) => setTimeout(resolve, 1500));
+      setIsSubscribed(true);
+      setEmail("");
+      toast({
+        title: "Successfully subscribed!",
+        description: "Thank you for subscribing to our newsletter.",
+      });
+    } catch {
+      toast({
+        title: "Subscription failed",
+        description: "Please try again later.",
+        variant: "destructive",
+      });
+    } finally {
+      setIsSubscribing(false);
+    }
+  };
 
   // Get unique categories from posts
   const categories = useMemo(() => {
@@ -425,6 +456,62 @@ export default function Blog() {
             </Button>
           </div>
         )}
+
+        {/* Newsletter Subscription Section */}
+        <section className="mt-20 relative overflow-hidden rounded-3xl bg-gradient-to-br from-primary/10 via-violet/5 to-cyan/10 border border-border/50">
+          {/* Decorative elements */}
+          <div className="absolute inset-0 overflow-hidden">
+            <div className="absolute -top-20 -right-20 h-40 w-40 rounded-full bg-primary/20 blur-3xl" />
+            <div className="absolute -bottom-20 -left-20 h-40 w-40 rounded-full bg-cyan/20 blur-3xl" />
+          </div>
+
+          <div className="relative px-6 py-16 md:px-12 md:py-20 text-center">
+            <div className="inline-flex items-center justify-center w-16 h-16 rounded-full bg-primary/10 mb-6">
+              <Mail className="h-8 w-8 text-primary" />
+            </div>
+
+            <h2 className="text-2xl md:text-3xl font-bold mb-4">
+              Stay in the <span className="gradient-text">Loop</span>
+            </h2>
+            <p className="text-muted-foreground text-lg max-w-lg mx-auto mb-8">
+              Get the latest articles, tips, and insights delivered straight to your inbox. No spam, unsubscribe anytime.
+            </p>
+
+            {isSubscribed ? (
+              <div className="flex items-center justify-center gap-3 text-primary">
+                <CheckCircle className="h-6 w-6" />
+                <span className="text-lg font-medium">Thanks for subscribing!</span>
+              </div>
+            ) : (
+              <form onSubmit={handleNewsletterSubmit} className="flex flex-col sm:flex-row gap-3 max-w-md mx-auto">
+                <Input
+                  type="email"
+                  placeholder="Enter your email"
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                  required
+                  className="h-12 rounded-xl bg-background/80 backdrop-blur border-border/50"
+                />
+                <Button
+                  type="submit"
+                  variant="gradient"
+                  size="lg"
+                  disabled={isSubscribing}
+                  className="h-12 px-8"
+                >
+                  {isSubscribing ? (
+                    <>
+                      <Loader2 className="h-4 w-4 animate-spin" />
+                      Subscribing...
+                    </>
+                  ) : (
+                    "Subscribe"
+                  )}
+                </Button>
+              </form>
+            )}
+          </div>
+        </section>
       </div>
     </Layout>
   );
