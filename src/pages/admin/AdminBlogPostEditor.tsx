@@ -55,6 +55,25 @@ export default function AdminBlogPostEditor() {
   const [isPublished, setIsPublished] = useState(false);
   const [isFeatured, setIsFeatured] = useState(false);
 
+  // Calculate reading time based on content (average 200 words per minute)
+  const calculateReadingTime = useCallback((text: string): number => {
+    const plainText = text
+      .replace(/<[^>]*>/g, "") // Remove HTML tags
+      .replace(/[#*`_~\[\]]/g, "") // Remove markdown syntax
+      .trim();
+    const wordCount = plainText.split(/\s+/).filter(Boolean).length;
+    const minutes = Math.max(1, Math.ceil(wordCount / 200));
+    return minutes;
+  }, []);
+
+  // Auto-update reading time when content changes
+  useEffect(() => {
+    if (content) {
+      const calculatedTime = calculateReadingTime(content);
+      setReadTimeMinutes(calculatedTime);
+    }
+  }, [content, calculateReadingTime]);
+
   // Create a hash of current form data to detect changes
   const getFormDataHash = useCallback(() => {
     return JSON.stringify({

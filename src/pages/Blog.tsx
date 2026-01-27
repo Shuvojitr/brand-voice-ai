@@ -10,6 +10,7 @@ import { useBlogPosts } from "@/hooks/useBlogPosts";
 import { formatDistanceToNow, format } from "date-fns";
 import { cn } from "@/lib/utils";
 import { toast } from "@/hooks/use-toast";
+import { supabase } from "@/integrations/supabase/client";
 
 const POSTS_PER_PAGE = 6;
 
@@ -30,18 +31,33 @@ export default function Blog() {
 
     setIsSubscribing(true);
     try {
-      // Simulate API call - in production, connect to your newsletter service
-      await new Promise((resolve) => setTimeout(resolve, 1500));
-      setIsSubscribed(true);
+      const { error } = await supabase
+        .from("newsletter_subscribers")
+        .insert({ email, source: "blog" });
+
+      if (error) {
+        // Check for unique constraint violation (already subscribed)
+        if (error.code === "23505") {
+          toast({
+            title: "Already subscribed",
+            description: "This email is already on our list!",
+          });
+          setIsSubscribed(true);
+        } else {
+          throw error;
+        }
+      } else {
+        setIsSubscribed(true);
+        toast({
+          title: "Successfully subscribed!",
+          description: "Thank you for subscribing to our newsletter.",
+        });
+      }
       setEmail("");
-      toast({
-        title: "Successfully subscribed!",
-        description: "Thank you for subscribing to our newsletter.",
-      });
-    } catch {
+    } catch (error: any) {
       toast({
         title: "Subscription failed",
-        description: "Please try again later.",
+        description: error.message || "Please try again later.",
         variant: "destructive",
       });
     } finally {
