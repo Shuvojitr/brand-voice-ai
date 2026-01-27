@@ -221,9 +221,14 @@ export default function Blog() {
                         Featured
                       </Badge>
                       {featuredPost.category && (
-                        <Badge variant="outline" className="text-sm">
-                          {featuredPost.category}
-                        </Badge>
+                        <Link
+                          to={`/blog/category/${encodeURIComponent(featuredPost.category)}`}
+                          onClick={(e) => e.stopPropagation()}
+                        >
+                          <Badge variant="outline" className="text-sm hover:bg-primary/10 transition-colors">
+                            {featuredPost.category}
+                          </Badge>
+                        </Link>
                       )}
                     </div>
 
@@ -336,9 +341,14 @@ export default function Blog() {
                     {/* Category & Date */}
                     <div className="flex items-center gap-3 mb-3 text-sm">
                       {post.category && (
-                        <Badge variant="secondary" className="rounded-full font-medium">
-                          {post.category}
-                        </Badge>
+                        <Link
+                          to={`/blog/category/${encodeURIComponent(post.category)}`}
+                          onClick={(e) => e.stopPropagation()}
+                        >
+                          <Badge variant="secondary" className="rounded-full font-medium hover:bg-secondary/80 transition-colors">
+                            {post.category}
+                          </Badge>
+                        </Link>
                       )}
                       {post.published_at && (
                         <span className="text-muted-foreground">
