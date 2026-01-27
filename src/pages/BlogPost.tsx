@@ -20,10 +20,10 @@ import {
   Check,
 } from "lucide-react";
 import { useBlogPost, useBlogPosts } from "@/hooks/useBlogPosts";
-import { MarkdownRenderer } from "@/components/blog/MarkdownRenderer";
 import { format } from "date-fns";
 import { useState, useMemo, useEffect } from "react";
 import { toast } from "@/hooks/use-toast";
+import DOMPurify from "dompurify";
 
 export default function BlogPostPage() {
   const [scrollProgress, setScrollProgress] = useState(0);
@@ -212,10 +212,18 @@ export default function BlogPostPage() {
           </div>
         )}
 
-        {/* Content with Markdown Rendering */}
+        {/* Content */}
         <div className="max-w-3xl mx-auto">
           {post.content ? (
-            <MarkdownRenderer content={post.content} />
+            <div
+              className="prose prose-lg dark:prose-invert max-w-none prose-headings:font-bold prose-headings:tracking-tight prose-h1:text-3xl prose-h1:mt-8 prose-h1:mb-4 prose-h2:text-2xl prose-h2:mt-8 prose-h2:mb-4 prose-h2:border-b prose-h2:border-border prose-h2:pb-2 prose-h3:text-xl prose-h3:mt-6 prose-h3:mb-3 prose-p:leading-relaxed prose-p:mb-4 prose-a:text-primary prose-a:no-underline hover:prose-a:underline prose-ul:my-4 prose-ol:my-4 prose-li:my-1 prose-blockquote:border-l-4 prose-blockquote:border-primary/50 prose-blockquote:bg-muted/30 prose-blockquote:py-1 prose-blockquote:px-4 prose-blockquote:rounded-r-lg prose-code:bg-muted prose-code:px-1.5 prose-code:py-0.5 prose-code:rounded prose-code:text-sm prose-code:font-mono prose-img:rounded-xl prose-img:shadow-lg prose-strong:font-semibold"
+              dangerouslySetInnerHTML={{
+                __html: DOMPurify.sanitize(post.content, {
+                  ALLOWED_TAGS: ['h1', 'h2', 'h3', 'h4', 'h5', 'h6', 'p', 'a', 'ul', 'ol', 'li', 'strong', 'em', 'b', 'i', 'u', 'br', 'blockquote', 'code', 'pre', 'div', 'span', 'img', 's', 'strike'],
+                  ALLOWED_ATTR: ['href', 'target', 'rel', 'src', 'alt', 'class', 'id']
+                })
+              }}
+            />
           ) : (
             <p className="text-muted-foreground italic">No content available.</p>
           )}
