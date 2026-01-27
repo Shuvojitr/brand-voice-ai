@@ -32,6 +32,7 @@ import MyTickets from "./pages/MyTickets";
 import LiveChat from "./pages/LiveChat";
 import Blog from "./pages/Blog";
 import BlogPost from "./pages/BlogPost";
+import BlogCategory from "./pages/BlogCategory";
 import AdminOverview from "./pages/admin/AdminOverview";
 import AdminUsers from "./pages/admin/AdminUsers";
 import AdminTemplates from "./pages/admin/AdminTemplates";
@@ -102,6 +103,7 @@ function AppContent() {
         <Route path="/dashboard/getting-started" element={<GettingStarted />} />
         <Route path="/docs" element={<Docs />} />
         <Route path="/blog" element={<Blog />} />
+        <Route path="/blog/category/:category" element={<BlogCategory />} />
         <Route path="/blog/:slug" element={<BlogPost />} />
         {/* Admin Routes */}
         <Route path="/admin" element={<AdminOverview />} />

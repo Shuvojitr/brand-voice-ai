@@ -157,9 +157,11 @@ export default function BlogPostPage() {
         <header className="max-w-3xl mx-auto text-center mb-12">
           {/* Category */}
           {post.category && (
-            <Badge variant="secondary" className="mb-4">
-              {post.category}
-            </Badge>
+            <Link to={`/blog/category/${encodeURIComponent(post.category)}`}>
+              <Badge variant="secondary" className="mb-4 hover:bg-secondary/80 transition-colors">
+                {post.category}
+              </Badge>
+            </Link>
           )}
 
           {/* Title */}
