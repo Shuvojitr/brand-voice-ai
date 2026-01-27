@@ -243,7 +243,11 @@ export default function Blog() {
                     {/* Meta Info */}
                     <div className="flex flex-wrap items-center gap-4 text-sm text-muted-foreground">
                       {featuredPost.author_name && (
-                        <div className="flex items-center gap-2">
+                        <Link
+                          to={`/blog/author/${encodeURIComponent(featuredPost.author_name)}`}
+                          onClick={(e) => e.stopPropagation()}
+                          className="flex items-center gap-2 hover:text-foreground transition-colors"
+                        >
                           {featuredPost.author_avatar ? (
                             <img
                               src={featuredPost.author_avatar}
@@ -256,7 +260,7 @@ export default function Blog() {
                             </div>
                           )}
                           <span className="font-medium">{featuredPost.author_name}</span>
-                        </div>
+                        </Link>
                       )}
                       {featuredPost.published_at && (
                         <div className="flex items-center gap-1.5">
@@ -371,7 +375,11 @@ export default function Blog() {
 
                     {/* Author & Read Time */}
                     <div className="flex items-center justify-between pt-4 border-t border-border/50">
-                      <div className="flex items-center gap-2">
+                      <Link
+                        to={`/blog/author/${encodeURIComponent(post.author_name || "Admin")}`}
+                        onClick={(e) => e.stopPropagation()}
+                        className="flex items-center gap-2 hover:opacity-80 transition-opacity"
+                      >
                         {post.author_avatar ? (
                           <img
                             src={post.author_avatar}
@@ -386,7 +394,7 @@ export default function Blog() {
                         <span className="text-sm font-medium">
                           {post.author_name || "Admin"}
                         </span>
-                      </div>
+                      </Link>
                       {post.read_time_minutes && (
                         <div className="flex items-center gap-1.5 text-sm text-muted-foreground">
                           <Clock className="h-3.5 w-3.5" />
