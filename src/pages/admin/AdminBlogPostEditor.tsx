@@ -34,7 +34,12 @@ import {
   AlertTriangle,
   RotateCcw,
   Send,
+  CalendarClock,
+  Clock,
 } from "lucide-react";
+import { format } from "date-fns";
+import { Calendar } from "@/components/ui/calendar";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import {
   BlogPostInput,
 } from "@/hooks/useBlogPosts";
@@ -82,6 +87,8 @@ export default function AdminBlogPostEditor() {
   const [tags, setTags] = useState("");
   const [isPublished, setIsPublished] = useState(false);
   const [isFeatured, setIsFeatured] = useState(false);
+  const [scheduledPublishAt, setScheduledPublishAt] = useState<Date | null>(null);
+  const [scheduledTime, setScheduledTime] = useState("09:00");
 
   // Calculate reading time based on content (average 200 words per minute)
   const calculateReadingTime = useCallback((text: string): number => {
@@ -127,9 +134,10 @@ export default function AdminBlogPostEditor() {
     return JSON.stringify({
       title, slug, excerpt, content, featuredImage,
       category, authorName, readTimeMinutes, tags,
-      isPublished, isFeatured
+      isPublished, isFeatured, scheduledPublishAt: scheduledPublishAt?.toISOString(),
+      scheduledTime
     });
-  }, [title, slug, excerpt, content, featuredImage, category, authorName, readTimeMinutes, tags, isPublished, isFeatured]);
+  }, [title, slug, excerpt, content, featuredImage, category, authorName, readTimeMinutes, tags, isPublished, isFeatured, scheduledPublishAt, scheduledTime]);
 
   // Auto-save function - saves to draft fields for published posts
   const autoSave = useCallback(async () => {
@@ -175,6 +183,15 @@ export default function AdminBlogPostEditor() {
           if (error) throw error;
         } else {
           // For unpublished posts: update directly as before
+          // Compute full scheduled datetime if date is set
+          let scheduledDateTime: string | null = null;
+          if (scheduledPublishAt && !isPublished) {
+            const [hours, minutes] = scheduledTime.split(":").map(Number);
+            const scheduledDate = new Date(scheduledPublishAt);
+            scheduledDate.setHours(hours, minutes, 0, 0);
+            scheduledDateTime = scheduledDate.toISOString();
+          }
+
           const input: BlogPostInput = {
             title,
             slug: slug || title.toLowerCase().replace(/\s+/g, "-").replace(/[^a-z0-9-]/g, ""),
@@ -188,6 +205,7 @@ export default function AdminBlogPostEditor() {
             is_published: isPublished,
             is_featured: isFeatured,
             published_at: isPublished ? new Date().toISOString() : undefined,
+            scheduled_publish_at: scheduledDateTime,
             // Clear draft fields when saving directly
             draft_title: null,
             draft_excerpt: null,
@@ -205,6 +223,15 @@ export default function AdminBlogPostEditor() {
         }
       } else {
         // Create new post (first auto-save) - always save directly
+        // Compute full scheduled datetime if date is set
+        let scheduledDateTime: string | null = null;
+        if (scheduledPublishAt && !isPublished) {
+          const [hours, minutes] = scheduledTime.split(":").map(Number);
+          const scheduledDate = new Date(scheduledPublishAt);
+          scheduledDate.setHours(hours, minutes, 0, 0);
+          scheduledDateTime = scheduledDate.toISOString();
+        }
+
         const input: BlogPostInput = {
           title,
           slug: slug || title.toLowerCase().replace(/\s+/g, "-").replace(/[^a-z0-9-]/g, ""),
@@ -218,6 +245,7 @@ export default function AdminBlogPostEditor() {
           is_published: isPublished,
           is_featured: isFeatured,
           published_at: isPublished ? new Date().toISOString() : undefined,
+          scheduled_publish_at: scheduledDateTime,
         };
 
         const { data, error } = await supabase
@@ -239,7 +267,7 @@ export default function AdminBlogPostEditor() {
       console.error("Auto-save error:", error);
       setSaveStatus("error");
     }
-  }, [title, slug, excerpt, content, featuredImage, category, authorName, readTimeMinutes, tags, isPublished, isFeatured, currentPostId, getFormDataHash, isPublishedPost, checkForPendingChanges]);
+  }, [title, slug, excerpt, content, featuredImage, category, authorName, readTimeMinutes, tags, isPublished, isFeatured, currentPostId, getFormDataHash, isPublishedPost, checkForPendingChanges, scheduledPublishAt, scheduledTime]);
 
   // Publish draft changes to live
   const publishChanges = async () => {
@@ -365,7 +393,7 @@ export default function AdminBlogPostEditor() {
     if (!isLoading && title.trim()) {
       scheduleAutoSave();
     }
-  }, [title, slug, excerpt, content, featuredImage, category, authorName, readTimeMinutes, tags, isPublished, isFeatured, isLoading, scheduleAutoSave]);
+  }, [title, slug, excerpt, content, featuredImage, category, authorName, readTimeMinutes, tags, isPublished, isFeatured, isLoading, scheduleAutoSave, scheduledPublishAt, scheduledTime]);
 
   // Cleanup timeout on unmount
   useEffect(() => {
@@ -448,6 +476,18 @@ export default function AdminBlogPostEditor() {
         setIsFeatured(data.is_featured || false);
         setHasPendingChanges(data.has_pending_changes || false);
 
+        // Load scheduled publishing date/time
+        if (data.scheduled_publish_at) {
+          const scheduledDate = new Date(data.scheduled_publish_at);
+          setScheduledPublishAt(scheduledDate);
+          setScheduledTime(
+            `${scheduledDate.getHours().toString().padStart(2, "0")}:${scheduledDate.getMinutes().toString().padStart(2, "0")}`
+          );
+        } else {
+          setScheduledPublishAt(null);
+          setScheduledTime("09:00");
+        }
+
         // Store original published content for comparison
         if (wasPublished) {
           originalPublishedDataRef.current = {
@@ -475,7 +515,11 @@ export default function AdminBlogPostEditor() {
           readTimeMinutes: data.read_time_minutes || 5,
           tags: data.tags?.join(", ") || "",
           isPublished: wasPublished,
-          isFeatured: data.is_featured || false
+          isFeatured: data.is_featured || false,
+          scheduledPublishAt: data.scheduled_publish_at || null,
+          scheduledTime: data.scheduled_publish_at 
+            ? `${new Date(data.scheduled_publish_at).getHours().toString().padStart(2, "0")}:${new Date(data.scheduled_publish_at).getMinutes().toString().padStart(2, "0")}`
+            : "09:00"
         });
       }
     } catch (error: unknown) {
@@ -864,7 +908,13 @@ export default function AdminBlogPostEditor() {
                   <Switch
                     id="published"
                     checked={isPublished}
-                    onCheckedChange={setIsPublished}
+                    onCheckedChange={(checked) => {
+                      setIsPublished(checked);
+                      // Clear scheduled publishing if publishing now
+                      if (checked) {
+                        setScheduledPublishAt(null);
+                      }
+                    }}
                   />
                 </div>
                 <div className="flex items-center justify-between">
@@ -875,6 +925,84 @@ export default function AdminBlogPostEditor() {
                     onCheckedChange={setIsFeatured}
                   />
                 </div>
+
+                {/* Schedule Publishing (only show if not already published) */}
+                {!isPublished && (
+                  <div className="pt-3 border-t space-y-3">
+                    <div className="flex items-center gap-2">
+                      <CalendarClock className="h-4 w-4 text-muted-foreground" />
+                      <Label>Schedule for later</Label>
+                    </div>
+                    
+                    {scheduledPublishAt ? (
+                      <div className="space-y-3">
+                        <div className="flex items-center gap-2 p-3 bg-primary/5 rounded-lg border border-primary/20">
+                          <Clock className="h-4 w-4 text-primary" />
+                          <span className="text-sm font-medium">
+                            Scheduled for {format(scheduledPublishAt, "MMM d, yyyy")} at {scheduledTime}
+                          </span>
+                        </div>
+                        
+                        <Popover>
+                          <PopoverTrigger asChild>
+                            <Button variant="outline" size="sm" className="w-full justify-start">
+                              <CalendarClock className="h-4 w-4 mr-2" />
+                              Change date
+                            </Button>
+                          </PopoverTrigger>
+                          <PopoverContent className="w-auto p-0" align="start">
+                            <Calendar
+                              mode="single"
+                              selected={scheduledPublishAt}
+                              onSelect={(date) => date && setScheduledPublishAt(date)}
+                              disabled={(date) => date < new Date(new Date().setHours(0, 0, 0, 0))}
+                              initialFocus
+                            />
+                          </PopoverContent>
+                        </Popover>
+
+                        <div className="grid gap-2">
+                          <Label htmlFor="scheduledTime" className="text-xs text-muted-foreground">Time</Label>
+                          <Input
+                            id="scheduledTime"
+                            type="time"
+                            value={scheduledTime}
+                            onChange={(e) => setScheduledTime(e.target.value)}
+                            className="h-9"
+                          />
+                        </div>
+
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => setScheduledPublishAt(null)}
+                          className="w-full text-muted-foreground hover:text-destructive"
+                        >
+                          <X className="h-4 w-4 mr-2" />
+                          Clear schedule
+                        </Button>
+                      </div>
+                    ) : (
+                      <Popover>
+                        <PopoverTrigger asChild>
+                          <Button variant="outline" size="sm" className="w-full justify-start text-muted-foreground">
+                            <CalendarClock className="h-4 w-4 mr-2" />
+                            Set publish date
+                          </Button>
+                        </PopoverTrigger>
+                        <PopoverContent className="w-auto p-0" align="start">
+                          <Calendar
+                            mode="single"
+                            selected={scheduledPublishAt ?? undefined}
+                            onSelect={(date) => date && setScheduledPublishAt(date)}
+                            disabled={(date) => date < new Date(new Date().setHours(0, 0, 0, 0))}
+                            initialFocus
+                          />
+                        </PopoverContent>
+                      </Popover>
+                    )}
+                  </div>
+                )}
               </CardContent>
             </Card>
 

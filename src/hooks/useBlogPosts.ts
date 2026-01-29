@@ -26,6 +26,8 @@ export interface BlogPost {
   draft_content: string | null;
   draft_featured_image: string | null;
   has_pending_changes: boolean | null;
+  // Scheduled publishing
+  scheduled_publish_at: string | null;
 }
 
 export interface BlogPostInput {
@@ -49,6 +51,8 @@ export interface BlogPostInput {
   draft_content?: string | null;
   draft_featured_image?: string | null;
   has_pending_changes?: boolean;
+  // Scheduled publishing
+  scheduled_publish_at?: string | null;
 }
 
 // Fetch all published blog posts (for landing page)
