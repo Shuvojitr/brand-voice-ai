@@ -356,6 +356,7 @@ export type Database = {
           is_published: boolean | null
           published_at: string | null
           read_time_minutes: number | null
+          scheduled_publish_at: string | null
           slug: string
           sort_order: number | null
           tags: string[] | null
@@ -380,6 +381,7 @@ export type Database = {
           is_published?: boolean | null
           published_at?: string | null
           read_time_minutes?: number | null
+          scheduled_publish_at?: string | null
           slug: string
           sort_order?: number | null
           tags?: string[] | null
@@ -404,6 +406,7 @@ export type Database = {
           is_published?: boolean | null
           published_at?: string | null
           read_time_minutes?: number | null
+          scheduled_publish_at?: string | null
           slug?: string
           sort_order?: number | null
           tags?: string[] | null
