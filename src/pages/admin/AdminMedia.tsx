@@ -209,7 +209,7 @@ export default function AdminMedia() {
             {filteredMedia.map((item) => (
               <Card
                 key={item.id}
-                className="group overflow-hidden cursor-pointer hover:ring-2 hover:ring-primary transition-all"
+                className="group relative overflow-hidden cursor-pointer hover:ring-2 hover:ring-primary transition-all"
                 onClick={() => setSelectedMedia(item)}
               >
                 <AspectRatio ratio={1}>
