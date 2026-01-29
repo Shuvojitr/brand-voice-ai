@@ -1097,16 +1097,6 @@ export default function AdminBlogPostEditor() {
                   />
                 </div>
 
-                <div className="grid gap-2">
-                  <Label htmlFor="readTime">Read Time (min)</Label>
-                  <Input
-                    id="readTime"
-                    type="number"
-                    value={readTimeMinutes}
-                    onChange={(e) => setReadTimeMinutes(Number(e.target.value))}
-                    min={1}
-                  />
-                </div>
 
                 <div className="grid gap-2">
                   <Label htmlFor="tags">Tags</Label>
