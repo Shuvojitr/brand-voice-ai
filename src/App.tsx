@@ -56,6 +56,7 @@ import AdminIntegrations from "./pages/admin/AdminIntegrations";
 import AdminBlogPosts from "./pages/admin/AdminBlogPosts";
 import AdminBlogPostEditor from "./pages/admin/AdminBlogPostEditor";
 import AdminNewsletterSubscribers from "./pages/admin/AdminNewsletterSubscribers";
+import AdminMedia from "./pages/admin/AdminMedia";
 import ManagerOverview from "./pages/manager/ManagerOverview";
 import ManagerTemplates from "./pages/manager/ManagerTemplates";
 import ManagerPages from "./pages/manager/ManagerPages";
@@ -130,6 +131,7 @@ function AppContent() {
         <Route path="/admin/blog" element={<AdminBlogPosts />} />
         <Route path="/admin/blog/new" element={<AdminBlogPostEditor />} />
         <Route path="/admin/blog/edit/:postId" element={<AdminBlogPostEditor />} />
+        <Route path="/admin/media" element={<AdminMedia />} />
         <Route path="/admin/subscribers" element={<AdminNewsletterSubscribers />} />
         {/* Manager Routes */}
         <Route path="/manager" element={<ManagerOverview />} />

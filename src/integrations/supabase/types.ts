@@ -797,6 +797,54 @@ export type Database = {
         }
         Relationships: []
       }
+      media: {
+        Row: {
+          alt_text: string | null
+          bucket: string
+          created_at: string
+          file_path: string
+          height: number | null
+          id: string
+          mime_type: string | null
+          name: string
+          size_bytes: number | null
+          updated_at: string
+          uploaded_by: string | null
+          url: string
+          width: number | null
+        }
+        Insert: {
+          alt_text?: string | null
+          bucket?: string
+          created_at?: string
+          file_path: string
+          height?: number | null
+          id?: string
+          mime_type?: string | null
+          name: string
+          size_bytes?: number | null
+          updated_at?: string
+          uploaded_by?: string | null
+          url: string
+          width?: number | null
+        }
+        Update: {
+          alt_text?: string | null
+          bucket?: string
+          created_at?: string
+          file_path?: string
+          height?: number | null
+          id?: string
+          mime_type?: string | null
+          name?: string
+          size_bytes?: number | null
+          updated_at?: string
+          uploaded_by?: string | null
+          url?: string
+          width?: number | null
+        }
+        Relationships: []
+      }
       newsletter_subscribers: {
         Row: {
           confirmation_token: string | null

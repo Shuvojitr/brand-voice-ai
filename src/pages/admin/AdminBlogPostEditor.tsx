@@ -36,6 +36,7 @@ import {
   Send,
   CalendarClock,
   Clock,
+  ImageIcon,
 } from "lucide-react";
 import { format } from "date-fns";
 import { Calendar } from "@/components/ui/calendar";
@@ -45,6 +46,7 @@ import {
 } from "@/hooks/useBlogPosts";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "@/hooks/use-toast";
+import { MediaPickerDialog } from "@/components/media/MediaPickerDialog";
 
 type SaveStatus = "saved" | "saving" | "unsaved" | "error";
 
@@ -89,6 +91,7 @@ export default function AdminBlogPostEditor() {
   const [isFeatured, setIsFeatured] = useState(false);
   const [scheduledPublishAt, setScheduledPublishAt] = useState<Date | null>(null);
   const [scheduledTime, setScheduledTime] = useState("09:00");
+  const [showMediaPicker, setShowMediaPicker] = useState(false);
 
   // Calculate reading time based on content (average 200 words per minute)
   const calculateReadingTime = useCallback((text: string): number => {
@@ -561,7 +564,7 @@ export default function AdminBlogPostEditor() {
     try {
       const fileExt = file.name.split(".").pop();
       const fileName = `${Date.now()}-${Math.random().toString(36).substring(7)}.${fileExt}`;
-      const filePath = `featured/${fileName}`;
+      const filePath = `media/${fileName}`;
 
       const { error: uploadError } = await supabase.storage
         .from("blog-images")
@@ -572,6 +575,25 @@ export default function AdminBlogPostEditor() {
       const { data: { publicUrl } } = supabase.storage
         .from("blog-images")
         .getPublicUrl(filePath);
+
+      // Get image dimensions
+      const dimensions = await getImageDimensions(file);
+
+      // Get current user
+      const { data: { user } } = await supabase.auth.getUser();
+
+      // Save to media table
+      await supabase.from("media").insert({
+        name: file.name,
+        file_path: filePath,
+        url: publicUrl,
+        bucket: "blog-images",
+        mime_type: file.type,
+        size_bytes: file.size,
+        width: dimensions.width,
+        height: dimensions.height,
+        uploaded_by: user?.id || null,
+      });
 
       setFeaturedImage(publicUrl);
       toast({ title: "Image uploaded successfully" });
@@ -588,6 +610,25 @@ export default function AdminBlogPostEditor() {
         fileInputRef.current.value = "";
       }
     }
+  };
+
+  const getImageDimensions = (file: File): Promise<{ width: number; height: number }> => {
+    return new Promise((resolve) => {
+      const img = new Image();
+      img.onload = () => {
+        resolve({ width: img.naturalWidth, height: img.naturalHeight });
+        URL.revokeObjectURL(img.src);
+      };
+      img.onerror = () => {
+        resolve({ width: 0, height: 0 });
+        URL.revokeObjectURL(img.src);
+      };
+      img.src = URL.createObjectURL(file);
+    });
+  };
+
+  const handleMediaSelect = (url: string) => {
+    setFeaturedImage(url);
   };
 
   const removeImage = () => {
@@ -1059,6 +1100,18 @@ export default function AdminBlogPostEditor() {
                   className="hidden"
                   onChange={handleImageUpload}
                 />
+                <div className="flex gap-2">
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    className="flex-1"
+                    onClick={() => setShowMediaPicker(true)}
+                  >
+                    <ImageIcon className="mr-2 h-4 w-4" />
+                    Media Library
+                  </Button>
+                </div>
                 <div className="flex items-center gap-2">
                   <span className="text-xs text-muted-foreground">or URL:</span>
                   <Input
@@ -1070,6 +1123,14 @@ export default function AdminBlogPostEditor() {
                 </div>
               </CardContent>
             </Card>
+
+            {/* Media Picker Dialog */}
+            <MediaPickerDialog
+              open={showMediaPicker}
+              onOpenChange={setShowMediaPicker}
+              onSelect={handleMediaSelect}
+              title="Select Featured Image"
+            />
 
             {/* Meta Info */}
             <Card>
