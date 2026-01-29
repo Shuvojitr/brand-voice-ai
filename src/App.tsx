@@ -37,6 +37,7 @@ import BlogAuthor from "./pages/BlogAuthor";
 import AdminOverview from "./pages/admin/AdminOverview";
 import AdminUsers from "./pages/admin/AdminUsers";
 import AdminTemplates from "./pages/admin/AdminTemplates";
+import AdminTemplateEditor from "./pages/admin/AdminTemplateEditor";
 import AdminTestimonials from "./pages/admin/AdminTestimonials";
 import AdminFaqs from "./pages/admin/AdminFaqs";
 import AdminPlans from "./pages/admin/AdminPlans";
@@ -59,6 +60,7 @@ import AdminNewsletterSubscribers from "./pages/admin/AdminNewsletterSubscribers
 import AdminMedia from "./pages/admin/AdminMedia";
 import ManagerOverview from "./pages/manager/ManagerOverview";
 import ManagerTemplates from "./pages/manager/ManagerTemplates";
+import ManagerTemplateEditor from "./pages/manager/ManagerTemplateEditor";
 import ManagerPages from "./pages/manager/ManagerPages";
 import ManagerTestimonials from "./pages/manager/ManagerTestimonials";
 import ManagerFaqs from "./pages/manager/ManagerFaqs";
@@ -113,6 +115,8 @@ function AppContent() {
         <Route path="/admin/analytics" element={<AdminAnalytics />} />
         <Route path="/admin/users" element={<AdminUsers />} />
         <Route path="/admin/templates" element={<AdminTemplates />} />
+        <Route path="/admin/templates/new" element={<AdminTemplateEditor />} />
+        <Route path="/admin/templates/edit/:templateId" element={<AdminTemplateEditor />} />
         <Route path="/admin/api-keys" element={<AdminApiKeys />} />
         <Route path="/admin/pages" element={<AdminPages />} />
         <Route path="/admin/homepage" element={<AdminHomepage />} />
@@ -136,6 +140,8 @@ function AppContent() {
         {/* Manager Routes */}
         <Route path="/manager" element={<ManagerOverview />} />
         <Route path="/manager/templates" element={<ManagerTemplates />} />
+        <Route path="/manager/templates/new" element={<ManagerTemplateEditor />} />
+        <Route path="/manager/templates/edit/:templateId" element={<ManagerTemplateEditor />} />
         <Route path="/manager/pages" element={<ManagerPages />} />
         <Route path="/manager/testimonials" element={<ManagerTestimonials />} />
         <Route path="/manager/faqs" element={<ManagerFaqs />} />

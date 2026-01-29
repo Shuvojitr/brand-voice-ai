@@ -1,4 +1,5 @@
-import { useState, useMemo } from "react";
+import { useState } from "react";
+import { useNavigate } from "react-router-dom";
 import { ManagerLayout } from "@/components/manager";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -7,19 +8,17 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Label } from "@/components/ui/label";
+import { Switch } from "@/components/ui/switch";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 
 import { useTemplates } from "@/hooks/useTemplates";
 import { useAllTemplateCategories } from "@/hooks/useTemplateCategories";
 import { useAllTemplateIcons } from "@/hooks/useTemplateIcons";
-import { getIconByName } from "@/lib/icon-utils";
-import { Search, Plus, Pencil, Eye, EyeOff, Trash2, Folder, Layout } from "lucide-react";
+import { Search, Plus, Pencil, Eye, EyeOff, Trash2, Folder } from "lucide-react";
 import * as LucideIconsAll from "lucide-react";
-import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
-import { Label } from "@/components/ui/label";
-import { Textarea } from "@/components/ui/textarea";
-import { Switch } from "@/components/ui/switch";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { useQueryClient } from "@tanstack/react-query";
@@ -36,63 +35,15 @@ interface IconFormData {
   is_active: boolean;
 }
 
-// Sample values for prompt preview
-const getSampleValue = (field: { id: string; type: string; label: string; options?: { value: string; label: string }[] }): string => {
-  const id = field.id.toLowerCase();
-  const type = field.type;
-  
-  // Use first option for select fields
-  if (type === "select" && field.options?.length) {
-    return field.options[0].value;
-  }
-  
-  // Generate contextual sample values based on field id/label
-  if (id.includes("topic") || id.includes("subject")) return "Artificial Intelligence in Healthcare";
-  if (id.includes("keyword")) return "AI, machine learning, healthcare, diagnosis";
-  if (id.includes("title")) return "The Future of AI in Medicine";
-  if (id.includes("tone") || id.includes("style")) return "Professional and informative";
-  if (id.includes("audience") || id.includes("target")) return "Healthcare professionals and tech enthusiasts";
-  if (id.includes("length") || id.includes("word")) return "1500";
-  if (id.includes("product") || id.includes("name")) return "SmartHealth Pro";
-  if (id.includes("description") || id.includes("about")) return "A cutting-edge AI-powered health monitoring system";
-  if (id.includes("brand")) return "TechMed Solutions";
-  if (id.includes("url") || id.includes("link")) return "https://example.com";
-  if (id.includes("platform")) return "LinkedIn";
-  if (id.includes("language")) return "English";
-  if (id.includes("industry")) return "Technology";
-  if (id.includes("feature")) return "Real-time health analytics, personalized recommendations";
-  if (id.includes("benefit")) return "Improved patient outcomes, reduced costs";
-  if (id.includes("cta") || id.includes("action")) return "Learn More";
-  
-  // Default based on type
-  if (type === "number") return "500";
-  if (type === "toggle") return "true";
-  if (type === "textarea") return "This is a sample longer text that would be entered in a textarea field. It provides context and details for the AI to work with.";
-  
-  return `Sample ${field.label}`;
-};
-
 export default function ManagerTemplates() {
   const { data: templates, isLoading } = useTemplates(true);
   const { data: categories, isLoading: categoriesLoading } = useAllTemplateCategories();
   const { data: icons, isLoading: iconsLoading } = useAllTemplateIcons();
   const { toast } = useToast();
   const queryClient = useQueryClient();
+  const navigate = useNavigate();
   
   const [searchQuery, setSearchQuery] = useState("");
-  const [dialogOpen, setDialogOpen] = useState(false);
-  const [editingTemplate, setEditingTemplate] = useState<any>(null);
-  const [dialogTab, setDialogTab] = useState<"edit" | "preview" | "template">("edit");
-  const [formData, setFormData] = useState({
-    name: "",
-    description: "",
-    category: "",
-    icon: "",
-    slug: "",
-    system_prompt: "",
-    form_schema_json: "[]",
-    is_active: true,
-  });
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   // Category management state
@@ -118,147 +69,6 @@ export default function ManagerTemplates() {
   const getIconComponent = (iconName: string) => {
     const IconComponent = (LucideIconsAll as any)[iconName];
     return IconComponent || Folder;
-  };
-
-  const openCreateDialog = () => {
-    setEditingTemplate(null);
-    setDialogTab("edit");
-    setFormData({
-      name: "",
-      description: "",
-      category: categories?.[0]?.value || "",
-      icon: icons?.[0]?.name || "FileText",
-      slug: "",
-      system_prompt: "",
-      form_schema_json: "[]",
-      is_active: true,
-    });
-    setDialogOpen(true);
-  };
-
-  const openEditDialog = (template: any) => {
-    setEditingTemplate(template);
-    setDialogTab("edit");
-    setFormData({
-      name: template.name,
-      description: template.description || "",
-      category: template.category,
-      icon: template.icon || "FileText",
-      slug: template.slug,
-      system_prompt: template.system_prompt,
-      form_schema_json: JSON.stringify(template.form_schema_json || [], null, 2),
-      is_active: template.is_active,
-    });
-    setDialogOpen(true);
-  };
-
-  // Generate prompt preview
-  const promptPreview = useMemo(() => {
-    try {
-      const fields = JSON.parse(formData.form_schema_json || "[]");
-      
-      // Build user prompt from sample inputs (same logic as edge function)
-      const userPromptParts: string[] = [];
-      for (const field of fields) {
-        const sampleValue = getSampleValue(field);
-        userPromptParts.push(`${field.id}: ${sampleValue}`);
-      }
-      
-      const languageInstruction = "\n\nWrite your response in clear, fluent English.";
-      const userPrompt = userPromptParts.join("\n") + languageInstruction;
-      
-      return {
-        systemPrompt: formData.system_prompt || "(No system prompt defined)",
-        userPrompt: userPrompt || "(No input fields defined)",
-        fields,
-        isValid: true,
-      };
-    } catch {
-      return {
-        systemPrompt: formData.system_prompt || "(No system prompt defined)",
-        userPrompt: "(Invalid form schema JSON)",
-        fields: [],
-        isValid: false,
-      };
-    }
-  }, [formData.form_schema_json, formData.system_prompt]);
-
-  const handleSubmit = async () => {
-    if (!formData.name || !formData.slug || !formData.system_prompt) {
-      toast({
-        title: "Validation Error",
-        description: "Please fill in all required fields.",
-        variant: "destructive",
-      });
-      return;
-    }
-
-    let parsedSchema;
-    try {
-      parsedSchema = JSON.parse(formData.form_schema_json);
-    } catch {
-      toast({
-        title: "Invalid JSON",
-        description: "Form schema must be valid JSON.",
-        variant: "destructive",
-      });
-      return;
-    }
-
-    setIsSubmitting(true);
-    try {
-      if (editingTemplate) {
-        const { error } = await supabase
-          .from("templates")
-          .update({
-            name: formData.name,
-            description: formData.description,
-            category: formData.category,
-            icon: formData.icon,
-            slug: formData.slug,
-            system_prompt: formData.system_prompt,
-            form_schema_json: parsedSchema,
-            is_active: formData.is_active,
-          })
-          .eq("id", editingTemplate.id);
-
-        if (error) throw error;
-
-        toast({
-          title: "Template Updated",
-          description: `${formData.name} has been updated successfully.`,
-        });
-      } else {
-        const { error } = await supabase.from("templates").insert({
-          name: formData.name,
-          description: formData.description,
-          category: formData.category,
-          icon: formData.icon,
-          slug: formData.slug,
-          system_prompt: formData.system_prompt,
-          is_active: formData.is_active,
-          form_schema_json: parsedSchema,
-        });
-
-        if (error) throw error;
-
-        toast({
-          title: "Template Created",
-          description: `${formData.name} has been created successfully.`,
-        });
-      }
-
-      queryClient.invalidateQueries({ queryKey: ["templates"] });
-      setDialogOpen(false);
-    } catch (error: any) {
-      toast({
-        title: "Error",
-        description: error.message,
-        variant: "destructive",
-      });
-    } finally {
-      setIsSubmitting(false);
-    }
   };
 
   const toggleTemplateStatus = async (template: any) => {
@@ -493,9 +303,9 @@ export default function ManagerTemplates() {
                         className="pl-9"
                       />
                     </div>
-                    <Button onClick={openCreateDialog}>
+                    <Button onClick={() => navigate("/manager/templates/new")}>
                       <Plus className="h-4 w-4 mr-2" />
-                      New Template
+                      Add
                     </Button>
                   </div>
                 </div>
@@ -503,74 +313,86 @@ export default function ManagerTemplates() {
               <CardContent>
                 {isLoading ? (
                   <div className="space-y-3">
-                    {[1, 2, 3, 4, 5].map((i) => (
+                    {[1, 2, 3].map((i) => (
                       <Skeleton key={i} className="h-14 w-full" />
                     ))}
                   </div>
                 ) : filteredTemplates.length > 0 ? (
-                  <Table>
-                    <TableHeader>
-                      <TableRow>
-                        <TableHead>Name</TableHead>
-                        <TableHead>Category</TableHead>
-                        <TableHead>Icon</TableHead>
-                        <TableHead>Slug</TableHead>
-                        <TableHead>Status</TableHead>
-                        <TableHead className="text-right">Actions</TableHead>
-                      </TableRow>
-                    </TableHeader>
-                    <TableBody>
-                      {filteredTemplates.map((template) => {
-                        const IconComponent = getIconByName(template.icon);
-                        return (
-                          <TableRow key={template.id}>
-                            <TableCell className="font-medium">{template.name}</TableCell>
-                            <TableCell>
-                              <Badge variant="secondary">{getCategoryLabel(template.category)}</Badge>
-                            </TableCell>
-                            <TableCell>
-                              <div className="flex items-center gap-2">
-                                <IconComponent className="h-4 w-4 text-muted-foreground" />
-                                <span className="text-sm text-muted-foreground">{template.icon}</span>
-                              </div>
-                            </TableCell>
-                            <TableCell className="text-muted-foreground">{template.slug}</TableCell>
-                            <TableCell>
-                              <Badge variant={template.is_active ? "default" : "outline"}>
-                                {template.is_active ? "Active" : "Inactive"}
-                              </Badge>
-                            </TableCell>
-                            <TableCell className="text-right">
-                              <div className="flex items-center justify-end gap-2">
-                                <Button
-                                  variant="outline"
-                                  size="sm"
-                                  onClick={() => openEditDialog(template)}
-                                >
-                                  <Pencil className="h-4 w-4 mr-1" />
-                                  Edit
-                                </Button>
-                                <Button
-                                  variant="ghost"
-                                  size="sm"
-                                  onClick={() => toggleTemplateStatus(template)}
-                                >
-                                  {template.is_active ? (
-                                    <EyeOff className="h-4 w-4" />
-                                  ) : (
-                                    <Eye className="h-4 w-4" />
-                                  )}
-                                </Button>
-                              </div>
-                            </TableCell>
-                          </TableRow>
-                        );
-                      })}
-                    </TableBody>
-                  </Table>
+                  <div className="overflow-x-auto">
+                    <Table>
+                      <TableHeader>
+                        <TableRow>
+                          <TableHead>Icon</TableHead>
+                          <TableHead>Name</TableHead>
+                          <TableHead>Category</TableHead>
+                          <TableHead>Status</TableHead>
+                          <TableHead className="text-right">Actions</TableHead>
+                        </TableRow>
+                      </TableHeader>
+                      <TableBody>
+                        {filteredTemplates.map((template) => {
+                          const IconComp = getIconComponent(template.icon || "FileText");
+                          return (
+                            <TableRow key={template.id}>
+                              <TableCell>
+                                <IconComp className="h-5 w-5 text-muted-foreground" />
+                              </TableCell>
+                              <TableCell className="font-medium">{template.name}</TableCell>
+                              <TableCell>
+                                <Badge variant="secondary">
+                                  {getCategoryLabel(template.category)}
+                                </Badge>
+                              </TableCell>
+                              <TableCell>
+                                {template.is_active ? (
+                                  <Badge variant="outline" className="text-green-600">
+                                    <Eye className="h-3 w-3 mr-1" />
+                                    Active
+                                  </Badge>
+                                ) : (
+                                  <Badge variant="secondary">
+                                    <EyeOff className="h-3 w-3 mr-1" />
+                                    Inactive
+                                  </Badge>
+                                )}
+                              </TableCell>
+                              <TableCell className="text-right">
+                                <div className="flex items-center justify-end gap-2">
+                                  <Button
+                                    variant="outline"
+                                    size="sm"
+                                    onClick={() => navigate(`/manager/templates/edit/${template.id}`)}
+                                  >
+                                    <Pencil className="h-4 w-4" />
+                                  </Button>
+                                  <Button
+                                    variant={template.is_active ? "secondary" : "default"}
+                                    size="sm"
+                                    onClick={() => toggleTemplateStatus(template)}
+                                  >
+                                    {template.is_active ? (
+                                      <EyeOff className="h-4 w-4" />
+                                    ) : (
+                                      <Eye className="h-4 w-4" />
+                                    )}
+                                  </Button>
+                                </div>
+                              </TableCell>
+                            </TableRow>
+                          );
+                        })}
+                      </TableBody>
+                    </Table>
+                  </div>
                 ) : (
-                  <div className="text-center py-12 text-muted-foreground">
-                    No templates found.
+                  <div className="text-center py-12">
+                    <p className="text-muted-foreground mb-4">
+                      No templates found. Create your first template to get started.
+                    </p>
+                    <Button onClick={() => navigate("/manager/templates/new")}>
+                      <Plus className="h-4 w-4 mr-2" />
+                      Create Template
+                    </Button>
                   </div>
                 )}
               </CardContent>
@@ -585,7 +407,7 @@ export default function ManagerTemplates() {
                   <div>
                     <CardTitle>Template Categories</CardTitle>
                     <CardDescription>
-                      {categories?.length || 0} categories configured
+                      Organize templates into logical groups
                     </CardDescription>
                   </div>
                   <Button onClick={handleOpenCreateCategory}>
@@ -597,57 +419,50 @@ export default function ManagerTemplates() {
               <CardContent>
                 {categoriesLoading ? (
                   <div className="space-y-3">
-                    {[1, 2, 3].map((i) => (
-                      <Skeleton key={i} className="h-14 w-full" />
-                    ))}
+                    {[1, 2, 3].map((i) => <Skeleton key={i} className="h-14 w-full" />)}
                   </div>
                 ) : categories && categories.length > 0 ? (
                   <Table>
                     <TableHeader>
                       <TableRow>
-                        <TableHead>Label</TableHead>
-                        <TableHead>Value</TableHead>
                         <TableHead>Icon</TableHead>
+                        <TableHead>Value</TableHead>
+                        <TableHead>Label</TableHead>
                         <TableHead>Status</TableHead>
                         <TableHead className="text-right">Actions</TableHead>
                       </TableRow>
                     </TableHeader>
                     <TableBody>
-                      {categories.map((category) => {
-                        const IconComponent = getIconComponent(category.icon || "Folder");
+                      {categories.map((cat) => {
+                        const IconComp = getIconComponent(cat.icon || "Folder");
                         return (
-                          <TableRow key={category.id}>
-                            <TableCell className="font-medium">{category.label}</TableCell>
-                            <TableCell className="text-muted-foreground">{category.value}</TableCell>
+                          <TableRow key={cat.id}>
                             <TableCell>
-                              <div className="flex items-center gap-2">
-                                <IconComponent className="h-4 w-4 text-muted-foreground" />
-                                <span className="text-sm text-muted-foreground">{category.icon}</span>
-                              </div>
+                              <IconComp className="h-5 w-5 text-muted-foreground" />
                             </TableCell>
+                            <TableCell className="font-mono text-sm">{cat.value}</TableCell>
+                            <TableCell>{cat.label}</TableCell>
                             <TableCell>
-                              <Badge variant={category.is_active ? "default" : "outline"}>
-                                {category.is_active ? "Active" : "Inactive"}
-                              </Badge>
+                              {cat.is_active ? (
+                                <Badge variant="outline">Active</Badge>
+                              ) : (
+                                <Badge variant="secondary">Inactive</Badge>
+                              )}
                             </TableCell>
                             <TableCell className="text-right">
                               <div className="flex items-center justify-end gap-2">
-                                <Button
-                                  variant="outline"
-                                  size="sm"
-                                  onClick={() => handleOpenEditCategory(category)}
-                                >
+                                <Button variant="outline" size="sm" onClick={() => handleOpenEditCategory(cat)}>
                                   <Pencil className="h-4 w-4" />
                                 </Button>
                                 <Button
-                                  variant="ghost"
+                                  variant="destructive"
                                   size="sm"
                                   onClick={() => {
-                                    setSelectedCategory(category);
+                                    setSelectedCategory(cat);
                                     setDeleteCategoryOpen(true);
                                   }}
                                 >
-                                  <Trash2 className="h-4 w-4 text-destructive" />
+                                  <Trash2 className="h-4 w-4" />
                                 </Button>
                               </div>
                             </TableCell>
@@ -657,8 +472,12 @@ export default function ManagerTemplates() {
                     </TableBody>
                   </Table>
                 ) : (
-                  <div className="text-center py-12 text-muted-foreground">
-                    No categories found.
+                  <div className="text-center py-12">
+                    <p className="text-muted-foreground mb-4">No categories found.</p>
+                    <Button onClick={handleOpenCreateCategory}>
+                      <Plus className="h-4 w-4 mr-2" />
+                      Add Category
+                    </Button>
                   </div>
                 )}
               </CardContent>
@@ -673,7 +492,7 @@ export default function ManagerTemplates() {
                   <div>
                     <CardTitle>Template Icons</CardTitle>
                     <CardDescription>
-                      {icons?.length || 0} icons available
+                      Manage icons available for templates. Use Lucide icon names (PascalCase).
                     </CardDescription>
                   </div>
                   <Button onClick={handleOpenCreateIcon}>
@@ -684,48 +503,36 @@ export default function ManagerTemplates() {
               </CardHeader>
               <CardContent>
                 {iconsLoading ? (
-                  <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-4">
-                    {[1, 2, 3, 4, 5, 6].map((i) => (
-                      <Skeleton key={i} className="h-24 w-full" />
-                    ))}
+                  <div className="space-y-3">
+                    {[1, 2, 3].map((i) => <Skeleton key={i} className="h-14 w-full" />)}
                   </div>
                 ) : icons && icons.length > 0 ? (
-                  <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-4">
+                  <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-3">
                     {icons.map((icon) => {
-                      const IconComponent = getIconComponent(icon.name);
+                      const IconComp = getIconComponent(icon.name);
                       return (
                         <div
                           key={icon.id}
-                          className={`relative flex flex-col items-center justify-center p-4 border rounded-lg ${
-                            icon.is_active ? "bg-card" : "bg-muted/50 opacity-60"
+                          className={`relative flex flex-col items-center gap-2 p-4 border rounded-lg ${
+                            icon.is_active ? "bg-card" : "bg-muted opacity-60"
                           }`}
                         >
-                          <IconComponent className="h-8 w-8 mb-2" />
-                          <span className="text-xs text-center truncate w-full">{icon.name}</span>
-                          {!icon.is_active && (
-                            <Badge variant="outline" className="absolute top-1 right-1 text-[10px]">
-                              Inactive
-                            </Badge>
-                          )}
-                          <div className="absolute top-1 left-1 flex gap-1">
-                            <Button
-                              variant="ghost"
-                              size="icon"
-                              className="h-6 w-6"
-                              onClick={() => handleOpenEditIcon(icon)}
-                            >
+                          <IconComp className="h-6 w-6" />
+                          <span className="text-xs font-mono truncate w-full text-center">{icon.name}</span>
+                          <div className="absolute top-1 right-1 flex gap-1">
+                            <Button variant="ghost" size="icon" className="h-6 w-6" onClick={() => handleOpenEditIcon(icon)}>
                               <Pencil className="h-3 w-3" />
                             </Button>
                             <Button
                               variant="ghost"
                               size="icon"
-                              className="h-6 w-6"
+                              className="h-6 w-6 text-destructive"
                               onClick={() => {
                                 setSelectedIcon(icon);
                                 setDeleteIconOpen(true);
                               }}
                             >
-                              <Trash2 className="h-3 w-3 text-destructive" />
+                              <Trash2 className="h-3 w-3" />
                             </Button>
                           </div>
                         </div>
@@ -733,8 +540,12 @@ export default function ManagerTemplates() {
                     })}
                   </div>
                 ) : (
-                  <div className="text-center py-12 text-muted-foreground">
-                    No icons found.
+                  <div className="text-center py-12">
+                    <p className="text-muted-foreground mb-4">No icons found.</p>
+                    <Button onClick={handleOpenCreateIcon}>
+                      <Plus className="h-4 w-4 mr-2" />
+                      Add Icon
+                    </Button>
                   </div>
                 )}
               </CardContent>
@@ -743,346 +554,45 @@ export default function ManagerTemplates() {
         </Tabs>
       </div>
 
-      {/* Template Dialog */}
-      <Dialog open={dialogOpen} onOpenChange={(open) => { setDialogOpen(open); if (!open) setDialogTab("edit"); }}>
-        <DialogContent className="max-w-3xl h-[90vh] max-h-[90vh] overflow-hidden flex flex-col min-h-0">
-          <DialogHeader>
-            <DialogTitle>{editingTemplate ? "Edit Template" : "Create Template"}</DialogTitle>
-            <DialogDescription>
-              Configure the template settings and preview how the prompt will look.
-            </DialogDescription>
-          </DialogHeader>
-          
-          <Tabs value={dialogTab} onValueChange={(v) => setDialogTab(v as "edit" | "preview" | "template")} className="flex-1 min-h-0 flex flex-col overflow-hidden">
-            <TabsList className="w-fit">
-              <TabsTrigger value="edit">
-                <Pencil className="h-4 w-4 mr-2" />
-                Edit
-              </TabsTrigger>
-              <TabsTrigger value="template">
-                <Layout className="h-4 w-4 mr-2" />
-                Template Form
-              </TabsTrigger>
-              <TabsTrigger value="preview">
-                <Eye className="h-4 w-4 mr-2" />
-                Preview Prompt
-              </TabsTrigger>
-            </TabsList>
-            
-            <TabsContent value="edit" className="flex-1 min-h-0 overflow-y-auto mt-4">
-              <div className="space-y-4 pr-2">
-                <div className="grid grid-cols-2 gap-4">
-                  <div className="space-y-2">
-                    <Label>Name *</Label>
-                    <Input
-                      value={formData.name}
-                      onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                      placeholder="Template name"
-                    />
-                  </div>
-                  <div className="space-y-2">
-                    <Label>Slug *</Label>
-                    <Input
-                      value={formData.slug}
-                      onChange={(e) => setFormData({ ...formData, slug: e.target.value })}
-                      placeholder="template-slug"
-                    />
-                  </div>
-                </div>
-                <div className="grid grid-cols-2 gap-4">
-                  <div className="space-y-2">
-                    <Label>Category</Label>
-                    <Select value={formData.category} onValueChange={(v) => setFormData({ ...formData, category: v })}>
-                      <SelectTrigger>
-                        <SelectValue placeholder="Select category" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {categories?.map((cat) => (
-                          <SelectItem key={cat.id} value={cat.value}>{cat.label}</SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                  </div>
-                  <div className="space-y-2">
-                    <Label>Icon</Label>
-                    <Select value={formData.icon} onValueChange={(v) => setFormData({ ...formData, icon: v })}>
-                      <SelectTrigger>
-                        <SelectValue placeholder="Select icon" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {icons?.map((icon) => {
-                          const IconComponent = getIconByName(icon.name);
-                          return (
-                            <SelectItem key={icon.id} value={icon.name}>
-                              <div className="flex items-center gap-2">
-                                <IconComponent className="h-4 w-4" />
-                                {icon.name}
-                              </div>
-                            </SelectItem>
-                          );
-                        })}
-                      </SelectContent>
-                    </Select>
-                  </div>
-                </div>
-                <div className="space-y-2">
-                  <Label>Description</Label>
-                  <Textarea
-                    value={formData.description}
-                    onChange={(e) => setFormData({ ...formData, description: e.target.value })}
-                    placeholder="Brief description of the template"
-                    rows={2}
-                  />
-                </div>
-                <div className="space-y-2">
-                  <Label>System Prompt *</Label>
-                  <Textarea
-                    value={formData.system_prompt}
-                    onChange={(e) => setFormData({ ...formData, system_prompt: e.target.value })}
-                    placeholder="Enter the AI system prompt for this template..."
-                    rows={4}
-                  />
-                </div>
-                <div className="space-y-2">
-                  <Label>Form Schema (JSON)</Label>
-                  <Textarea
-                    value={formData.form_schema_json}
-                    onChange={(e) => setFormData({ ...formData, form_schema_json: e.target.value })}
-                    placeholder='[{"id": "topic", "type": "text", "label": "Topic", "required": true}]'
-                    rows={5}
-                    className="font-mono text-sm"
-                  />
-                  <p className="text-xs text-muted-foreground">
-                    Define input fields as JSON array. Each field needs: id, type, label. The field <code className="bg-muted px-1 rounded">id</code> becomes the key in the user prompt.
-                  </p>
-                </div>
-                <div className="flex items-center gap-2">
-                  <Switch
-                    checked={formData.is_active}
-                    onCheckedChange={(checked) => setFormData({ ...formData, is_active: checked })}
-                  />
-                  <Label>Active</Label>
-                </div>
-              </div>
-            </TabsContent>
-            
-            <TabsContent value="template" className="flex-1 overflow-hidden mt-4 min-h-0">
-              <div className="h-full flex flex-col gap-4">
-                <p className="text-sm text-muted-foreground flex-shrink-0">
-                  This preview shows how the template form will appear to users when they create content.
-                </p>
-                
-                <div className="flex-1 min-h-0 overflow-y-auto border rounded-lg bg-background">
-                  <div className="p-6">
-                    {!promptPreview.isValid ? (
-                      <div className="text-sm text-destructive bg-destructive/10 p-3 rounded-md">
-                        ⚠️ Form schema JSON is invalid. Fix the JSON to see the template preview.
-                      </div>
-                    ) : promptPreview.fields.length === 0 ? (
-                      <div className="text-center py-12 text-muted-foreground">
-                        No form fields defined. Add fields to the Form Schema JSON.
-                      </div>
-                    ) : (
-                      <div className="space-y-6">
-                        {/* Template Header Preview */}
-                        <div className="border-b pb-4">
-                          <div className="flex items-center gap-3 mb-2">
-                            {formData.icon && (() => {
-                              const IconComp = getIconByName(formData.icon);
-                              return <IconComp className="h-6 w-6 text-primary" />;
-                            })()}
-                            <h3 className="text-xl font-semibold">{formData.name || "Template Name"}</h3>
-                          </div>
-                          {formData.description && (
-                            <p className="text-muted-foreground text-sm">{formData.description}</p>
-                          )}
-                        </div>
-                        
-                        {/* Form Fields Preview */}
-                        <div className="space-y-4">
-                          {promptPreview.fields.map((field: any) => (
-                            <div key={field.id} className="space-y-2">
-                              <Label className="flex items-center gap-1">
-                                {field.label}
-                                {field.required && <span className="text-destructive">*</span>}
-                              </Label>
-                              
-                              {field.type === "text" && (
-                                <Input 
-                                  placeholder={field.placeholder || `Enter ${field.label.toLowerCase()}...`}
-                                  disabled
-                                  className="bg-muted/30"
-                                />
-                              )}
-                              
-                              {field.type === "textarea" && (
-                                <Textarea 
-                                  placeholder={field.placeholder || `Enter ${field.label.toLowerCase()}...`}
-                                  rows={3}
-                                  disabled
-                                  className="bg-muted/30"
-                                />
-                              )}
-                              
-                              {field.type === "number" && (
-                                <Input 
-                                  type="number"
-                                  placeholder={field.placeholder || "0"}
-                                  disabled
-                                  className="bg-muted/30 w-32"
-                                />
-                              )}
-                              
-                              {field.type === "select" && (
-                                <Select disabled>
-                                  <SelectTrigger className="bg-muted/30">
-                                    <SelectValue placeholder={field.placeholder || `Select ${field.label.toLowerCase()}`} />
-                                  </SelectTrigger>
-                                  <SelectContent>
-                                    {field.options?.map((opt: any) => (
-                                      <SelectItem key={opt.value} value={opt.value}>
-                                        {opt.label}
-                                      </SelectItem>
-                                    ))}
-                                  </SelectContent>
-                                </Select>
-                              )}
-                              
-                              {field.type === "toggle" && (
-                                <div className="flex items-center gap-2">
-                                  <Switch disabled />
-                                  <span className="text-sm text-muted-foreground">
-                                    {field.placeholder || "Toggle option"}
-                                  </span>
-                                </div>
-                              )}
-                              
-                              {field.description && (
-                                <p className="text-xs text-muted-foreground">{field.description}</p>
-                              )}
-                            </div>
-                          ))}
-                        </div>
-                        
-                        {/* Generate Button Preview */}
-                        <div className="pt-4 border-t">
-                          <Button disabled className="w-full">
-                            Generate Content
-                          </Button>
-                        </div>
-                      </div>
-                    )}
-                  </div>
-                </div>
-              </div>
-            </TabsContent>
-            
-            <TabsContent value="preview" className="flex-1 overflow-hidden mt-4 min-h-0">
-              <div className="h-full flex flex-col gap-4">
-                <p className="text-sm text-muted-foreground flex-shrink-0">
-                  This preview shows how the prompt will be sent to the AI with sample input values.
-                </p>
-                
-                {/* Input fields preview */}
-                {promptPreview.fields.length > 0 && (
-                  <div className="rounded-lg border bg-muted/30 p-3 flex-shrink-0">
-                    <h4 className="text-sm font-medium mb-2">Sample Input Values:</h4>
-                    <div className="grid grid-cols-2 gap-2 text-sm">
-                      {promptPreview.fields.map((field: any) => (
-                        <div key={field.id} className="flex gap-2">
-                          <span className="font-mono text-muted-foreground">{field.id}:</span>
-                          <span className="text-foreground truncate">{getSampleValue(field)}</span>
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-                )}
-                
-                <div className="flex-1 min-h-0 overflow-y-auto border rounded-lg bg-background">
-                  <div className="p-4 space-y-4">
-                    {/* System prompt section */}
-                    <div>
-                      <div className="flex items-center gap-2 mb-2">
-                        <Badge variant="secondary" className="text-xs">System</Badge>
-                        <span className="text-xs text-muted-foreground">Sent as system message</span>
-                      </div>
-                      <pre className="text-sm whitespace-pre-wrap font-mono bg-muted/50 p-3 rounded-md border">
-                        {promptPreview.systemPrompt}
-                      </pre>
-                    </div>
-                    
-                    {/* User prompt section */}
-                    <div>
-                      <div className="flex items-center gap-2 mb-2">
-                        <Badge className="text-xs">User</Badge>
-                        <span className="text-xs text-muted-foreground">Sent as user message (from form inputs)</span>
-                      </div>
-                      <pre className="text-sm whitespace-pre-wrap font-mono bg-muted/50 p-3 rounded-md border">
-                        {promptPreview.userPrompt}
-                      </pre>
-                    </div>
-                    
-                    {!promptPreview.isValid && (
-                      <div className="text-sm text-destructive bg-destructive/10 p-3 rounded-md">
-                        ⚠️ Form schema JSON is invalid. Fix the JSON to see the user prompt preview.
-                      </div>
-                    )}
-                  </div>
-                </div>
-              </div>
-            </TabsContent>
-          </Tabs>
-          
-          <DialogFooter className="mt-4">
-            <Button variant="outline" onClick={() => setDialogOpen(false)}>
-              Cancel
-            </Button>
-            <Button onClick={handleSubmit} disabled={isSubmitting}>
-              {isSubmitting ? "Saving..." : editingTemplate ? "Update" : "Create"}
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
-
-      {/* Category Dialog */}
+      {/* Category Create/Edit Dialog */}
       <Dialog open={categoryDialogOpen} onOpenChange={setCategoryDialogOpen}>
         <DialogContent>
           <DialogHeader>
             <DialogTitle>{selectedCategory ? "Edit Category" : "Add Category"}</DialogTitle>
-            <DialogDescription>
-              {selectedCategory ? "Update category details." : "Add a new template category."}
-            </DialogDescription>
           </DialogHeader>
           <div className="space-y-4 py-4">
-            <div className="space-y-2">
+            <div>
+              <Label>Value (slug) *</Label>
+              <Input
+                value={categoryFormData.value}
+                onChange={(e) => setCategoryFormData({ ...categoryFormData, value: e.target.value.toLowerCase().replace(/\s+/g, '-') })}
+                placeholder="social-media"
+              />
+            </div>
+            <div>
               <Label>Label *</Label>
               <Input
                 value={categoryFormData.label}
                 onChange={(e) => setCategoryFormData({ ...categoryFormData, label: e.target.value })}
-                placeholder="Blog & Articles"
+                placeholder="Social Media"
               />
             </div>
-            <div className="space-y-2">
-              <Label>Value *</Label>
-              <Input
-                value={categoryFormData.value}
-                onChange={(e) => setCategoryFormData({ ...categoryFormData, value: e.target.value })}
-                placeholder="blog"
-              />
-            </div>
-            <div className="space-y-2">
+            <div>
               <Label>Icon</Label>
-              <Select value={categoryFormData.icon} onValueChange={(v) => setCategoryFormData({ ...categoryFormData, icon: v })}>
+              <Select
+                value={categoryFormData.icon}
+                onValueChange={(v) => setCategoryFormData({ ...categoryFormData, icon: v })}
+              >
                 <SelectTrigger>
-                  <SelectValue placeholder="Select icon" />
+                  <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
-                  {icons?.map((icon) => {
-                    const IconComponent = getIconComponent(icon.name);
+                  {icons?.filter(i => i.is_active).map((icon) => {
+                    const IconComp = getIconComponent(icon.name);
                     return (
-                      <SelectItem key={icon.id} value={icon.name}>
+                      <SelectItem key={icon.name} value={icon.name}>
                         <div className="flex items-center gap-2">
-                          <IconComponent className="h-4 w-4" />
+                          <IconComp className="h-4 w-4" />
                           {icon.name}
                         </div>
                       </SelectItem>
@@ -1100,9 +610,7 @@ export default function ManagerTemplates() {
             </div>
           </div>
           <DialogFooter>
-            <Button variant="outline" onClick={() => setCategoryDialogOpen(false)}>
-              Cancel
-            </Button>
+            <Button variant="outline" onClick={() => setCategoryDialogOpen(false)}>Cancel</Button>
             <Button onClick={handleSubmitCategory} disabled={isSubmitting}>
               {isSubmitting ? "Saving..." : selectedCategory ? "Update" : "Create"}
             </Button>
@@ -1110,30 +618,51 @@ export default function ManagerTemplates() {
         </DialogContent>
       </Dialog>
 
-      {/* Icon Dialog */}
+      {/* Category Delete Confirmation */}
+      <AlertDialog open={deleteCategoryOpen} onOpenChange={setDeleteCategoryOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Delete Category</AlertDialogTitle>
+            <AlertDialogDescription>
+              Are you sure you want to delete "{selectedCategory?.label}"?
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction onClick={handleDeleteCategory} disabled={isSubmitting} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
+              {isSubmitting ? "Deleting..." : "Delete"}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      {/* Icon Create/Edit Dialog */}
       <Dialog open={iconDialogOpen} onOpenChange={setIconDialogOpen}>
         <DialogContent>
           <DialogHeader>
             <DialogTitle>{selectedIcon ? "Edit Icon" : "Add Icon"}</DialogTitle>
             <DialogDescription>
-              Enter the exact Lucide icon name (PascalCase).
+              Enter a Lucide icon name in PascalCase (e.g., FileText, MessageSquare).
+              <a href="https://lucide.dev/icons" target="_blank" rel="noopener noreferrer" className="text-primary ml-1 underline">
+                Browse icons →
+              </a>
             </DialogDescription>
           </DialogHeader>
           <div className="space-y-4 py-4">
-            <div className="space-y-2">
+            <div>
               <Label>Icon Name *</Label>
               <Input
                 value={iconFormData.name}
                 onChange={(e) => setIconFormData({ ...iconFormData, name: e.target.value })}
-                placeholder="FileText, Mail, Search..."
+                placeholder="FileText"
               />
               {iconFormData.name && (LucideIconsAll as any)[iconFormData.name] && (
-                <div className="flex items-center gap-2 p-2 bg-muted rounded">
+                <div className="mt-2 flex items-center gap-2 text-sm text-muted-foreground">
                   {(() => {
                     const IconPreview = getIconComponent(iconFormData.name);
-                    return <IconPreview className="h-6 w-6" />;
+                    return <IconPreview className="h-5 w-5" />;
                   })()}
-                  <span className="text-sm text-muted-foreground">Preview</span>
+                  Preview
                 </div>
               )}
             </div>
@@ -1146,9 +675,7 @@ export default function ManagerTemplates() {
             </div>
           </div>
           <DialogFooter>
-            <Button variant="outline" onClick={() => setIconDialogOpen(false)}>
-              Cancel
-            </Button>
+            <Button variant="outline" onClick={() => setIconDialogOpen(false)}>Cancel</Button>
             <Button onClick={handleSubmitIcon} disabled={isSubmitting}>
               {isSubmitting ? "Saving..." : selectedIcon ? "Update" : "Add"}
             </Button>
@@ -1156,36 +683,18 @@ export default function ManagerTemplates() {
         </DialogContent>
       </Dialog>
 
-      {/* Delete Category Confirmation */}
-      <AlertDialog open={deleteCategoryOpen} onOpenChange={setDeleteCategoryOpen}>
-        <AlertDialogContent>
-          <AlertDialogHeader>
-            <AlertDialogTitle>Delete Category</AlertDialogTitle>
-            <AlertDialogDescription>
-              Are you sure you want to delete "{selectedCategory?.label}"? This action cannot be undone.
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogCancel>Cancel</AlertDialogCancel>
-            <AlertDialogAction onClick={handleDeleteCategory} disabled={isSubmitting}>
-              {isSubmitting ? "Deleting..." : "Delete"}
-            </AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
-
-      {/* Delete Icon Confirmation */}
+      {/* Icon Delete Confirmation */}
       <AlertDialog open={deleteIconOpen} onOpenChange={setDeleteIconOpen}>
         <AlertDialogContent>
           <AlertDialogHeader>
             <AlertDialogTitle>Delete Icon</AlertDialogTitle>
             <AlertDialogDescription>
-              Are you sure you want to delete "{selectedIcon?.name}"? This action cannot be undone.
+              Are you sure you want to delete "{selectedIcon?.name}"?
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
             <AlertDialogCancel>Cancel</AlertDialogCancel>
-            <AlertDialogAction onClick={handleDeleteIcon} disabled={isSubmitting}>
+            <AlertDialogAction onClick={handleDeleteIcon} disabled={isSubmitting} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
               {isSubmitting ? "Deleting..." : "Delete"}
             </AlertDialogAction>
           </AlertDialogFooter>

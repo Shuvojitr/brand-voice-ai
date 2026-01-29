@@ -1,11 +1,11 @@
-import { useState, useMemo } from "react";
+import { useState } from "react";
+import { useNavigate } from "react-router-dom";
 import { AdminLayout } from "@/components/admin";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
 import { Switch } from "@/components/ui/switch";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -17,42 +17,8 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { Plus, Pencil, Trash2, Search, Folder, Eye, Layout, icons as LucideIcons } from "lucide-react";
+import { Plus, Pencil, Trash2, Search, Folder } from "lucide-react";
 import * as LucideIconsAll from "lucide-react";
-
-const aiModels = [
-  { value: "default", label: "Use Default (from AI Settings)" },
-  { value: "google/gemini-2.5-flash", label: "Gemini 2.5 Flash" },
-  { value: "google/gemini-2.5-pro", label: "Gemini 2.5 Pro" },
-  { value: "google/gemini-2.5-flash-lite", label: "Gemini 2.5 Flash Lite" },
-  { value: "openai/gpt-5", label: "GPT-5" },
-  { value: "openai/gpt-5-mini", label: "GPT-5 Mini" },
-  { value: "openai/gpt-5-nano", label: "GPT-5 Nano" },
-];
-
-interface TemplateFormData {
-  name: string;
-  description: string;
-  category: string;
-  icon: string;
-  slug: string;
-  system_prompt: string;
-  form_schema_json: string;
-  is_active: boolean;
-  model: string;
-}
-
-const emptyFormData: TemplateFormData = {
-  name: "",
-  description: "",
-  category: "blog",
-  icon: "FileText",
-  slug: "",
-  system_prompt: "",
-  form_schema_json: "[]",
-  is_active: true,
-  model: "default",
-};
 
 interface CategoryFormData {
   value: string;
@@ -66,53 +32,15 @@ interface IconFormData {
   is_active: boolean;
 }
 
-// Sample values for prompt preview
-const getSampleValue = (field: { id: string; type: string; label: string; options?: { value: string; label: string }[] }): string => {
-  const id = field.id.toLowerCase();
-  const type = field.type;
-  
-  // Use first option for select fields
-  if (type === "select" && field.options?.length) {
-    return field.options[0].value;
-  }
-  
-  // Generate contextual sample values based on field id/label
-  if (id.includes("topic") || id.includes("subject")) return "Artificial Intelligence in Healthcare";
-  if (id.includes("keyword")) return "AI, machine learning, healthcare, diagnosis";
-  if (id.includes("title")) return "The Future of AI in Medicine";
-  if (id.includes("tone") || id.includes("style")) return "Professional and informative";
-  if (id.includes("audience") || id.includes("target")) return "Healthcare professionals and tech enthusiasts";
-  if (id.includes("length") || id.includes("word")) return "1500";
-  if (id.includes("product") || id.includes("name")) return "SmartHealth Pro";
-  if (id.includes("description") || id.includes("about")) return "A cutting-edge AI-powered health monitoring system";
-  if (id.includes("brand")) return "TechMed Solutions";
-  if (id.includes("url") || id.includes("link")) return "https://example.com";
-  if (id.includes("platform")) return "LinkedIn";
-  if (id.includes("language")) return "English";
-  if (id.includes("industry")) return "Technology";
-  if (id.includes("feature")) return "Real-time health analytics, personalized recommendations";
-  if (id.includes("benefit")) return "Improved patient outcomes, reduced costs";
-  if (id.includes("cta") || id.includes("action")) return "Learn More";
-  
-  // Default based on type
-  if (type === "number") return "500";
-  if (type === "toggle") return "true";
-  if (type === "textarea") return "This is a sample longer text that would be entered in a textarea field. It provides context and details for the AI to work with.";
-  
-  return `Sample ${field.label}`;
-};
-
 export default function AdminTemplates() {
   const { toast } = useToast();
   const queryClient = useQueryClient();
+  const navigate = useNavigate();
   
   const [searchQuery, setSearchQuery] = useState("");
-  const [dialogOpen, setDialogOpen] = useState(false);
   const [deleteOpen, setDeleteOpen] = useState(false);
   const [selectedTemplate, setSelectedTemplate] = useState<any>(null);
-  const [formData, setFormData] = useState<TemplateFormData>(emptyFormData);
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [dialogTab, setDialogTab] = useState<"edit" | "preview" | "template">("edit");
   
   // Category management state
   const [categoryDialogOpen, setCategoryDialogOpen] = useState(false);
@@ -127,37 +55,6 @@ export default function AdminTemplates() {
   const [selectedIcon, setSelectedIcon] = useState<any>(null);
   const [iconFormData, setIconFormData] = useState<IconFormData>({ name: "", is_active: true });
   const [deleteIconOpen, setDeleteIconOpen] = useState(false);
-
-  // Generate prompt preview
-  const promptPreview = useMemo(() => {
-    try {
-      const fields = JSON.parse(formData.form_schema_json || "[]");
-      
-      // Build user prompt from sample inputs (same logic as edge function)
-      const userPromptParts: string[] = [];
-      for (const field of fields) {
-        const sampleValue = getSampleValue(field);
-        userPromptParts.push(`${field.id}: ${sampleValue}`);
-      }
-      
-      const languageInstruction = "\n\nWrite your response in clear, fluent English.";
-      const userPrompt = userPromptParts.join("\n") + languageInstruction;
-      
-      return {
-        systemPrompt: formData.system_prompt || "(No system prompt defined)",
-        userPrompt: userPrompt || "(No input fields defined)",
-        fields,
-        isValid: true,
-      };
-    } catch {
-      return {
-        systemPrompt: formData.system_prompt || "(No system prompt defined)",
-        userPrompt: "(Invalid form schema JSON)",
-        fields: [],
-        isValid: false,
-      };
-    }
-  }, [formData.form_schema_json, formData.system_prompt]);
 
   // Fetch templates
   const { data: templates, isLoading } = useQuery({
@@ -207,97 +104,6 @@ export default function AdminTemplates() {
   const getIconComponent = (iconName: string) => {
     const IconComponent = (LucideIconsAll as any)[iconName];
     return IconComponent || Folder;
-  };
-
-  // Template handlers
-  const handleOpenCreate = () => {
-    setSelectedTemplate(null);
-    setFormData({
-      ...emptyFormData,
-      category: categories[0]?.value || "blog",
-      icon: dbIcons[0]?.name || "FileText",
-    });
-    setDialogOpen(true);
-  };
-
-  const handleOpenEdit = (template: any) => {
-    setSelectedTemplate(template);
-    setFormData({
-      name: template.name,
-      description: template.description || "",
-      category: template.category,
-      icon: template.icon || "FileText",
-      slug: template.slug,
-      system_prompt: template.system_prompt,
-      form_schema_json: JSON.stringify(template.form_schema_json || [], null, 2),
-      is_active: template.is_active,
-      model: template.model || "default",
-    });
-    setDialogOpen(true);
-  };
-
-  const handleSubmit = async () => {
-    if (!formData.name || !formData.slug || !formData.system_prompt) {
-      toast({
-        title: "Missing Fields",
-        description: "Name, slug, and system prompt are required.",
-        variant: "destructive",
-      });
-      return;
-    }
-
-    let parsedSchema;
-    try {
-      parsedSchema = JSON.parse(formData.form_schema_json);
-    } catch {
-      toast({
-        title: "Invalid JSON",
-        description: "Form schema must be valid JSON.",
-        variant: "destructive",
-      });
-      return;
-    }
-
-    setIsSubmitting(true);
-    try {
-      const templateData = {
-        name: formData.name,
-        description: formData.description || null,
-        category: formData.category,
-        icon: formData.icon,
-        slug: formData.slug,
-        system_prompt: formData.system_prompt,
-        form_schema_json: parsedSchema,
-        is_active: formData.is_active,
-        model: formData.model === "default" ? null : formData.model,
-      };
-
-      if (selectedTemplate) {
-        const { error } = await supabase
-          .from("templates")
-          .update(templateData)
-          .eq("id", selectedTemplate.id);
-        if (error) throw error;
-        toast({ title: "Template Updated" });
-      } else {
-        const { error } = await supabase
-          .from("templates")
-          .insert(templateData);
-        if (error) throw error;
-        toast({ title: "Template Created" });
-      }
-
-      queryClient.invalidateQueries({ queryKey: ["admin-templates"] });
-      setDialogOpen(false);
-    } catch (error: any) {
-      toast({
-        title: "Error",
-        description: error.message,
-        variant: "destructive",
-      });
-    } finally {
-      setIsSubmitting(false);
-    }
   };
 
   const handleDelete = async () => {
@@ -526,7 +332,7 @@ export default function AdminTemplates() {
                         className="pl-9"
                       />
                     </div>
-                    <Button onClick={handleOpenCreate}>
+                    <Button onClick={() => navigate("/admin/templates/new")}>
                       <Plus className="h-4 w-4 mr-2" />
                       Add
                     </Button>
@@ -582,7 +388,7 @@ export default function AdminTemplates() {
                                 <Button
                                   variant="outline"
                                   size="sm"
-                                  onClick={() => handleOpenEdit(template)}
+                                  onClick={() => navigate(`/admin/templates/edit/${template.id}`)}
                                 >
                                   <Pencil className="h-4 w-4" />
                                 </Button>
@@ -608,7 +414,7 @@ export default function AdminTemplates() {
                     <p className="text-muted-foreground mb-4">
                       No templates found. Create your first template to get started.
                     </p>
-                    <Button onClick={handleOpenCreate}>
+                    <Button onClick={() => navigate("/admin/templates/new")}>
                       <Plus className="h-4 w-4 mr-2" />
                       Create Template
                     </Button>
@@ -772,350 +578,6 @@ export default function AdminTemplates() {
           </TabsContent>
         </Tabs>
       </div>
-
-      {/* Template Create/Edit Dialog */}
-      <Dialog open={dialogOpen} onOpenChange={(open) => { setDialogOpen(open); if (!open) setDialogTab("edit"); }}>
-        <DialogContent className="max-w-3xl h-[90vh] max-h-[90vh] overflow-hidden flex flex-col min-h-0">
-          <DialogHeader>
-            <DialogTitle>
-              {selectedTemplate ? "Edit Template" : "Create Template"}
-            </DialogTitle>
-            <DialogDescription>
-              Configure the template settings and preview how the prompt will look.
-            </DialogDescription>
-          </DialogHeader>
-          
-          <Tabs value={dialogTab} onValueChange={(v) => setDialogTab(v as "edit" | "preview" | "template")} className="flex-1 min-h-0 flex flex-col overflow-hidden">
-            <TabsList className="w-fit">
-              <TabsTrigger value="edit">
-                <Pencil className="h-4 w-4 mr-2" />
-                Edit
-              </TabsTrigger>
-              <TabsTrigger value="template">
-                <Layout className="h-4 w-4 mr-2" />
-                Template Form
-              </TabsTrigger>
-              <TabsTrigger value="preview">
-                <Eye className="h-4 w-4 mr-2" />
-                Preview Prompt
-              </TabsTrigger>
-            </TabsList>
-            
-            <TabsContent value="edit" className="flex-1 min-h-0 overflow-y-auto mt-4">
-              <div className="space-y-4 pr-2">
-                <div>
-                  <Label htmlFor="name">Name *</Label>
-                  <Input
-                    id="name"
-                    value={formData.name}
-                    onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                    placeholder="Blog Post"
-                  />
-                </div>
-
-                <div className="grid grid-cols-2 gap-4">
-                  <div>
-                    <Label htmlFor="slug">Slug *</Label>
-                    <Input
-                      id="slug"
-                      value={formData.slug}
-                      onChange={(e) => setFormData({ ...formData, slug: e.target.value })}
-                      placeholder="blog-post"
-                    />
-                  </div>
-                  <div>
-                    <Label htmlFor="category">Category</Label>
-                    <Select
-                      value={formData.category}
-                      onValueChange={(v) => setFormData({ ...formData, category: v })}
-                    >
-                      <SelectTrigger>
-                        <SelectValue />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {categories.filter(c => c.is_active).map((cat) => (
-                          <SelectItem key={cat.value} value={cat.value}>
-                            {cat.label}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                  </div>
-                </div>
-
-                <div className="grid grid-cols-2 gap-4">
-                  <div>
-                    <Label htmlFor="icon">Icon</Label>
-                    <Select
-                      value={formData.icon}
-                      onValueChange={(v) => setFormData({ ...formData, icon: v })}
-                    >
-                      <SelectTrigger>
-                        <SelectValue />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {dbIcons.filter(i => i.is_active).map((icon) => {
-                          const IconComp = getIconComponent(icon.name);
-                          return (
-                            <SelectItem key={icon.name} value={icon.name}>
-                              <div className="flex items-center gap-2">
-                                <IconComp className="h-4 w-4" />
-                                {icon.name}
-                              </div>
-                            </SelectItem>
-                          );
-                        })}
-                      </SelectContent>
-                    </Select>
-                  </div>
-                  <div>
-                    <Label htmlFor="model">AI Model</Label>
-                    <Select
-                      value={formData.model}
-                      onValueChange={(v) => setFormData({ ...formData, model: v })}
-                    >
-                      <SelectTrigger>
-                        <SelectValue placeholder="Use Default" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {aiModels.map((m) => (
-                          <SelectItem key={m.value} value={m.value}>
-                            {m.label}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                    <p className="text-xs text-muted-foreground mt-1">
-                      Override the default AI model for this template.
-                    </p>
-                  </div>
-                </div>
-
-                <div>
-                  <Label htmlFor="description">Description</Label>
-                  <Textarea
-                    id="description"
-                    value={formData.description}
-                    onChange={(e) => setFormData({ ...formData, description: e.target.value })}
-                    placeholder="Generate a complete blog post..."
-                    rows={2}
-                  />
-                </div>
-
-                <div>
-                  <Label htmlFor="system_prompt">System Prompt *</Label>
-                  <Textarea
-                    id="system_prompt"
-                    value={formData.system_prompt}
-                    onChange={(e) => setFormData({ ...formData, system_prompt: e.target.value })}
-                    placeholder="You are an expert content writer..."
-                    rows={4}
-                  />
-                </div>
-
-                <div>
-                  <Label htmlFor="form_schema">Form Schema (JSON)</Label>
-                  <Textarea
-                    id="form_schema"
-                    value={formData.form_schema_json}
-                    onChange={(e) => setFormData({ ...formData, form_schema_json: e.target.value })}
-                    placeholder='[{"id": "topic", "type": "text", "label": "Topic", "required": true}]'
-                    rows={6}
-                    className="font-mono text-sm"
-                  />
-                  <p className="text-xs text-muted-foreground mt-1">
-                    Define input fields as JSON array. Each field needs: id, type, label. The field <code className="bg-muted px-1 rounded">id</code> becomes the key in the user prompt.
-                  </p>
-                </div>
-
-                <div className="flex items-center gap-2">
-                  <Switch
-                    id="is_active"
-                    checked={formData.is_active}
-                    onCheckedChange={(checked) => setFormData({ ...formData, is_active: checked })}
-                  />
-                  <Label htmlFor="is_active">Active</Label>
-                </div>
-              </div>
-            </TabsContent>
-            
-            <TabsContent value="template" className="flex-1 overflow-hidden mt-4 min-h-0">
-              <div className="h-full flex flex-col gap-4">
-                <p className="text-sm text-muted-foreground flex-shrink-0">
-                  This preview shows how the template form will appear to users when they create content.
-                </p>
-                
-                <div className="flex-1 min-h-0 overflow-y-auto border rounded-lg bg-background">
-                  <div className="p-6">
-                    {!promptPreview.isValid ? (
-                      <div className="text-sm text-destructive bg-destructive/10 p-3 rounded-md">
-                        ⚠️ Form schema JSON is invalid. Fix the JSON to see the template preview.
-                      </div>
-                    ) : promptPreview.fields.length === 0 ? (
-                      <div className="text-center py-12 text-muted-foreground">
-                        No form fields defined. Add fields to the Form Schema JSON.
-                      </div>
-                    ) : (
-                      <div className="space-y-6">
-                        {/* Template Header Preview */}
-                        <div className="border-b pb-4">
-                          <div className="flex items-center gap-3 mb-2">
-                            {formData.icon && (() => {
-                              const IconComp = getIconComponent(formData.icon);
-                              return <IconComp className="h-6 w-6 text-primary" />;
-                            })()}
-                            <h3 className="text-xl font-semibold">{formData.name || "Template Name"}</h3>
-                          </div>
-                          {formData.description && (
-                            <p className="text-muted-foreground text-sm">{formData.description}</p>
-                          )}
-                        </div>
-                        
-                        {/* Form Fields Preview */}
-                        <div className="space-y-4">
-                          {promptPreview.fields.map((field: any) => (
-                            <div key={field.id} className="space-y-2">
-                              <Label className="flex items-center gap-1">
-                                {field.label}
-                                {field.required && <span className="text-destructive">*</span>}
-                              </Label>
-                              
-                              {field.type === "text" && (
-                                <Input 
-                                  placeholder={field.placeholder || `Enter ${field.label.toLowerCase()}...`}
-                                  disabled
-                                  className="bg-muted/30"
-                                />
-                              )}
-                              
-                              {field.type === "textarea" && (
-                                <Textarea 
-                                  placeholder={field.placeholder || `Enter ${field.label.toLowerCase()}...`}
-                                  rows={3}
-                                  disabled
-                                  className="bg-muted/30"
-                                />
-                              )}
-                              
-                              {field.type === "number" && (
-                                <Input 
-                                  type="number"
-                                  placeholder={field.placeholder || "0"}
-                                  disabled
-                                  className="bg-muted/30 w-32"
-                                />
-                              )}
-                              
-                              {field.type === "select" && (
-                                <Select disabled>
-                                  <SelectTrigger className="bg-muted/30">
-                                    <SelectValue placeholder={field.placeholder || `Select ${field.label.toLowerCase()}`} />
-                                  </SelectTrigger>
-                                  <SelectContent>
-                                    {field.options?.map((opt: any) => (
-                                      <SelectItem key={opt.value} value={opt.value}>
-                                        {opt.label}
-                                      </SelectItem>
-                                    ))}
-                                  </SelectContent>
-                                </Select>
-                              )}
-                              
-                              {field.type === "toggle" && (
-                                <div className="flex items-center gap-2">
-                                  <Switch disabled />
-                                  <span className="text-sm text-muted-foreground">
-                                    {field.placeholder || "Toggle option"}
-                                  </span>
-                                </div>
-                              )}
-                              
-                              {field.description && (
-                                <p className="text-xs text-muted-foreground">{field.description}</p>
-                              )}
-                            </div>
-                          ))}
-                        </div>
-                        
-                        {/* Generate Button Preview */}
-                        <div className="pt-4 border-t">
-                          <Button disabled className="w-full">
-                            Generate Content
-                          </Button>
-                        </div>
-                      </div>
-                    )}
-                  </div>
-                </div>
-              </div>
-            </TabsContent>
-            
-            <TabsContent value="preview" className="flex-1 overflow-hidden mt-4 min-h-0">
-              <div className="h-full flex flex-col gap-4">
-                <p className="text-sm text-muted-foreground flex-shrink-0">
-                  This preview shows how the prompt will be sent to the AI with sample input values.
-                </p>
-                
-                {/* Input fields preview */}
-                {promptPreview.fields.length > 0 && (
-                  <div className="rounded-lg border bg-muted/30 p-3 flex-shrink-0">
-                    <h4 className="text-sm font-medium mb-2">Sample Input Values:</h4>
-                    <div className="grid grid-cols-2 gap-2 text-sm">
-                      {promptPreview.fields.map((field: any) => (
-                        <div key={field.id} className="flex gap-2">
-                          <span className="font-mono text-muted-foreground">{field.id}:</span>
-                          <span className="text-foreground truncate">{getSampleValue(field)}</span>
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-                )}
-                
-                <div className="flex-1 min-h-0 overflow-y-auto border rounded-lg bg-background">
-                  <div className="p-4 space-y-4">
-                    {/* System prompt section */}
-                    <div>
-                      <div className="flex items-center gap-2 mb-2">
-                        <Badge variant="secondary" className="text-xs">System</Badge>
-                        <span className="text-xs text-muted-foreground">Sent as system message</span>
-                      </div>
-                      <pre className="text-sm whitespace-pre-wrap font-mono bg-muted/50 p-3 rounded-md border">
-                        {promptPreview.systemPrompt}
-                      </pre>
-                    </div>
-                    
-                    {/* User prompt section */}
-                    <div>
-                      <div className="flex items-center gap-2 mb-2">
-                        <Badge className="text-xs">User</Badge>
-                        <span className="text-xs text-muted-foreground">Sent as user message (from form inputs)</span>
-                      </div>
-                      <pre className="text-sm whitespace-pre-wrap font-mono bg-muted/50 p-3 rounded-md border">
-                        {promptPreview.userPrompt}
-                      </pre>
-                    </div>
-                    
-                    {!promptPreview.isValid && (
-                      <div className="text-sm text-destructive bg-destructive/10 p-3 rounded-md">
-                        ⚠️ Form schema JSON is invalid. Fix the JSON to see the user prompt preview.
-                      </div>
-                    )}
-                  </div>
-                </div>
-              </div>
-            </TabsContent>
-          </Tabs>
-          
-          <DialogFooter className="mt-4">
-            <Button variant="outline" onClick={() => setDialogOpen(false)}>
-              Cancel
-            </Button>
-            <Button onClick={handleSubmit} disabled={isSubmitting}>
-              {isSubmitting ? "Saving..." : selectedTemplate ? "Update" : "Create"}
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
 
       {/* Template Delete Confirmation */}
       <AlertDialog open={deleteOpen} onOpenChange={setDeleteOpen}>
