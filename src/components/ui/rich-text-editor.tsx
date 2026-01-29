@@ -31,13 +31,14 @@ import {
   Link as LinkIcon,
   Unlink,
   ImageIcon,
-  Upload,
   Loader2,
+  FolderOpen,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useEffect, useState, useRef } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "@/hooks/use-toast";
+import { MediaPickerDialog } from "@/components/media/MediaPickerDialog";
 
 interface RichTextEditorProps {
   content: string;
@@ -59,6 +60,7 @@ export function RichTextEditor({
   const [imageUrl, setImageUrl] = useState("");
   const [isImagePopoverOpen, setIsImagePopoverOpen] = useState(false);
   const [isUploading, setIsUploading] = useState(false);
+  const [showMediaPicker, setShowMediaPicker] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const editor = useEditor({
@@ -127,6 +129,21 @@ export function RichTextEditor({
     }
   };
 
+  const getImageDimensions = (file: File): Promise<{ width: number; height: number }> => {
+    return new Promise((resolve) => {
+      const img = new window.Image();
+      img.onload = () => {
+        resolve({ width: img.naturalWidth, height: img.naturalHeight });
+        URL.revokeObjectURL(img.src);
+      };
+      img.onerror = () => {
+        resolve({ width: 0, height: 0 });
+        URL.revokeObjectURL(img.src);
+      };
+      img.src = URL.createObjectURL(file);
+    });
+  };
+
   const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
@@ -154,7 +171,7 @@ export function RichTextEditor({
     try {
       const fileExt = file.name.split(".").pop();
       const fileName = `${Date.now()}-${Math.random().toString(36).substring(7)}.${fileExt}`;
-      const filePath = `content/${fileName}`;
+      const filePath = `media/${fileName}`;
 
       const { error: uploadError } = await supabase.storage
         .from(storageBucket)
@@ -165,6 +182,25 @@ export function RichTextEditor({
       const { data: { publicUrl } } = supabase.storage
         .from(storageBucket)
         .getPublicUrl(filePath);
+
+      // Get image dimensions
+      const dimensions = await getImageDimensions(file);
+
+      // Get current user
+      const { data: { user } } = await supabase.auth.getUser();
+
+      // Save to media table
+      await supabase.from("media").insert({
+        name: file.name,
+        file_path: filePath,
+        url: publicUrl,
+        bucket: storageBucket,
+        mime_type: file.type,
+        size_bytes: file.size,
+        width: dimensions.width,
+        height: dimensions.height,
+        uploaded_by: user?.id || null,
+      });
 
       editor?.chain().focus().setImage({ src: publicUrl }).run();
       setIsImagePopoverOpen(false);
@@ -182,6 +218,12 @@ export function RichTextEditor({
         fileInputRef.current.value = "";
       }
     }
+  };
+
+  const handleMediaSelect = (url: string) => {
+    editor?.chain().focus().setImage({ src: url }).run();
+    setShowMediaPicker(false);
+    setIsImagePopoverOpen(false);
   };
 
   if (!editor) {
@@ -385,11 +427,30 @@ export function RichTextEditor({
             </Toggle>
           </PopoverTrigger>
           <PopoverContent className="w-80" align="start">
-            <Tabs defaultValue="upload" className="w-full">
-              <TabsList className="grid w-full grid-cols-2">
+            <Tabs defaultValue="library" className="w-full">
+              <TabsList className="grid w-full grid-cols-3">
+                <TabsTrigger value="library">Library</TabsTrigger>
                 <TabsTrigger value="upload">Upload</TabsTrigger>
                 <TabsTrigger value="url">URL</TabsTrigger>
               </TabsList>
+              <TabsContent value="library" className="space-y-3 mt-3">
+                <div className="space-y-2">
+                  <Label>Media Library</Label>
+                  <Button 
+                    variant="outline" 
+                    className="w-full"
+                    onClick={() => {
+                      setShowMediaPicker(true);
+                    }}
+                  >
+                    <FolderOpen className="mr-2 h-4 w-4" />
+                    Browse Media Library
+                  </Button>
+                  <p className="text-xs text-muted-foreground">
+                    Select from previously uploaded images
+                  </p>
+                </div>
+              </TabsContent>
               <TabsContent value="upload" className="space-y-3 mt-3">
                 <div className="space-y-2">
                   <Label>Upload Image</Label>
@@ -439,6 +500,14 @@ export function RichTextEditor({
 
       {/* Editor Content */}
       <EditorContent editor={editor} className="bg-background" />
+
+      {/* Media Picker Dialog */}
+      <MediaPickerDialog
+        open={showMediaPicker}
+        onOpenChange={setShowMediaPicker}
+        onSelect={handleMediaSelect}
+        title="Insert Image from Library"
+      />
     </div>
   );
 }
