@@ -20,6 +20,7 @@ import {
   Check,
 } from "lucide-react";
 import { useBlogPost, useBlogPosts } from "@/hooks/useBlogPosts";
+import { BlogSidebar } from "@/components/blog/BlogSidebar";
 import { format } from "date-fns";
 import { useState, useMemo, useEffect } from "react";
 import { toast } from "@/hooks/use-toast";
@@ -200,7 +201,7 @@ export default function BlogPostPage() {
 
         {/* Featured Image */}
         {post.featured_image && (
-          <div className="max-w-4xl mx-auto mb-12">
+          <div className="max-w-5xl mx-auto mb-12">
             <div className="relative rounded-2xl overflow-hidden shadow-lg">
               <img
                 src={post.featured_image}
@@ -211,79 +212,92 @@ export default function BlogPostPage() {
           </div>
         )}
 
-        {/* Content */}
-        <div className="max-w-3xl mx-auto">
-          {post.content ? (
-            <div
-              className="prose prose-lg dark:prose-invert max-w-none prose-headings:font-bold prose-headings:tracking-tight prose-h1:text-3xl prose-h1:mt-8 prose-h1:mb-4 prose-h2:text-2xl prose-h2:mt-8 prose-h2:mb-4 prose-h2:border-b prose-h2:border-border prose-h2:pb-2 prose-h3:text-xl prose-h3:mt-6 prose-h3:mb-3 prose-p:leading-relaxed prose-p:mb-4 prose-a:text-primary prose-a:no-underline hover:prose-a:underline prose-ul:my-4 prose-ol:my-4 prose-li:my-1 prose-blockquote:border-l-4 prose-blockquote:border-primary/50 prose-blockquote:bg-muted/30 prose-blockquote:py-1 prose-blockquote:px-4 prose-blockquote:rounded-r-lg prose-code:bg-muted prose-code:px-1.5 prose-code:py-0.5 prose-code:rounded prose-code:text-sm prose-code:font-mono prose-img:rounded-xl prose-img:shadow-lg prose-strong:font-semibold"
-              dangerouslySetInnerHTML={{
-                __html: DOMPurify.sanitize(post.content, {
-                  ALLOWED_TAGS: ['h1', 'h2', 'h3', 'h4', 'h5', 'h6', 'p', 'a', 'ul', 'ol', 'li', 'strong', 'em', 'b', 'i', 'u', 'br', 'blockquote', 'code', 'pre', 'div', 'span', 'img', 's', 'strike'],
-                  ALLOWED_ATTR: ['href', 'target', 'rel', 'src', 'alt', 'class', 'id']
-                })
-              }}
-            />
-          ) : (
-            <p className="text-muted-foreground italic">No content available.</p>
-          )}
+        {/* Two-column layout: Content + Sidebar */}
+        <div className="max-w-5xl mx-auto flex flex-col lg:flex-row gap-12">
+          {/* Main Content */}
+          <div className="flex-1 min-w-0">
+            {post.content ? (
+              <div
+                className="prose prose-lg dark:prose-invert max-w-none prose-headings:font-bold prose-headings:tracking-tight prose-h1:text-3xl prose-h1:mt-8 prose-h1:mb-4 prose-h2:text-2xl prose-h2:mt-8 prose-h2:mb-4 prose-h2:border-b prose-h2:border-border prose-h2:pb-2 prose-h3:text-xl prose-h3:mt-6 prose-h3:mb-3 prose-p:leading-relaxed prose-p:mb-4 prose-a:text-primary prose-a:no-underline hover:prose-a:underline prose-ul:my-4 prose-ol:my-4 prose-li:my-1 prose-blockquote:border-l-4 prose-blockquote:border-primary/50 prose-blockquote:bg-muted/30 prose-blockquote:py-1 prose-blockquote:px-4 prose-blockquote:rounded-r-lg prose-code:bg-muted prose-code:px-1.5 prose-code:py-0.5 prose-code:rounded prose-code:text-sm prose-code:font-mono prose-img:rounded-xl prose-img:shadow-lg prose-strong:font-semibold"
+                dangerouslySetInnerHTML={{
+                  __html: DOMPurify.sanitize(post.content, {
+                    ALLOWED_TAGS: ['h1', 'h2', 'h3', 'h4', 'h5', 'h6', 'p', 'a', 'ul', 'ol', 'li', 'strong', 'em', 'b', 'i', 'u', 'br', 'blockquote', 'code', 'pre', 'div', 'span', 'img', 's', 'strike'],
+                    ALLOWED_ATTR: ['href', 'target', 'rel', 'src', 'alt', 'class', 'id']
+                  })
+                }}
+              />
+            ) : (
+              <p className="text-muted-foreground italic">No content available.</p>
+            )}
 
-          {/* Tags */}
-          {post.tags && post.tags.length > 0 && (
-            <div className="flex items-center gap-2 flex-wrap mt-10 mb-2">
-              {post.tags.map((tag) => (
-                <Badge key={tag} variant="outline" className="text-xs">
-                  {tag}
-                </Badge>
-              ))}
+            {/* Tags */}
+            {post.tags && post.tags.length > 0 && (
+              <div className="flex items-center gap-2 flex-wrap mt-10 mb-2">
+                {post.tags.map((tag) => (
+                  <Badge key={tag} variant="outline" className="text-xs">
+                    {tag}
+                  </Badge>
+                ))}
+              </div>
+            )}
+
+            <Separator className="my-12" />
+
+            {/* Share Section */}
+            <div className="flex flex-col sm:flex-row items-center justify-between gap-6 py-6">
+              <div className="flex items-center gap-2 text-muted-foreground">
+                <Share2 className="h-5 w-5" />
+                <span className="font-medium">Share this article</span>
+              </div>
+
+              <div className="flex items-center gap-2">
+                <Button
+                  variant="outline"
+                  size="icon"
+                  onClick={shareOnTwitter}
+                  title="Share on Twitter"
+                >
+                  <Twitter className="h-4 w-4" />
+                </Button>
+                <Button
+                  variant="outline"
+                  size="icon"
+                  onClick={shareOnFacebook}
+                  title="Share on Facebook"
+                >
+                  <Facebook className="h-4 w-4" />
+                </Button>
+                <Button
+                  variant="outline"
+                  size="icon"
+                  onClick={shareOnLinkedIn}
+                  title="Share on LinkedIn"
+                >
+                  <Linkedin className="h-4 w-4" />
+                </Button>
+                <Button
+                  variant="outline"
+                  size="icon"
+                  onClick={handleCopyLink}
+                  title="Copy link"
+                >
+                  {copied ? (
+                    <Check className="h-4 w-4 text-success" />
+                  ) : (
+                    <Link2 className="h-4 w-4" />
+                  )}
+                </Button>
+              </div>
             </div>
-          )}
+          </div>
 
-          <Separator className="my-12" />
-
-          {/* Share Section */}
-          <div className="flex flex-col sm:flex-row items-center justify-between gap-6 py-6">
-            <div className="flex items-center gap-2 text-muted-foreground">
-              <Share2 className="h-5 w-5" />
-              <span className="font-medium">Share this article</span>
-            </div>
-
-            <div className="flex items-center gap-2">
-              <Button
-                variant="outline"
-                size="icon"
-                onClick={shareOnTwitter}
-                title="Share on Twitter"
-              >
-                <Twitter className="h-4 w-4" />
-              </Button>
-              <Button
-                variant="outline"
-                size="icon"
-                onClick={shareOnFacebook}
-                title="Share on Facebook"
-              >
-                <Facebook className="h-4 w-4" />
-              </Button>
-              <Button
-                variant="outline"
-                size="icon"
-                onClick={shareOnLinkedIn}
-                title="Share on LinkedIn"
-              >
-                <Linkedin className="h-4 w-4" />
-              </Button>
-              <Button
-                variant="outline"
-                size="icon"
-                onClick={handleCopyLink}
-                title="Copy link"
-              >
-                {copied ? (
-                  <Check className="h-4 w-4 text-success" />
-                ) : (
-                  <Link2 className="h-4 w-4" />
-                )}
-              </Button>
+          {/* Sidebar */}
+          <div className="w-full lg:w-72 xl:w-80 flex-shrink-0">
+            <div className="lg:sticky lg:top-8">
+              <BlogSidebar
+                allPosts={allPosts || []}
+                currentPostId={post.id}
+              />
             </div>
           </div>
         </div>
