@@ -2,28 +2,30 @@ import { Link, useParams } from "react-router-dom";
 import { Layout } from "@/components/layout";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Separator } from "@/components/ui/separator";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Progress } from "@/components/ui/progress";
-import {
-  Calendar,
-  Clock,
-  User,
-  ArrowLeft,
-  ArrowRight,
-  Share2,
-  Twitter,
-  Facebook,
-  Linkedin,
-  Link2,
-  Check,
-} from "lucide-react";
+import { ArrowLeft } from "lucide-react";
 import { useBlogPost, useBlogPosts } from "@/hooks/useBlogPosts";
-import { format } from "date-fns";
 import { useState, useMemo, useEffect } from "react";
-import { toast } from "@/hooks/use-toast";
 import DOMPurify from "dompurify";
+import { BlogPostSidebar } from "@/components/blog/BlogPostSidebar";
+
+/**
+ * Add IDs to heading elements so the Table of Contents can link to them.
+ */
+function addHeadingIds(html: string): string {
+  const parser = new DOMParser();
+  const doc = parser.parseFromString(html, "text/html");
+  const headings = doc.querySelectorAll("h1, h2, h3");
+
+  headings.forEach((heading, index) => {
+    if (!heading.id) {
+      heading.id = `heading-${index}`;
+    }
+  });
+
+  return doc.body.innerHTML;
+}
 
 export default function BlogPostPage() {
   const [scrollProgress, setScrollProgress] = useState(0);
@@ -37,14 +39,14 @@ export default function BlogPostPage() {
     };
 
     window.addEventListener("scroll", handleScroll, { passive: true });
-    handleScroll(); // Initial calculation
+    handleScroll();
 
     return () => window.removeEventListener("scroll", handleScroll);
   }, []);
+
   const { slug } = useParams<{ slug: string }>();
   const { data: post, isLoading } = useBlogPost(slug || "");
   const { data: allPosts } = useBlogPosts();
-  const [copied, setCopied] = useState(false);
 
   // Get related posts (same category or shared tags)
   const relatedPosts = useMemo(() => {
@@ -53,64 +55,45 @@ export default function BlogPostPage() {
     return allPosts
       .filter((p) => {
         if (p.id === post.id) return false;
-        // Same category
         if (p.category === post.category) return true;
-        // Shared tags
         if (post.tags && p.tags) {
           return post.tags.some((tag) => p.tags?.includes(tag));
         }
         return false;
       })
-      .slice(0, 3);
+      .slice(0, 4);
   }, [post, allPosts]);
 
-  const currentUrl = typeof window !== "undefined" ? window.location.href : "";
-  const shareText = post ? `${post.title} - Check out this article!` : "";
-
-  const handleCopyLink = async () => {
-    try {
-      await navigator.clipboard.writeText(currentUrl);
-      setCopied(true);
-      toast({ title: "Link copied to clipboard!" });
-      setTimeout(() => setCopied(false), 2000);
-    } catch {
-      toast({ title: "Failed to copy link", variant: "destructive" });
-    }
-  };
-
-  const shareOnTwitter = () => {
-    window.open(
-      `https://twitter.com/intent/tweet?text=${encodeURIComponent(shareText)}&url=${encodeURIComponent(currentUrl)}`,
-      "_blank"
-    );
-  };
-
-  const shareOnFacebook = () => {
-    window.open(
-      `https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(currentUrl)}`,
-      "_blank"
-    );
-  };
-
-  const shareOnLinkedIn = () => {
-    window.open(
-      `https://www.linkedin.com/sharing/share-offsite/?url=${encodeURIComponent(currentUrl)}`,
-      "_blank"
-    );
-  };
+  const processedContent = useMemo(() => {
+    if (!post?.content) return "";
+    const sanitized = DOMPurify.sanitize(post.content, {
+      ALLOWED_TAGS: ['h1', 'h2', 'h3', 'h4', 'h5', 'h6', 'p', 'a', 'ul', 'ol', 'li', 'strong', 'em', 'b', 'i', 'u', 'br', 'blockquote', 'code', 'pre', 'div', 'span', 'img', 's', 'strike'],
+      ALLOWED_ATTR: ['href', 'target', 'rel', 'src', 'alt', 'class', 'id']
+    });
+    return addHeadingIds(sanitized);
+  }, [post?.content]);
 
   if (isLoading) {
     return (
       <Layout>
-        <div className="container py-12 md:py-20 max-w-4xl">
+        <div className="container py-12 md:py-20 max-w-7xl">
           <Skeleton className="h-8 w-32 mb-6" />
           <Skeleton className="h-12 w-3/4 mb-4" />
           <Skeleton className="h-6 w-1/2 mb-8" />
-          <Skeleton className="h-64 w-full mb-8" />
-          <div className="space-y-4">
-            <Skeleton className="h-4 w-full" />
-            <Skeleton className="h-4 w-full" />
-            <Skeleton className="h-4 w-3/4" />
+          <div className="grid grid-cols-1 lg:grid-cols-[1fr_280px] gap-10">
+            <div>
+              <Skeleton className="h-64 w-full mb-8" />
+              <div className="space-y-4">
+                <Skeleton className="h-4 w-full" />
+                <Skeleton className="h-4 w-full" />
+                <Skeleton className="h-4 w-3/4" />
+              </div>
+            </div>
+            <div className="space-y-6 hidden lg:block">
+              <Skeleton className="h-32 w-full" />
+              <Skeleton className="h-48 w-full" />
+              <Skeleton className="h-24 w-full" />
+            </div>
           </div>
         </div>
       </Layout>
@@ -143,7 +126,7 @@ export default function BlogPostPage() {
         <Progress value={scrollProgress} className="h-1 rounded-none bg-transparent [&>div]:bg-primary" />
       </div>
 
-      <article className="container py-12 md:py-20">
+      <article className="container py-12 md:py-20 max-w-7xl">
         {/* Back Link */}
         <Link
           to="/blog"
@@ -153,9 +136,8 @@ export default function BlogPostPage() {
           Back to Blog
         </Link>
 
-        {/* Header */}
-        <header className="max-w-3xl mx-auto text-center mb-12">
-          {/* Category */}
+        {/* Header - Full width centered */}
+        <header className="max-w-3xl mb-12">
           {post.category && (
             <Link to={`/blog/category/${encodeURIComponent(post.category)}`}>
               <Badge variant="secondary" className="mb-4 hover:bg-secondary/80 transition-colors">
@@ -164,203 +146,42 @@ export default function BlogPostPage() {
             </Link>
           )}
 
-          {/* Title */}
-          <h1 className="text-4xl md:text-5xl font-bold tracking-tight mb-6">
+          <h1 className="text-3xl md:text-4xl lg:text-5xl font-bold tracking-tight mb-4">
             {post.title}
           </h1>
-
-          {/* Meta */}
-          <div className="flex items-center justify-center gap-6 text-sm text-muted-foreground mb-6">
-            <Link
-              to={`/blog/author/${encodeURIComponent(post.author_name || "Admin")}`}
-              className="flex items-center gap-2 hover:text-foreground transition-colors"
-            >
-              <User className="h-4 w-4" />
-              <span>{post.author_name || "Admin"}</span>
-            </Link>
-            {post.published_at && (
-              <div className="flex items-center gap-2">
-                <Calendar className="h-4 w-4" />
-                <span>{format(new Date(post.published_at), "MMMM d, yyyy")}</span>
-              </div>
-            )}
-            {post.read_time_minutes && (
-              <div className="flex items-center gap-2">
-                <Clock className="h-4 w-4" />
-                <span>{post.read_time_minutes} min read</span>
-              </div>
-            )}
-          </div>
-
-          {/* Tags */}
-          {post.tags && post.tags.length > 0 && (
-            <div className="flex items-center justify-center gap-2 flex-wrap">
-              {post.tags.map((tag) => (
-                <Badge key={tag} variant="outline" className="text-xs">
-                  {tag}
-                </Badge>
-              ))}
-            </div>
-          )}
         </header>
 
-        {/* Featured Image */}
+        {/* Featured Image - Full width */}
         {post.featured_image && (
-          <div className="max-w-4xl mx-auto mb-12">
+          <div className="mb-10">
             <div className="relative rounded-2xl overflow-hidden shadow-lg">
               <img
                 src={post.featured_image}
                 alt={post.title}
-                className="w-full h-auto object-cover"
+                className="w-full h-auto object-cover max-h-[500px]"
               />
             </div>
           </div>
         )}
 
-        {/* Content */}
-        <div className="max-w-3xl mx-auto">
-          {post.content ? (
-            <div
-              className="prose prose-lg dark:prose-invert max-w-none prose-headings:font-bold prose-headings:tracking-tight prose-h1:text-3xl prose-h1:mt-8 prose-h1:mb-4 prose-h2:text-2xl prose-h2:mt-8 prose-h2:mb-4 prose-h2:border-b prose-h2:border-border prose-h2:pb-2 prose-h3:text-xl prose-h3:mt-6 prose-h3:mb-3 prose-p:leading-relaxed prose-p:mb-4 prose-a:text-primary prose-a:no-underline hover:prose-a:underline prose-ul:my-4 prose-ol:my-4 prose-li:my-1 prose-blockquote:border-l-4 prose-blockquote:border-primary/50 prose-blockquote:bg-muted/30 prose-blockquote:py-1 prose-blockquote:px-4 prose-blockquote:rounded-r-lg prose-code:bg-muted prose-code:px-1.5 prose-code:py-0.5 prose-code:rounded prose-code:text-sm prose-code:font-mono prose-img:rounded-xl prose-img:shadow-lg prose-strong:font-semibold"
-              dangerouslySetInnerHTML={{
-                __html: DOMPurify.sanitize(post.content, {
-                  ALLOWED_TAGS: ['h1', 'h2', 'h3', 'h4', 'h5', 'h6', 'p', 'a', 'ul', 'ol', 'li', 'strong', 'em', 'b', 'i', 'u', 'br', 'blockquote', 'code', 'pre', 'div', 'span', 'img', 's', 'strike'],
-                  ALLOWED_ATTR: ['href', 'target', 'rel', 'src', 'alt', 'class', 'id']
-                })
-              }}
-            />
-          ) : (
-            <p className="text-muted-foreground italic">No content available.</p>
-          )}
-
-          <Separator className="my-12" />
-
-          {/* Share Section */}
-          <div className="flex flex-col sm:flex-row items-center justify-between gap-6 py-6">
-            <div className="flex items-center gap-2 text-muted-foreground">
-              <Share2 className="h-5 w-5" />
-              <span className="font-medium">Share this article</span>
-            </div>
-
-            <div className="flex items-center gap-2">
-              <Button
-                variant="outline"
-                size="icon"
-                onClick={shareOnTwitter}
-                title="Share on Twitter"
-              >
-                <Twitter className="h-4 w-4" />
-              </Button>
-              <Button
-                variant="outline"
-                size="icon"
-                onClick={shareOnFacebook}
-                title="Share on Facebook"
-              >
-                <Facebook className="h-4 w-4" />
-              </Button>
-              <Button
-                variant="outline"
-                size="icon"
-                onClick={shareOnLinkedIn}
-                title="Share on LinkedIn"
-              >
-                <Linkedin className="h-4 w-4" />
-              </Button>
-              <Button
-                variant="outline"
-                size="icon"
-                onClick={handleCopyLink}
-                title="Copy link"
-              >
-                {copied ? (
-                  <Check className="h-4 w-4 text-success" />
-                ) : (
-                  <Link2 className="h-4 w-4" />
-                )}
-              </Button>
-            </div>
+        {/* Two-column layout: Content + Sidebar */}
+        <div className="grid grid-cols-1 lg:grid-cols-[1fr_280px] gap-10 items-start">
+          {/* Main Content */}
+          <div className="min-w-0">
+            {processedContent ? (
+              <div
+                className="prose prose-lg dark:prose-invert max-w-none prose-headings:font-bold prose-headings:tracking-tight prose-h1:text-3xl prose-h1:mt-8 prose-h1:mb-4 prose-h2:text-2xl prose-h2:mt-8 prose-h2:mb-4 prose-h2:border-b prose-h2:border-border prose-h2:pb-2 prose-h3:text-xl prose-h3:mt-6 prose-h3:mb-3 prose-p:leading-relaxed prose-p:mb-4 prose-a:text-primary prose-a:no-underline hover:prose-a:underline prose-ul:my-4 prose-ol:my-4 prose-li:my-1 prose-blockquote:border-l-4 prose-blockquote:border-primary/50 prose-blockquote:bg-muted/30 prose-blockquote:py-1 prose-blockquote:px-4 prose-blockquote:rounded-r-lg prose-code:bg-muted prose-code:px-1.5 prose-code:py-0.5 prose-code:rounded prose-code:text-sm prose-code:font-mono prose-img:rounded-xl prose-img:shadow-lg prose-strong:font-semibold"
+                dangerouslySetInnerHTML={{ __html: processedContent }}
+              />
+            ) : (
+              <p className="text-muted-foreground italic">No content available.</p>
+            )}
           </div>
-        </div>
 
-        {/* Related Posts */}
-        {relatedPosts.length > 0 && (
-          <section className="mt-16 pt-12 border-t">
-            <div className="max-w-5xl mx-auto">
-              <h2 className="text-2xl font-bold text-center mb-8">
-                Related <span className="gradient-text">Posts</span>
-              </h2>
-
-              <div className="grid gap-6 md:grid-cols-3">
-                {relatedPosts.map((relatedPost) => (
-                  <Card
-                    key={relatedPost.id}
-                    className="group overflow-hidden border-border/50 bg-card/50 backdrop-blur hover:border-primary/50 transition-all duration-300"
-                  >
-                    {/* Featured Image */}
-                    {relatedPost.featured_image ? (
-                      <div className="relative h-40 overflow-hidden">
-                        <img
-                          src={relatedPost.featured_image}
-                          alt={relatedPost.title}
-                          className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-105"
-                        />
-                      </div>
-                    ) : (
-                      <div className="h-40 bg-gradient-to-br from-primary/10 via-violet/10 to-cyan/10 flex items-center justify-center">
-                        <span className="text-3xl font-bold text-muted-foreground/20">
-                          {relatedPost.title.charAt(0)}
-                        </span>
-                      </div>
-                    )}
-
-                    <CardHeader className="pb-2">
-                      {relatedPost.category && (
-                        <Badge variant="secondary" className="text-xs w-fit">
-                          {relatedPost.category}
-                        </Badge>
-                      )}
-                      <CardTitle className="text-base leading-tight group-hover:text-primary transition-colors line-clamp-2">
-                        <Link to={`/blog/${relatedPost.slug}`}>
-                          {relatedPost.title}
-                        </Link>
-                      </CardTitle>
-                    </CardHeader>
-
-                    <CardContent>
-                      <CardDescription className="line-clamp-2 text-sm">
-                        {relatedPost.excerpt}
-                      </CardDescription>
-
-                      <Link
-                        to={`/blog/${relatedPost.slug}`}
-                        className="inline-flex items-center text-sm font-medium text-primary hover:underline mt-3"
-                      >
-                        Read More
-                        <ArrowRight className="ml-1 h-4 w-4 transition-transform group-hover:translate-x-1" />
-                      </Link>
-                    </CardContent>
-                  </Card>
-                ))}
-              </div>
-            </div>
-          </section>
-        )}
-
-        {/* CTA */}
-        <div className="max-w-2xl mx-auto mt-16 text-center">
-          <Card className="p-8 bg-gradient-to-br from-primary/5 via-violet/5 to-cyan/5 border-primary/20">
-            <h3 className="text-xl font-bold mb-2">Want to create content like this?</h3>
-            <p className="text-muted-foreground mb-6">
-              Start generating high-quality content with our AI-powered platform.
-            </p>
-            <Button variant="gradient" size="lg" asChild>
-              <Link to="/signup">
-                Get Started Free
-                <ArrowRight className="ml-2 h-4 w-4" />
-              </Link>
-            </Button>
-          </Card>
+          {/* Sidebar - Sticky on desktop, stacks below on mobile */}
+          <div className="lg:sticky lg:top-20 order-first lg:order-last">
+            <BlogPostSidebar post={post} relatedPosts={relatedPosts} />
+          </div>
         </div>
       </article>
     </Layout>
