@@ -155,27 +155,22 @@ export default function BlogPostPage() {
 
         {/* Header */}
         <header className="max-w-3xl mx-auto text-center mb-12">
-          {/* Category */}
-          {post.category && (
-            <Link to={`/blog/category/${encodeURIComponent(post.category)}`}>
-              <Badge variant="secondary" className="mb-4 hover:bg-secondary/80 transition-colors">
-                {post.category}
-              </Badge>
-            </Link>
-          )}
-
           {/* Title */}
           <h1 className="text-4xl md:text-5xl font-bold tracking-tight mb-6">
             {post.title}
           </h1>
 
           {/* Meta */}
-          <div className="flex items-center justify-center gap-6 text-sm text-muted-foreground mb-6">
+          <div className="flex items-center justify-center gap-6 text-sm text-muted-foreground">
             <Link
               to={`/blog/author/${encodeURIComponent(post.author_name || "Admin")}`}
               className="flex items-center gap-2 hover:text-foreground transition-colors"
             >
-              <User className="h-4 w-4" />
+              {post.author_avatar ? (
+                <img src={post.author_avatar} alt={post.author_name || "Admin"} className="h-6 w-6 rounded-full object-cover" />
+              ) : (
+                <User className="h-4 w-4" />
+              )}
               <span>{post.author_name || "Admin"}</span>
             </Link>
             {post.published_at && (
@@ -190,18 +185,17 @@ export default function BlogPostPage() {
                 <span>{post.read_time_minutes} min read</span>
               </div>
             )}
-          </div>
-
-          {/* Tags */}
-          {post.tags && post.tags.length > 0 && (
-            <div className="flex items-center justify-center gap-2 flex-wrap">
-              {post.tags.map((tag) => (
-                <Badge key={tag} variant="outline" className="text-xs">
-                  {tag}
+            {post.category && (
+              <Link
+                to={`/blog/category/${encodeURIComponent(post.category)}`}
+                className="flex items-center gap-2 hover:text-foreground transition-colors"
+              >
+                <Badge variant="secondary" className="text-xs hover:bg-secondary/80 transition-colors">
+                  {post.category}
                 </Badge>
-              ))}
-            </div>
-          )}
+              </Link>
+            )}
+          </div>
         </header>
 
         {/* Featured Image */}
@@ -231,6 +225,17 @@ export default function BlogPostPage() {
             />
           ) : (
             <p className="text-muted-foreground italic">No content available.</p>
+          )}
+
+          {/* Tags */}
+          {post.tags && post.tags.length > 0 && (
+            <div className="flex items-center gap-2 flex-wrap mt-10 mb-2">
+              {post.tags.map((tag) => (
+                <Badge key={tag} variant="outline" className="text-xs">
+                  {tag}
+                </Badge>
+              ))}
+            </div>
           )}
 
           <Separator className="my-12" />
