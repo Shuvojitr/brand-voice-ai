@@ -145,7 +145,7 @@ export default function BlogPostPage() {
         <Progress value={scrollProgress} className="h-1 rounded-none bg-transparent [&>div]:bg-primary" />
       </div>
 
-      <article className="container py-12 md:py-20">
+      <article className="container px-4 sm:px-6 lg:px-8 py-8 md:py-20">
         {/* Back Link */}
         <Link
           to="/blog"
@@ -156,43 +156,43 @@ export default function BlogPostPage() {
         </Link>
 
         {/* Header */}
-        <header className="max-w-3xl mx-auto text-center mb-12">
+        <header className="max-w-3xl mx-auto text-center mb-8 md:mb-12 px-1">
           {/* Title */}
-          <h1 className="text-4xl md:text-5xl font-bold tracking-tight mb-6">
+          <h1 className="text-2xl sm:text-3xl md:text-4xl lg:text-5xl font-bold tracking-tight mb-4 md:mb-6">
             {post.title}
           </h1>
 
           {/* Meta */}
-          <div className="flex items-center justify-center gap-6 text-sm text-muted-foreground">
+          <div className="flex flex-wrap items-center justify-center gap-3 md:gap-6 text-xs sm:text-sm text-muted-foreground">
             <Link
               to={`/blog/author/${encodeURIComponent(post.author_name || "Admin")}`}
-              className="flex items-center gap-2 hover:text-foreground transition-colors"
+              className="flex items-center gap-1.5 hover:text-foreground transition-colors"
             >
               {post.author_avatar ? (
-                <img src={post.author_avatar} alt={post.author_name || "Admin"} className="h-6 w-6 rounded-full object-cover" />
+                <img src={post.author_avatar} alt={post.author_name || "Admin"} className="h-5 w-5 sm:h-6 sm:w-6 rounded-full object-cover" />
               ) : (
-                <User className="h-4 w-4" />
+                <User className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
               )}
               <span>{post.author_name || "Admin"}</span>
             </Link>
             {post.published_at && (
-              <div className="flex items-center gap-2">
-                <Calendar className="h-4 w-4" />
-                <span>{format(new Date(post.published_at), "MMMM d, yyyy")}</span>
+              <div className="flex items-center gap-1.5">
+                <Calendar className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
+                <span>{format(new Date(post.published_at), "MMM d, yyyy")}</span>
               </div>
             )}
             {post.read_time_minutes && (
-              <div className="flex items-center gap-2">
-                <Clock className="h-4 w-4" />
-                <span>{post.read_time_minutes} min read</span>
+              <div className="flex items-center gap-1.5">
+                <Clock className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
+                <span>{post.read_time_minutes} min</span>
               </div>
             )}
             {post.category && (
               <Link
                 to={`/blog/category/${encodeURIComponent(post.category)}`}
-                className="flex items-center gap-2 hover:text-foreground transition-colors"
+                className="flex items-center gap-1.5 hover:text-foreground transition-colors"
               >
-                <Badge variant="secondary" className="text-xs hover:bg-secondary/80 transition-colors">
+                <Badge variant="secondary" className="text-[10px] sm:text-xs hover:bg-secondary/80 transition-colors">
                   {post.category}
                 </Badge>
               </Link>
@@ -220,7 +220,7 @@ export default function BlogPostPage() {
               <>
                 <TableOfContents content={post.content} />
                 <div
-                  className="prose prose-lg dark:prose-invert max-w-none prose-headings:font-bold prose-headings:tracking-tight prose-h1:text-3xl prose-h1:mt-8 prose-h1:mb-4 prose-h2:text-2xl prose-h2:mt-8 prose-h2:mb-4 prose-h2:border-b prose-h2:border-border prose-h2:pb-2 prose-h3:text-xl prose-h3:mt-6 prose-h3:mb-3 prose-p:leading-relaxed prose-p:mb-4 prose-a:text-primary prose-a:no-underline hover:prose-a:underline prose-ul:my-4 prose-ol:my-4 prose-li:my-1 prose-blockquote:border-l-4 prose-blockquote:border-primary/50 prose-blockquote:bg-muted/30 prose-blockquote:py-1 prose-blockquote:px-4 prose-blockquote:rounded-r-lg prose-code:bg-muted prose-code:px-1.5 prose-code:py-0.5 prose-code:rounded prose-code:text-sm prose-code:font-mono prose-img:rounded-xl prose-img:shadow-lg prose-strong:font-semibold"
+                  className="prose prose-sm sm:prose-base md:prose-lg dark:prose-invert max-w-none prose-headings:font-bold prose-headings:tracking-tight prose-h1:text-2xl prose-h1:md:text-3xl prose-h1:mt-6 prose-h1:md:mt-8 prose-h1:mb-3 prose-h1:md:mb-4 prose-h2:text-xl prose-h2:md:text-2xl prose-h2:mt-6 prose-h2:md:mt-8 prose-h2:mb-3 prose-h2:md:mb-4 prose-h2:border-b prose-h2:border-border prose-h2:pb-2 prose-h3:text-lg prose-h3:md:text-xl prose-h3:mt-5 prose-h3:md:mt-6 prose-h3:mb-2 prose-h3:md:mb-3 prose-p:leading-relaxed prose-p:mb-4 prose-a:text-primary prose-a:no-underline hover:prose-a:underline prose-ul:my-4 prose-ol:my-4 prose-li:my-1 prose-blockquote:border-l-4 prose-blockquote:border-primary/50 prose-blockquote:bg-muted/30 prose-blockquote:py-1 prose-blockquote:px-4 prose-blockquote:rounded-r-lg prose-code:bg-muted prose-code:px-1.5 prose-code:py-0.5 prose-code:rounded prose-code:text-sm prose-code:font-mono prose-img:rounded-xl prose-img:shadow-lg prose-strong:font-semibold"
                   dangerouslySetInnerHTML={{
                     __html: DOMPurify.sanitize(post.content, {
                       ALLOWED_TAGS: ['h1', 'h2', 'h3', 'h4', 'h5', 'h6', 'p', 'a', 'ul', 'ol', 'li', 'strong', 'em', 'b', 'i', 'u', 'br', 'blockquote', 'code', 'pre', 'div', 'span', 'img', 's', 'strike'],
