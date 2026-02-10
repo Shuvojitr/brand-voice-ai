@@ -199,23 +199,22 @@ export default function BlogPostPage() {
           </div>
         </header>
 
-        {/* Featured Image */}
-        {post.featured_image && (
-          <div className="max-w-5xl mx-auto mb-12">
-            <div className="relative rounded-2xl overflow-hidden shadow-lg">
-              <img
-                src={post.featured_image}
-                alt={post.title}
-                className="w-full h-auto object-cover"
-              />
-            </div>
-          </div>
-        )}
-
         {/* Two-column layout: Content + Sidebar */}
         <div className="max-w-5xl mx-auto flex flex-col lg:flex-row gap-12">
           {/* Main Content */}
           <div className="flex-1 min-w-0">
+            {/* Featured Image */}
+            {post.featured_image && (
+              <div className="mb-10">
+                <div className="relative rounded-2xl overflow-hidden shadow-lg aspect-video">
+                  <img
+                    src={post.featured_image}
+                    alt={post.title}
+                    className="w-full h-full object-cover"
+                  />
+                </div>
+              </div>
+            )}
             {post.content ? (
               <div
                 className="prose prose-lg dark:prose-invert max-w-none prose-headings:font-bold prose-headings:tracking-tight prose-h1:text-3xl prose-h1:mt-8 prose-h1:mb-4 prose-h2:text-2xl prose-h2:mt-8 prose-h2:mb-4 prose-h2:border-b prose-h2:border-border prose-h2:pb-2 prose-h3:text-xl prose-h3:mt-6 prose-h3:mb-3 prose-p:leading-relaxed prose-p:mb-4 prose-a:text-primary prose-a:no-underline hover:prose-a:underline prose-ul:my-4 prose-ol:my-4 prose-li:my-1 prose-blockquote:border-l-4 prose-blockquote:border-primary/50 prose-blockquote:bg-muted/30 prose-blockquote:py-1 prose-blockquote:px-4 prose-blockquote:rounded-r-lg prose-code:bg-muted prose-code:px-1.5 prose-code:py-0.5 prose-code:rounded prose-code:text-sm prose-code:font-mono prose-img:rounded-xl prose-img:shadow-lg prose-strong:font-semibold"
