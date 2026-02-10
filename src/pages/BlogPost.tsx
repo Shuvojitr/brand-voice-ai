@@ -201,12 +201,12 @@ export default function BlogPostPage() {
 
         {/* Featured Image */}
         {post.featured_image && (
-          <div className="max-w-3xl mx-auto mb-12">
+          <div className="max-w-5xl mx-auto mb-12">
             <div className="relative rounded-2xl overflow-hidden shadow-lg">
               <img
                 src={post.featured_image}
                 alt={post.title}
-                className="w-full max-h-[420px] object-cover"
+                className="w-full h-auto object-cover"
               />
             </div>
           </div>
