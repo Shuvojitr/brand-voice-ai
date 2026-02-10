@@ -1,11 +1,14 @@
 import { Link } from "react-router-dom";
 import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Separator } from "@/components/ui/separator";
-import { Calendar, Clock, Search, TrendingUp } from "lucide-react";
+import { Calendar, Clock, Mail, Search, TrendingUp } from "lucide-react";
 import { BlogPost } from "@/hooks/useBlogPosts";
+import { supabase } from "@/integrations/supabase/client";
 import { format } from "date-fns";
 import { useState, useMemo } from "react";
+import { toast } from "@/hooks/use-toast";
 
 interface BlogSidebarProps {
   allPosts: BlogPost[];
@@ -13,6 +16,8 @@ interface BlogSidebarProps {
 }
 
 export function BlogSidebar({ allPosts, currentPostId }: BlogSidebarProps) {
+  const [email, setEmail] = useState("");
+  const [subscribing, setSubscribing] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
 
   // Filter out current post from sidebar lists
@@ -174,6 +179,65 @@ export function BlogSidebar({ allPosts, currentPostId }: BlogSidebarProps) {
           </div>
         </div>
       )}
+
+      <Separator className="bg-border/50" />
+
+      {/* Newsletter */}
+      <div className="rounded-xl border border-primary/20 bg-gradient-to-br from-primary/5 via-transparent to-primary/5 p-5">
+        <div className="flex items-center gap-2 mb-2">
+          <Mail className="h-4 w-4 text-primary" />
+          <h3 className="text-sm font-semibold uppercase tracking-wider text-foreground">
+            Newsletter
+          </h3>
+        </div>
+        <p className="text-xs text-muted-foreground mb-3">
+          Get the latest articles delivered to your inbox.
+        </p>
+        <form
+          onSubmit={async (e) => {
+            e.preventDefault();
+            if (!email.trim()) return;
+            setSubscribing(true);
+            try {
+              const { error } = await supabase
+                .from("newsletter_subscribers")
+                .insert({ email: email.trim(), source: "blog_sidebar" });
+              if (error) {
+                if (error.code === "23505") {
+                  toast({ title: "You're already subscribed!" });
+                } else {
+                  throw error;
+                }
+              } else {
+                toast({ title: "Subscribed successfully!" });
+                setEmail("");
+              }
+            } catch {
+              toast({ title: "Something went wrong", variant: "destructive" });
+            } finally {
+              setSubscribing(false);
+            }
+          }}
+          className="space-y-2"
+        >
+          <Input
+            type="email"
+            placeholder="you@example.com"
+            value={email}
+            onChange={(e) => setEmail(e.target.value)}
+            required
+            className="bg-background/60 border-border/60 text-sm"
+          />
+          <Button
+            type="submit"
+            size="sm"
+            className="w-full"
+            disabled={subscribing}
+          >
+            {subscribing ? "Subscribing..." : "Subscribe"}
+          </Button>
+        </form>
+      </div>
     </aside>
   );
 }
