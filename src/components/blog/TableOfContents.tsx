@@ -1,5 +1,6 @@
-import { useMemo } from "react";
-import { List } from "lucide-react";
+import { useMemo, useState } from "react";
+import { List, ChevronDown } from "lucide-react";
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 
 interface TocHeading {
   id: string;
@@ -12,6 +13,8 @@ interface TableOfContentsProps {
 }
 
 export function TableOfContents({ content }: TableOfContentsProps) {
+  const [isOpen, setIsOpen] = useState(true);
+
   const headings = useMemo(() => {
     const parser = new DOMParser();
     const doc = parser.parseFromString(content, "text/html");
@@ -47,28 +50,37 @@ export function TableOfContents({ content }: TableOfContentsProps) {
   const minLevel = Math.min(...headings.map((h) => h.level));
 
   return (
-    <nav className="mb-10 rounded-xl border border-border/60 bg-muted/30 p-5">
-      <div className="flex items-center gap-2 mb-3">
-        <List className="h-4 w-4 text-primary" />
-        <h2 className="text-sm font-semibold uppercase tracking-wider text-foreground">
-          Table of Contents
-        </h2>
-      </div>
-      <ul className="space-y-1.5">
-        {headings.map((heading, index) => (
-          <li
-            key={heading.id}
-            style={{ paddingLeft: `${(heading.level - minLevel) * 16}px` }}
-          >
-            <button
-              onClick={() => handleClick(heading.id, index)}
-              className="text-sm text-muted-foreground hover:text-primary transition-colors text-left leading-relaxed"
-            >
-              {heading.text}
-            </button>
-          </li>
-        ))}
-      </ul>
-    </nav>
+    <Collapsible open={isOpen} onOpenChange={setIsOpen}>
+      <nav className="mb-10 rounded-xl border border-border/60 bg-muted/30 p-5">
+        <CollapsibleTrigger className="flex items-center justify-between w-full">
+          <div className="flex items-center gap-2">
+            <List className="h-4 w-4 text-primary" />
+            <h2 className="text-sm font-semibold uppercase tracking-wider text-foreground">
+              Table of Contents
+            </h2>
+          </div>
+          <ChevronDown
+            className={`h-4 w-4 text-muted-foreground transition-transform duration-200 ${isOpen ? "rotate-180" : ""}`}
+          />
+        </CollapsibleTrigger>
+        <CollapsibleContent className="mt-3">
+          <ul className="space-y-1.5">
+            {headings.map((heading, index) => (
+              <li
+                key={heading.id}
+                style={{ paddingLeft: `${(heading.level - minLevel) * 16}px` }}
+              >
+                <button
+                  onClick={() => handleClick(heading.id, index)}
+                  className="text-sm text-muted-foreground hover:text-primary transition-colors text-left leading-relaxed"
+                >
+                  {heading.text}
+                </button>
+              </li>
+            ))}
+          </ul>
+        </CollapsibleContent>
+      </nav>
+    </Collapsible>
   );
 }
