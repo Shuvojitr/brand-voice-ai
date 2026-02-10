@@ -138,35 +138,35 @@ export default function Blog() {
           <div className="absolute -bottom-40 -left-40 h-80 w-80 rounded-full bg-cyan/10 blur-3xl" />
         </div>
 
-        <div className="container relative py-16 md:py-24">
-          <div className="mx-auto max-w-3xl text-center mb-12">
-            <h1 className="text-4xl font-bold tracking-tight md:text-5xl lg:text-6xl mb-6">
+        <div className="container relative px-4 sm:px-6 lg:px-8 py-10 md:py-24">
+          <div className="mx-auto max-w-3xl text-center mb-8 md:mb-12">
+            <h1 className="text-2xl sm:text-3xl md:text-4xl lg:text-5xl xl:text-6xl font-bold tracking-tight mb-4 md:mb-6">
               Insights & <span className="gradient-text">Inspiration</span>
             </h1>
-            <p className="text-muted-foreground text-lg md:text-xl max-w-2xl mx-auto">
+            <p className="text-muted-foreground text-sm sm:text-base md:text-lg lg:text-xl max-w-2xl mx-auto">
               Discover tips, tutorials, and the latest trends to help you create exceptional content with AI.
             </p>
           </div>
 
           {/* Search & Filters */}
-          <div className="max-w-3xl mx-auto space-y-4">
+          <div className="max-w-3xl mx-auto space-y-3 md:space-y-4">
             <div className="relative">
-              <Search className="absolute left-4 top-1/2 -translate-y-1/2 h-5 w-5 text-muted-foreground" />
+              <Search className="absolute left-3 sm:left-4 top-1/2 -translate-y-1/2 h-4 w-4 sm:h-5 sm:w-5 text-muted-foreground" />
               <Input
                 placeholder="Search articles..."
                 value={searchQuery}
                 onChange={(e) => handleSearchChange(e.target.value)}
-                className="pl-12 h-14 text-base rounded-2xl bg-background/80 backdrop-blur border-border/50 shadow-lg"
+                className="pl-10 sm:pl-12 h-11 sm:h-14 text-sm sm:text-base rounded-xl sm:rounded-2xl bg-background/80 backdrop-blur border-border/50 shadow-lg"
               />
             </div>
 
             {/* Category Pills */}
-            <div className="flex flex-wrap justify-center gap-2">
+            <div className="flex overflow-x-auto pb-2 gap-2 no-scrollbar md:flex-wrap md:justify-center md:overflow-visible md:pb-0">
               <Button
                 variant={selectedCategory === "all" ? "default" : "outline"}
                 size="sm"
                 onClick={() => handleCategoryChange("all")}
-                className="rounded-full"
+                className="rounded-full whitespace-nowrap text-xs sm:text-sm"
               >
                 All Posts
               </Button>
@@ -176,7 +176,7 @@ export default function Blog() {
                   variant={selectedCategory === cat ? "default" : "outline"}
                   size="sm"
                   onClick={() => handleCategoryChange(cat)}
-                  className="rounded-full"
+                  className="rounded-full whitespace-nowrap text-xs sm:text-sm"
                 >
                   {cat}
                 </Button>
@@ -186,17 +186,17 @@ export default function Blog() {
         </div>
       </section>
 
-      <div className="container py-12 md:py-16">
+      <div className="container px-4 sm:px-6 lg:px-8 py-8 md:py-16">
         {/* Featured Post Hero */}
         {showFeaturedHero && !isLoading && (
           <Link
             to={`/blog/${featuredPost.slug}`}
-            className="group block mb-16"
+            className="group block mb-10 md:mb-16"
           >
             <article className="relative overflow-hidden rounded-3xl bg-gradient-to-br from-card via-card to-card/80 border border-border/50 shadow-xl hover:shadow-2xl transition-all duration-500">
               <div className="grid md:grid-cols-2 gap-0">
                 {/* Image Section */}
-                <div className="relative h-64 md:h-[420px] overflow-hidden">
+                <div className="relative h-48 sm:h-64 md:h-[420px] overflow-hidden">
                   {featuredPost.featured_image ? (
                     <img
                       src={featuredPost.featured_image}
@@ -214,8 +214,8 @@ export default function Blog() {
                 </div>
 
                 {/* Content Section */}
-                <div className="relative p-8 md:p-12 flex flex-col justify-center">
-                  <div className="space-y-6">
+                <div className="relative p-5 sm:p-8 md:p-12 flex flex-col justify-center">
+                  <div className="space-y-3 sm:space-y-4 md:space-y-6">
                     <div className="flex items-center gap-3">
                       <Badge variant="glow" className="text-sm">
                         Featured
@@ -232,16 +232,16 @@ export default function Blog() {
                       )}
                     </div>
 
-                    <h2 className="text-2xl md:text-3xl lg:text-4xl font-bold leading-tight group-hover:text-primary transition-colors">
+                    <h2 className="text-xl sm:text-2xl md:text-3xl lg:text-4xl font-bold leading-tight group-hover:text-primary transition-colors">
                       {featuredPost.title}
                     </h2>
 
-                    <p className="text-muted-foreground text-lg line-clamp-3">
+                    <p className="text-muted-foreground text-sm sm:text-base md:text-lg line-clamp-2 sm:line-clamp-3">
                       {featuredPost.excerpt}
                     </p>
 
                     {/* Meta Info */}
-                    <div className="flex flex-wrap items-center gap-4 text-sm text-muted-foreground">
+                    <div className="flex flex-wrap items-center gap-3 sm:gap-4 text-xs sm:text-sm text-muted-foreground">
                       {featuredPost.author_name && (
                         <Link
                           to={`/blog/author/${encodeURIComponent(featuredPost.author_name)}`}
@@ -322,7 +322,7 @@ export default function Blog() {
               >
                 <article className="h-full flex flex-col">
                   {/* Image */}
-                  <div className="relative h-56 overflow-hidden rounded-2xl mb-5">
+                  <div className="relative h-44 sm:h-56 overflow-hidden rounded-xl sm:rounded-2xl mb-4 sm:mb-5">
                     {post.featured_image ? (
                       <img
                         src={post.featured_image}
@@ -343,7 +343,7 @@ export default function Blog() {
                   {/* Content */}
                   <div className="flex-1 flex flex-col">
                     {/* Category & Date */}
-                    <div className="flex items-center gap-3 mb-3 text-sm">
+                    <div className="flex items-center gap-2 sm:gap-3 mb-2 sm:mb-3 text-xs sm:text-sm">
                       {post.category && (
                         <Link
                           to={`/blog/category/${encodeURIComponent(post.category)}`}
@@ -364,12 +364,12 @@ export default function Blog() {
                     </div>
 
                     {/* Title */}
-                    <h3 className="text-xl font-semibold leading-snug mb-3 group-hover:text-primary transition-colors line-clamp-2">
+                    <h3 className="text-base sm:text-lg md:text-xl font-semibold leading-snug mb-2 sm:mb-3 group-hover:text-primary transition-colors line-clamp-2">
                       {post.title}
                     </h3>
 
                     {/* Excerpt */}
-                    <p className="text-muted-foreground line-clamp-2 mb-4 flex-1">
+                    <p className="text-muted-foreground text-sm line-clamp-2 mb-3 sm:mb-4 flex-1">
                       {post.excerpt}
                     </p>
 
@@ -492,22 +492,22 @@ export default function Blog() {
         )}
 
         {/* Newsletter Subscription Section */}
-        <section className="mt-20 relative overflow-hidden rounded-3xl bg-gradient-to-br from-primary/10 via-violet/5 to-cyan/10 border border-border/50">
+        <section className="mt-12 md:mt-20 relative overflow-hidden rounded-2xl sm:rounded-3xl bg-gradient-to-br from-primary/10 via-violet/5 to-cyan/10 border border-border/50">
           {/* Decorative elements */}
           <div className="absolute inset-0 overflow-hidden">
             <div className="absolute -top-20 -right-20 h-40 w-40 rounded-full bg-primary/20 blur-3xl" />
             <div className="absolute -bottom-20 -left-20 h-40 w-40 rounded-full bg-cyan/20 blur-3xl" />
           </div>
 
-          <div className="relative px-6 py-16 md:px-12 md:py-20 text-center">
+          <div className="relative px-5 py-10 sm:px-6 sm:py-16 md:px-12 md:py-20 text-center">
             <div className="inline-flex items-center justify-center w-16 h-16 rounded-full bg-primary/10 mb-6">
               <Mail className="h-8 w-8 text-primary" />
             </div>
 
-            <h2 className="text-2xl md:text-3xl font-bold mb-4">
+            <h2 className="text-xl sm:text-2xl md:text-3xl font-bold mb-3 md:mb-4">
               Stay in the <span className="gradient-text">Loop</span>
             </h2>
-            <p className="text-muted-foreground text-lg max-w-lg mx-auto mb-8">
+            <p className="text-muted-foreground text-sm sm:text-base md:text-lg max-w-lg mx-auto mb-6 md:mb-8">
               Get the latest articles, tips, and insights delivered straight to your inbox. No spam, unsubscribe anytime.
             </p>
 
