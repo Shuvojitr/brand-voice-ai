@@ -47,6 +47,9 @@ import {
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "@/hooks/use-toast";
 import { MediaPickerDialog } from "@/components/media/MediaPickerDialog";
+import { CategoryMultiSelect } from "@/components/blog-editor/CategoryMultiSelect";
+import { AuthorSelect } from "@/components/blog-editor/AuthorSelect";
+import { TagInput } from "@/components/blog-editor/TagInput";
 
 type SaveStatus = "saved" | "saving" | "unsaved" | "error";
 
@@ -84,10 +87,12 @@ export default function AdminBlogPostEditor() {
   const [content, setContent] = useState("");
   const [featuredImage, setFeaturedImage] = useState("");
   const [category, setCategory] = useState("General");
+  const [selectedCategoryIds, setSelectedCategoryIds] = useState<string[]>([]);
   const [authorName, setAuthorName] = useState("");
   const [authorAvatar, setAuthorAvatar] = useState("");
+  const [authorUserId, setAuthorUserId] = useState<string | null>(null);
   const [readTimeMinutes, setReadTimeMinutes] = useState(5);
-  const [tags, setTags] = useState("");
+  const [tagsArray, setTagsArray] = useState<string[]>([]);
   const [isPublished, setIsPublished] = useState(false);
   const [isFeatured, setIsFeatured] = useState(false);
   const [scheduledPublishAt, setScheduledPublishAt] = useState<Date | null>(null);
@@ -137,11 +142,11 @@ export default function AdminBlogPostEditor() {
   const getFormDataHash = useCallback(() => {
     return JSON.stringify({
       title, slug, excerpt, content, featuredImage,
-      category, authorName, authorAvatar, readTimeMinutes, tags,
+      category, authorName, authorAvatar, selectedCategoryIds, readTimeMinutes, tags: tagsArray,
       isPublished, isFeatured, scheduledPublishAt: scheduledPublishAt?.toISOString(),
       scheduledTime
     });
-  }, [title, slug, excerpt, content, featuredImage, category, authorName, authorAvatar, readTimeMinutes, tags, isPublished, isFeatured, scheduledPublishAt, scheduledTime]);
+  }, [title, slug, excerpt, content, featuredImage, category, authorName, authorAvatar, selectedCategoryIds, readTimeMinutes, tagsArray, isPublished, isFeatured, scheduledPublishAt, scheduledTime]);
 
   // Auto-save function - saves to draft fields for published posts
   const autoSave = useCallback(async () => {
@@ -153,6 +158,7 @@ export default function AdminBlogPostEditor() {
     }
 
     setSaveStatus("saving");
+    let savedPostId = currentPostId;
 
     try {
       if (currentPostId) {
@@ -167,7 +173,7 @@ export default function AdminBlogPostEditor() {
             author_name: authorName,
             author_avatar: authorAvatar || null,
             read_time_minutes: readTimeMinutes,
-            tags: tags ? tags.split(",").map((t) => t.trim()).filter(Boolean) : [],
+            tags: tagsArray,
             is_featured: isFeatured,
           };
 
@@ -207,7 +213,7 @@ export default function AdminBlogPostEditor() {
             author_name: authorName,
             author_avatar: authorAvatar || undefined,
             read_time_minutes: readTimeMinutes,
-            tags: tags ? tags.split(",").map((t) => t.trim()).filter(Boolean) : [],
+            tags: tagsArray,
             is_published: isPublished,
             is_featured: isFeatured,
             published_at: isPublished ? new Date().toISOString() : undefined,
@@ -248,7 +254,7 @@ export default function AdminBlogPostEditor() {
           author_name: authorName,
           author_avatar: authorAvatar || undefined,
           read_time_minutes: readTimeMinutes,
-          tags: tags ? tags.split(",").map((t) => t.trim()).filter(Boolean) : [],
+          tags: tagsArray,
           is_published: isPublished,
           is_featured: isFeatured,
           published_at: isPublished ? new Date().toISOString() : undefined,
@@ -264,8 +270,19 @@ export default function AdminBlogPostEditor() {
         if (error) throw error;
         
         // Update URL to include the new post ID without navigation
+        savedPostId = data.id;
         setCurrentPostId(data.id);
         window.history.replaceState(null, "", `/admin/blog/edit/${data.id}`);
+      }
+
+      // Sync categories to pivot table
+      if (savedPostId) {
+        await supabase.from("post_categories").delete().eq("post_id", savedPostId);
+        if (selectedCategoryIds.length > 0) {
+          await supabase.from("post_categories").insert(
+            selectedCategoryIds.map((catId) => ({ post_id: savedPostId!, category_id: catId }))
+          );
+        }
       }
 
       lastSavedDataRef.current = currentHash;
@@ -274,7 +291,7 @@ export default function AdminBlogPostEditor() {
       console.error("Auto-save error:", error);
       setSaveStatus("error");
     }
-  }, [title, slug, excerpt, content, featuredImage, category, authorName, readTimeMinutes, tags, isPublished, isFeatured, currentPostId, getFormDataHash, isPublishedPost, checkForPendingChanges, scheduledPublishAt, scheduledTime]);
+  }, [title, slug, excerpt, content, featuredImage, category, authorName, readTimeMinutes, tagsArray, selectedCategoryIds, isPublished, isFeatured, currentPostId, getFormDataHash, isPublishedPost, checkForPendingChanges, scheduledPublishAt, scheduledTime]);
 
   // Publish draft changes to live
   const publishChanges = async () => {
@@ -363,7 +380,7 @@ export default function AdminBlogPostEditor() {
         category,
         authorName,
         readTimeMinutes,
-        tags,
+        tags: tagsArray,
         isPublished,
         isFeatured
       });
@@ -400,7 +417,7 @@ export default function AdminBlogPostEditor() {
     if (!isLoading && title.trim()) {
       scheduleAutoSave();
     }
-  }, [title, slug, excerpt, content, featuredImage, category, authorName, readTimeMinutes, tags, isPublished, isFeatured, isLoading, scheduleAutoSave, scheduledPublishAt, scheduledTime]);
+  }, [title, slug, excerpt, content, featuredImage, category, authorName, readTimeMinutes, tagsArray, selectedCategoryIds, isPublished, isFeatured, isLoading, scheduleAutoSave, scheduledPublishAt, scheduledTime]);
 
   // Cleanup timeout on unmount
   useEffect(() => {
@@ -435,8 +452,12 @@ export default function AdminBlogPostEditor() {
           .eq("id", user.id)
           .single();
         if (profile && !isEditing) {
+          setAuthorUserId(user.id);
           setAuthorName(profile.full_name || user.email || "Admin");
           setAuthorAvatar(profile.avatar_url || "");
+        }
+        if (!authorUserId) {
+          setAuthorUserId(user.id);
         }
       }
     };
@@ -498,7 +519,16 @@ export default function AdminBlogPostEditor() {
         setAuthorName(data.author_name || "");
         setAuthorAvatar(data.author_avatar || "");
         setReadTimeMinutes(data.read_time_minutes || 5);
-        setTags(data.tags?.join(", ") || "");
+        setTagsArray(data.tags || []);
+
+        // Load categories from pivot table
+        const { data: postCats } = await supabase
+          .from("post_categories")
+          .select("category_id")
+          .eq("post_id", postId!);
+        if (postCats && postCats.length > 0) {
+          setSelectedCategoryIds(postCats.map((pc: any) => pc.category_id));
+        }
         setIsPublished(wasPublished);
         setIsFeatured(data.is_featured || false);
         setHasPendingChanges(data.has_pending_changes || false);
@@ -540,7 +570,7 @@ export default function AdminBlogPostEditor() {
           category: data.category || "General",
           authorName: data.author_name || "Admin",
           readTimeMinutes: data.read_time_minutes || 5,
-          tags: data.tags?.join(", ") || "",
+          tags: data.tags || [],
           isPublished: wasPublished,
           isFeatured: data.is_featured || false,
           scheduledPublishAt: data.scheduled_publish_at || null,
@@ -1162,37 +1192,24 @@ export default function AdminBlogPostEditor() {
                 <CardTitle>Meta Information</CardTitle>
               </CardHeader>
               <CardContent className="space-y-4">
-                <div className="grid gap-2">
-                  <Label htmlFor="category">Category</Label>
-                  <Input
-                    id="category"
-                    value={category}
-                    onChange={(e) => setCategory(e.target.value)}
-                    placeholder="e.g., Tutorial, News"
-                  />
-                </div>
+                <CategoryMultiSelect
+                  selectedIds={selectedCategoryIds}
+                  onChange={setSelectedCategoryIds}
+                />
 
-                <div className="grid gap-2">
-                  <Label htmlFor="authorName">Author</Label>
-                  <Input
-                    id="authorName"
-                    value={authorName}
-                    onChange={(e) => setAuthorName(e.target.value)}
-                    placeholder="Author name"
-                  />
-                </div>
+                <AuthorSelect
+                  authorUserId={authorUserId}
+                  onSelect={(userId, name, avatar) => {
+                    setAuthorUserId(userId);
+                    setAuthorName(name);
+                    setAuthorAvatar(avatar);
+                  }}
+                />
 
-
-                <div className="grid gap-2">
-                  <Label htmlFor="tags">Tags</Label>
-                  <Input
-                    id="tags"
-                    value={tags}
-                    onChange={(e) => setTags(e.target.value)}
-                    placeholder="AI, Content, Marketing"
-                  />
-                  <p className="text-xs text-muted-foreground">Separate with commas</p>
-                </div>
+                <TagInput
+                  tags={tagsArray}
+                  onChange={setTagsArray}
+                />
               </CardContent>
             </Card>
           </div>
