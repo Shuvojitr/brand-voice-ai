@@ -150,7 +150,7 @@ export default function BlogPostPage() {
         {/* Back Link */}
         <Link
           to="/blog"
-          className="inline-flex items-center text-sm text-muted-foreground hover:text-foreground mb-8 transition-colors"
+          className="hidden md:inline-flex items-center text-sm text-muted-foreground hover:text-foreground mb-8 transition-colors"
         >
           <ArrowLeft className="mr-2 h-4 w-4" />
           Back to Blog
