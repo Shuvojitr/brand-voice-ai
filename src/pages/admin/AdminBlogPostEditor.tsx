@@ -1,5 +1,6 @@
 import { useState, useRef, useEffect, useCallback } from "react";
 import { useParams, useNavigate } from "react-router-dom";
+import { useQueryClient } from "@tanstack/react-query";
 import { AdminLayout } from "@/components/admin";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -56,6 +57,7 @@ type SaveStatus = "saved" | "saving" | "unsaved" | "error";
 export default function AdminBlogPostEditor() {
   const { postId } = useParams();
   const navigate = useNavigate();
+  const queryClient = useQueryClient();
   const isEditing = !!postId;
 
   const [isUploading, setIsUploading] = useState(false);
@@ -287,6 +289,7 @@ export default function AdminBlogPostEditor() {
 
       lastSavedDataRef.current = currentHash;
       setSaveStatus("saved");
+      queryClient.invalidateQueries({ queryKey: ["blog-posts"] });
     } catch (error: unknown) {
       console.error("Auto-save error:", error);
       setSaveStatus("error");
@@ -307,6 +310,12 @@ export default function AdminBlogPostEditor() {
           excerpt,
           content,
           featured_image: featuredImage || null,
+          author_name: authorName,
+          author_avatar: authorAvatar || null,
+          category,
+          tags: tagsArray,
+          read_time_minutes: readTimeMinutes,
+          is_featured: isFeatured,
           // Clear draft fields
           draft_title: null,
           draft_excerpt: null,
@@ -328,6 +337,7 @@ export default function AdminBlogPostEditor() {
       };
       
       setHasPendingChanges(false);
+      queryClient.invalidateQueries({ queryKey: ["blog-posts"] });
       toast({ title: "Changes published successfully", description: "Your updates are now live." });
     } catch (error: unknown) {
       console.error("Publish error:", error);
