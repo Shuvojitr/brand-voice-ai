@@ -215,7 +215,7 @@ export default function BlogPostPage() {
 
       <article className="container px-4 sm:px-6 lg:px-8 py-8 md:py-20">
         {/* Breadcrumb */}
-        <nav aria-label="Breadcrumb" className="max-w-3xl mx-auto mb-6 md:mb-8 px-1">
+        <nav aria-label="Breadcrumb" className="max-w-5xl mx-auto mb-6 md:mb-8">
           <ol className="flex items-center gap-1 text-xs sm:text-sm text-muted-foreground">
             <li>
               <Link to="/" className="hover:text-foreground transition-colors">Home</Link>
@@ -240,7 +240,7 @@ export default function BlogPostPage() {
         </nav>
 
         {/* Header */}
-        <header className="max-w-3xl mx-auto text-left mb-8 md:mb-12 px-1">
+        <header className="max-w-5xl mx-auto text-left mb-8 md:mb-12">
           {/* Title */}
           <h1 className="text-2xl sm:text-3xl md:text-4xl lg:text-5xl font-bold tracking-tight mb-4 md:mb-6">
             {post.title}
