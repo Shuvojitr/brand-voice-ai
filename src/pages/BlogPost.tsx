@@ -1,4 +1,5 @@
 import { Link, useParams } from "react-router-dom";
+import { Helmet } from "react-helmet-async";
 import { Layout } from "@/components/layout";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -66,6 +67,32 @@ export default function BlogPostPage() {
       })
       .slice(0, 3);
   }, [post, allPosts]);
+
+  const breadcrumbJsonLd = useMemo(() => {
+    if (!post) return null;
+    const items = [
+      { name: "Home", url: window.location.origin + "/" },
+      { name: "Blog", url: window.location.origin + "/blog" },
+    ];
+    if (post.category) {
+      items.push({
+        name: post.category,
+        url: window.location.origin + `/blog/category/${encodeURIComponent(post.category)}`,
+      });
+    }
+    items.push({ name: post.title, url: window.location.href });
+
+    return JSON.stringify({
+      "@context": "https://schema.org",
+      "@type": "BreadcrumbList",
+      itemListElement: items.map((item, i) => ({
+        "@type": "ListItem",
+        position: i + 1,
+        name: item.name,
+        item: item.url,
+      })),
+    });
+  }, [post]);
 
   const currentUrl = typeof window !== "undefined" ? window.location.href : "";
   const shareText = post ? `${post.title} - Check out this article!` : "";
@@ -140,6 +167,12 @@ export default function BlogPostPage() {
 
   return (
     <Layout>
+      {breadcrumbJsonLd && (
+        <Helmet>
+          <script type="application/ld+json">{breadcrumbJsonLd}</script>
+        </Helmet>
+      )}
+
       {/* Reading Progress Bar */}
       <div className="fixed top-0 left-0 right-0 z-50 h-1 bg-muted/30">
         <Progress value={scrollProgress} className="h-1 rounded-none bg-transparent [&>div]:bg-primary" />
