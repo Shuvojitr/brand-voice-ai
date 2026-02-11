@@ -9,6 +9,7 @@ import { Search, Calendar, Clock, User, ArrowRight, ChevronLeft, ChevronRight, S
 import { useBlogPosts } from "@/hooks/useBlogPosts";
 import { formatDistanceToNow, format } from "date-fns";
 import { cn } from "@/lib/utils";
+import { BlurImage } from "@/components/ui/blur-image";
 import { toast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 
@@ -198,10 +199,9 @@ export default function Blog() {
                 {/* Image Section */}
                 <div className="relative h-48 sm:h-64 md:h-[420px] overflow-hidden">
                   {featuredPost.featured_image ? (
-                    <img
+                    <BlurImage
                       src={featuredPost.featured_image}
                       alt={featuredPost.title}
-                      loading="lazy"
                       className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-105"
                     />
                   ) : (
@@ -326,10 +326,9 @@ export default function Blog() {
                   {/* Image */}
                   <div className="relative h-44 sm:h-56 overflow-hidden rounded-xl sm:rounded-2xl mb-4 sm:mb-5">
                     {post.featured_image ? (
-                      <img
+                      <BlurImage
                         src={post.featured_image}
                         alt={post.title}
-                        loading="lazy"
                         className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
                       />
                     ) : (
