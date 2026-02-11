@@ -157,14 +157,14 @@ export default function BlogPostPage() {
         </Link>
 
         {/* Header */}
-        <header className="max-w-3xl mx-auto text-center mb-8 md:mb-12 px-1">
+        <header className="max-w-3xl mx-auto text-left mb-8 md:mb-12 px-1">
           {/* Title */}
           <h1 className="text-2xl sm:text-3xl md:text-4xl lg:text-5xl font-bold tracking-tight mb-4 md:mb-6">
             {post.title}
           </h1>
 
           {/* Meta */}
-          <div className="flex flex-wrap items-center justify-center gap-3 md:gap-6 text-xs sm:text-sm text-muted-foreground">
+          <div className="flex flex-wrap items-center justify-start gap-3 md:gap-6 text-xs sm:text-sm text-muted-foreground">
             <Link
               to={`/blog/author/${encodeURIComponent(post.author_name || "Admin")}`}
               className="flex items-center gap-1.5 hover:text-foreground transition-colors"
