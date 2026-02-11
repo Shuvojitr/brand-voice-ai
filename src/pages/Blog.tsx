@@ -201,6 +201,7 @@ export default function Blog() {
                     <img
                       src={featuredPost.featured_image}
                       alt={featuredPost.title}
+                      loading="lazy"
                       className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-105"
                     />
                   ) : (
@@ -252,6 +253,7 @@ export default function Blog() {
                             <img
                               src={featuredPost.author_avatar}
                               alt={featuredPost.author_name}
+                              loading="lazy"
                               className="h-8 w-8 rounded-full object-cover"
                             />
                           ) : (
@@ -327,6 +329,7 @@ export default function Blog() {
                       <img
                         src={post.featured_image}
                         alt={post.title}
+                        loading="lazy"
                         className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
                       />
                     ) : (
@@ -384,6 +387,7 @@ export default function Blog() {
                           <img
                             src={post.author_avatar}
                             alt={post.author_name || "Author"}
+                            loading="lazy"
                             className="h-7 w-7 rounded-full object-cover"
                           />
                         ) : (
