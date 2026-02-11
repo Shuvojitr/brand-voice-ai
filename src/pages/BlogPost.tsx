@@ -11,7 +11,7 @@ import {
   Calendar,
   Clock,
   User,
-  ArrowLeft,
+  ChevronRight,
   ArrowRight,
   Share2,
   Twitter,
@@ -130,7 +130,6 @@ export default function BlogPostPage() {
           </p>
           <Button asChild>
             <Link to="/blog">
-              <ArrowLeft className="mr-2 h-4 w-4" />
               Back to Blog
             </Link>
           </Button>
@@ -147,6 +146,31 @@ export default function BlogPostPage() {
       </div>
 
       <article className="container px-4 sm:px-6 lg:px-8 py-8 md:py-20">
+        {/* Breadcrumb */}
+        <nav aria-label="Breadcrumb" className="max-w-3xl mx-auto mb-6 md:mb-8 px-1">
+          <ol className="flex items-center gap-1 text-xs sm:text-sm text-muted-foreground">
+            <li>
+              <Link to="/" className="hover:text-foreground transition-colors">Home</Link>
+            </li>
+            <li><ChevronRight className="h-3.5 w-3.5" /></li>
+            <li>
+              <Link to="/blog" className="hover:text-foreground transition-colors">Blog</Link>
+            </li>
+            {post.category && (
+              <>
+                <li><ChevronRight className="h-3.5 w-3.5" /></li>
+                <li>
+                  <Link to={`/blog/category/${encodeURIComponent(post.category)}`} className="hover:text-foreground transition-colors">
+                    {post.category}
+                  </Link>
+                </li>
+              </>
+            )}
+            <li><ChevronRight className="h-3.5 w-3.5" /></li>
+            <li className="text-foreground font-medium truncate max-w-[200px] sm:max-w-xs">{post.title}</li>
+          </ol>
+        </nav>
+
         {/* Header */}
         <header className="max-w-3xl mx-auto text-left mb-8 md:mb-12 px-1">
           {/* Title */}
