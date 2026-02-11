@@ -42,7 +42,7 @@ export default function BlogCategoryPage() {
   if (isLoading) {
     return (
       <Layout>
-        <div className="container py-12 md:py-20">
+        <div className="container py-6 md:py-10">
           <Skeleton className="h-8 w-32 mb-6" />
           <Skeleton className="h-12 w-1/2 mb-8" />
           <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
@@ -57,7 +57,7 @@ export default function BlogCategoryPage() {
 
   return (
     <Layout>
-      <div className="container py-12 md:py-20">
+      <div className="container py-6 md:py-10">
         {/* Back Link */}
         <Link
           to="/blog"

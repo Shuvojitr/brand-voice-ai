@@ -213,7 +213,7 @@ export default function BlogPostPage() {
         <Progress value={scrollProgress} className="h-1 rounded-none bg-transparent [&>div]:bg-primary" />
       </div>
 
-      <article className="container px-4 sm:px-6 lg:px-8 py-8 md:py-20">
+      <article className="container px-4 sm:px-6 lg:px-8 py-6 md:py-10">
         {/* Breadcrumb */}
         <nav aria-label="Breadcrumb" className="max-w-5xl mx-auto mb-6 md:mb-8">
           <ol className="flex items-center gap-1 text-xs sm:text-sm text-muted-foreground">
