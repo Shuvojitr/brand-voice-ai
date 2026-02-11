@@ -6,6 +6,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Separator } from "@/components/ui/separator";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Progress } from "@/components/ui/progress";
+import { BlurImage } from "@/components/ui/blur-image";
 import {
   Calendar,
   Clock,
@@ -208,10 +209,9 @@ export default function BlogPostPage() {
             {post.featured_image && (
               <div className="mb-10">
                 <div className="relative rounded-2xl overflow-hidden shadow-lg aspect-video">
-                  <img
+                  <BlurImage
                     src={post.featured_image}
                     alt={post.title}
-                    loading="lazy"
                     className="w-full h-full object-cover"
                   />
                 </div>
@@ -323,10 +323,9 @@ export default function BlogPostPage() {
                     {/* Featured Image */}
                     {relatedPost.featured_image ? (
                       <div className="relative h-40 overflow-hidden">
-                        <img
+                        <BlurImage
                           src={relatedPost.featured_image}
                           alt={relatedPost.title}
-                          loading="lazy"
                           className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-105"
                         />
                       </div>
