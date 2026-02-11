@@ -84,7 +84,8 @@ export default function AdminBlogPostEditor() {
   const [content, setContent] = useState("");
   const [featuredImage, setFeaturedImage] = useState("");
   const [category, setCategory] = useState("General");
-  const [authorName, setAuthorName] = useState("Admin");
+  const [authorName, setAuthorName] = useState("");
+  const [authorAvatar, setAuthorAvatar] = useState("");
   const [readTimeMinutes, setReadTimeMinutes] = useState(5);
   const [tags, setTags] = useState("");
   const [isPublished, setIsPublished] = useState(false);
@@ -136,11 +137,11 @@ export default function AdminBlogPostEditor() {
   const getFormDataHash = useCallback(() => {
     return JSON.stringify({
       title, slug, excerpt, content, featuredImage,
-      category, authorName, readTimeMinutes, tags,
+      category, authorName, authorAvatar, readTimeMinutes, tags,
       isPublished, isFeatured, scheduledPublishAt: scheduledPublishAt?.toISOString(),
       scheduledTime
     });
-  }, [title, slug, excerpt, content, featuredImage, category, authorName, readTimeMinutes, tags, isPublished, isFeatured, scheduledPublishAt, scheduledTime]);
+  }, [title, slug, excerpt, content, featuredImage, category, authorName, authorAvatar, readTimeMinutes, tags, isPublished, isFeatured, scheduledPublishAt, scheduledTime]);
 
   // Auto-save function - saves to draft fields for published posts
   const autoSave = useCallback(async () => {
@@ -164,6 +165,7 @@ export default function AdminBlogPostEditor() {
             slug: slug || title.toLowerCase().replace(/\s+/g, "-").replace(/[^a-z0-9-]/g, ""),
             category,
             author_name: authorName,
+            author_avatar: authorAvatar || null,
             read_time_minutes: readTimeMinutes,
             tags: tags ? tags.split(",").map((t) => t.trim()).filter(Boolean) : [],
             is_featured: isFeatured,
@@ -203,6 +205,7 @@ export default function AdminBlogPostEditor() {
             featured_image: featuredImage || undefined,
             category,
             author_name: authorName,
+            author_avatar: authorAvatar || undefined,
             read_time_minutes: readTimeMinutes,
             tags: tags ? tags.split(",").map((t) => t.trim()).filter(Boolean) : [],
             is_published: isPublished,
@@ -243,6 +246,7 @@ export default function AdminBlogPostEditor() {
           featured_image: featuredImage || undefined,
           category,
           author_name: authorName,
+          author_avatar: authorAvatar || undefined,
           read_time_minutes: readTimeMinutes,
           tags: tags ? tags.split(",").map((t) => t.trim()).filter(Boolean) : [],
           is_published: isPublished,
@@ -420,6 +424,25 @@ export default function AdminBlogPostEditor() {
     return () => window.removeEventListener("beforeunload", handleBeforeUnload);
   }, [saveStatus]);
 
+  // Load current user's profile for author defaults
+  useEffect(() => {
+    const loadUserProfile = async () => {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (user) {
+        const { data: profile } = await supabase
+          .from("profiles")
+          .select("full_name, avatar_url")
+          .eq("id", user.id)
+          .single();
+        if (profile && !isEditing) {
+          setAuthorName(profile.full_name || user.email || "Admin");
+          setAuthorAvatar(profile.avatar_url || "");
+        }
+      }
+    };
+    loadUserProfile();
+  }, [isEditing]);
+
   // Load existing post data if editing
   useEffect(() => {
     if (isEditing && postId) {
@@ -472,7 +495,8 @@ export default function AdminBlogPostEditor() {
         }
         
         setCategory(data.category || "General");
-        setAuthorName(data.author_name || "Admin");
+        setAuthorName(data.author_name || "");
+        setAuthorAvatar(data.author_avatar || "");
         setReadTimeMinutes(data.read_time_minutes || 5);
         setTags(data.tags?.join(", ") || "");
         setIsPublished(wasPublished);
