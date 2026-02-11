@@ -79,7 +79,7 @@ export default function BlogAuthorPage() {
   if (isLoading) {
     return (
       <Layout>
-        <div className="container py-12 md:py-20">
+        <div className="container py-6 md:py-10">
           <Skeleton className="h-8 w-32 mb-6" />
           <div className="flex items-center gap-6 mb-12">
             <Skeleton className="h-24 w-24 rounded-full" />
@@ -100,7 +100,7 @@ export default function BlogAuthorPage() {
 
   return (
     <Layout>
-      <div className="container py-12 md:py-20">
+      <div className="container py-6 md:py-10">
         {/* Back Link */}
         <Link
           to="/blog"
