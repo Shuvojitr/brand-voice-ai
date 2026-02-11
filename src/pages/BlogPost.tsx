@@ -211,6 +211,7 @@ export default function BlogPostPage() {
                   <img
                     src={post.featured_image}
                     alt={post.title}
+                    loading="lazy"
                     className="w-full h-full object-cover"
                   />
                 </div>
@@ -224,7 +225,7 @@ export default function BlogPostPage() {
                   dangerouslySetInnerHTML={{
                     __html: DOMPurify.sanitize(post.content, {
                       ALLOWED_TAGS: ['h1', 'h2', 'h3', 'h4', 'h5', 'h6', 'p', 'a', 'ul', 'ol', 'li', 'strong', 'em', 'b', 'i', 'u', 'br', 'blockquote', 'code', 'pre', 'div', 'span', 'img', 's', 'strike'],
-                      ALLOWED_ATTR: ['href', 'target', 'rel', 'src', 'alt', 'class', 'id']
+                      ALLOWED_ATTR: ['href', 'target', 'rel', 'src', 'alt', 'class', 'id', 'loading']
                     })
                   }}
                 />
@@ -325,6 +326,7 @@ export default function BlogPostPage() {
                         <img
                           src={relatedPost.featured_image}
                           alt={relatedPost.title}
+                          loading="lazy"
                           className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-105"
                         />
                       </div>
