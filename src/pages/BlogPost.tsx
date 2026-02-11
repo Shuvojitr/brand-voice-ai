@@ -147,15 +147,6 @@ export default function BlogPostPage() {
       </div>
 
       <article className="container px-4 sm:px-6 lg:px-8 py-8 md:py-20">
-        {/* Back Link */}
-        <Link
-          to="/blog"
-          className="hidden lg:inline-flex items-center text-sm text-muted-foreground hover:text-foreground mb-8 transition-colors"
-        >
-          <ArrowLeft className="mr-2 h-4 w-4" />
-          Back to Blog
-        </Link>
-
         {/* Header */}
         <header className="max-w-3xl mx-auto text-left mb-8 md:mb-12 px-1">
           {/* Title */}
