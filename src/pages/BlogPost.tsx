@@ -94,6 +94,40 @@ export default function BlogPostPage() {
     });
   }, [post]);
 
+  const articleJsonLd = useMemo(() => {
+    if (!post) return null;
+    const data: Record<string, unknown> = {
+      "@context": "https://schema.org",
+      "@type": "Article",
+      headline: post.title,
+      url: window.location.href,
+      mainEntityOfPage: { "@type": "WebPage", "@id": window.location.href },
+      author: {
+        "@type": "Person",
+        name: post.author_name || "Admin",
+      },
+    };
+    if (post.featured_image) {
+      data.image = post.featured_image;
+    }
+    if (post.published_at) {
+      data.datePublished = post.published_at;
+    }
+    if (post.updated_at) {
+      data.dateModified = post.updated_at;
+    }
+    if (post.excerpt) {
+      data.description = post.excerpt;
+    }
+    if (post.category) {
+      data.articleSection = post.category;
+    }
+    if (post.tags?.length) {
+      data.keywords = post.tags.join(", ");
+    }
+    return JSON.stringify(data);
+  }, [post]);
+
   const currentUrl = typeof window !== "undefined" ? window.location.href : "";
   const shareText = post ? `${post.title} - Check out this article!` : "";
 
@@ -167,9 +201,10 @@ export default function BlogPostPage() {
 
   return (
     <Layout>
-      {breadcrumbJsonLd && (
+      {(breadcrumbJsonLd || articleJsonLd) && (
         <Helmet>
-          <script type="application/ld+json">{breadcrumbJsonLd}</script>
+          {breadcrumbJsonLd && <script type="application/ld+json">{breadcrumbJsonLd}</script>}
+          {articleJsonLd && <script type="application/ld+json">{articleJsonLd}</script>}
         </Helmet>
       )}
 
