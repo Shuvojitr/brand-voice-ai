@@ -385,6 +385,7 @@ export type Database = {
         Row: {
           author_avatar: string | null
           author_name: string | null
+          author_user_id: string | null
           category: string | null
           content: string | null
           created_at: string | null
@@ -410,6 +411,7 @@ export type Database = {
         Insert: {
           author_avatar?: string | null
           author_name?: string | null
+          author_user_id?: string | null
           category?: string | null
           content?: string | null
           created_at?: string | null
@@ -435,6 +437,7 @@ export type Database = {
         Update: {
           author_avatar?: string | null
           author_name?: string | null
+          author_user_id?: string | null
           category?: string | null
           content?: string | null
           created_at?: string | null
@@ -457,7 +460,15 @@ export type Database = {
           title?: string
           updated_at?: string | null
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "blog_posts_author_user_id_fkey"
+            columns: ["author_user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       brand_voices: {
         Row: {

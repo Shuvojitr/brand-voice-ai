@@ -12,6 +12,7 @@ export interface BlogPost {
   category: string | null;
   author_name: string | null;
   author_avatar: string | null;
+  author_user_id: string | null;
   is_published: boolean | null;
   is_featured: boolean | null;
   published_at: string | null;
@@ -39,6 +40,7 @@ export interface BlogPostInput {
   category?: string;
   author_name?: string;
   author_avatar?: string;
+  author_user_id?: string | null;
   is_published?: boolean;
   is_featured?: boolean;
   published_at?: string;

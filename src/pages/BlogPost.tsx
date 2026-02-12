@@ -68,6 +68,25 @@ export default function BlogPostPage() {
 
   const primaryCategory = postCategories?.[0] || null;
 
+  // Fetch author from profiles table using author_user_id
+  const { data: authorProfile } = useQuery({
+    queryKey: ["blog-author-profile", post?.author_user_id],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("profiles")
+        .select("id, full_name, email, avatar_url")
+        .eq("id", post!.author_user_id!)
+        .single();
+      if (error) throw error;
+      return data;
+    },
+    enabled: !!post?.author_user_id,
+  });
+
+  // Use profile data if available, fallback to stored text fields
+  const authorName = authorProfile?.full_name || authorProfile?.email || post?.author_name || "Admin";
+  const authorAvatar = authorProfile?.avatar_url || post?.author_avatar || null;
+
   // Get related posts (same category or shared tags)
   const relatedPosts = useMemo(() => {
     if (!post || !allPosts) return [];
@@ -120,7 +139,7 @@ export default function BlogPostPage() {
       mainEntityOfPage: { "@type": "WebPage", "@id": window.location.href },
       author: {
         "@type": "Person",
-        name: post.author_name || "Admin",
+        name: authorName,
       },
     };
     if (post.featured_image) {
@@ -265,15 +284,15 @@ export default function BlogPostPage() {
           {/* Meta */}
           <div className="flex flex-wrap items-center justify-start gap-3 md:gap-6 text-xs sm:text-sm text-muted-foreground">
             <Link
-              to={`/blog/author/${encodeURIComponent(post.author_name || "Admin")}`}
+              to={`/blog/author/${encodeURIComponent(authorName)}`}
               className="flex items-center gap-1.5 hover:text-foreground transition-colors"
             >
-              {post.author_avatar ? (
-                <img src={post.author_avatar} alt={post.author_name || "Admin"} className="h-5 w-5 sm:h-6 sm:w-6 rounded-full object-cover" />
+              {authorAvatar ? (
+                <img src={authorAvatar} alt={authorName} className="h-5 w-5 sm:h-6 sm:w-6 rounded-full object-cover" />
               ) : (
                 <User className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
               )}
-              <span>{post.author_name || "Admin"}</span>
+              <span>{authorName}</span>
             </Link>
             {post.published_at && (
               <div className="flex items-center gap-1.5">
