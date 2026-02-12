@@ -28,6 +28,8 @@ import { format } from "date-fns";
 import { useState, useMemo, useEffect } from "react";
 import { toast } from "@/hooks/use-toast";
 import DOMPurify from "dompurify";
+import { useQuery } from "@tanstack/react-query";
+import { supabase } from "@/integrations/supabase/client";
 
 export default function BlogPostPage() {
   const [scrollProgress, setScrollProgress] = useState(0);
@@ -50,6 +52,22 @@ export default function BlogPostPage() {
   const { data: allPosts } = useBlogPosts();
   const [copied, setCopied] = useState(false);
 
+  // Fetch categories from pivot table
+  const { data: postCategories } = useQuery({
+    queryKey: ["post-categories", post?.id],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("post_categories")
+        .select("category_id, blog_categories(id, name, slug)")
+        .eq("post_id", post!.id);
+      if (error) throw error;
+      return (data || []).map((pc: any) => pc.blog_categories).filter(Boolean) as { id: string; name: string; slug: string }[];
+    },
+    enabled: !!post?.id,
+  });
+
+  const primaryCategory = postCategories?.[0] || null;
+
   // Get related posts (same category or shared tags)
   const relatedPosts = useMemo(() => {
     if (!post || !allPosts) return [];
@@ -57,8 +75,6 @@ export default function BlogPostPage() {
     return allPosts
       .filter((p) => {
         if (p.id === post.id) return false;
-        // Same category
-        if (p.category === post.category) return true;
         // Shared tags
         if (post.tags && p.tags) {
           return post.tags.some((tag) => p.tags?.includes(tag));
@@ -74,10 +90,10 @@ export default function BlogPostPage() {
       { name: "Home", url: window.location.origin + "/" },
       { name: "Blog", url: window.location.origin + "/blog" },
     ];
-    if (post.category) {
+    if (primaryCategory) {
       items.push({
-        name: post.category,
-        url: window.location.origin + `/blog/category/${encodeURIComponent(post.category)}`,
+        name: primaryCategory.name,
+        url: window.location.origin + `/blog/category/${primaryCategory.slug}`,
       });
     }
     items.push({ name: post.title, url: window.location.href });
@@ -119,8 +135,8 @@ export default function BlogPostPage() {
     if (post.excerpt) {
       data.description = post.excerpt;
     }
-    if (post.category) {
-      data.articleSection = post.category;
+    if (primaryCategory) {
+      data.articleSection = primaryCategory.name;
     }
     if (post.tags?.length) {
       data.keywords = post.tags.join(", ");
@@ -224,12 +240,12 @@ export default function BlogPostPage() {
             <li>
               <Link to="/blog" className="hover:text-foreground transition-colors">Blog</Link>
             </li>
-            {post.category && (
+            {primaryCategory && (
               <>
                 <li><ChevronRight className="h-3.5 w-3.5" /></li>
                 <li>
-                  <Link to={`/blog/category/${encodeURIComponent(post.category)}`} className="hover:text-foreground transition-colors">
-                    {post.category}
+                  <Link to={`/blog/category/${primaryCategory.slug}`} className="hover:text-foreground transition-colors">
+                    {primaryCategory.name}
                   </Link>
                 </li>
               </>
@@ -271,16 +287,17 @@ export default function BlogPostPage() {
                 <span>{post.read_time_minutes} min</span>
               </div>
             )}
-            {post.category && (
+            {postCategories && postCategories.length > 0 && postCategories.map((cat) => (
               <Link
-                to={`/blog/category/${encodeURIComponent(post.category)}`}
+                key={cat.id}
+                to={`/blog/category/${cat.slug}`}
                 className="flex items-center gap-1.5 hover:text-foreground transition-colors"
               >
                 <Badge variant="secondary" className="text-[10px] sm:text-xs hover:bg-secondary/80 transition-colors">
-                  {post.category}
+                  {cat.name}
                 </Badge>
               </Link>
-            )}
+            ))}
           </div>
         </header>
 
