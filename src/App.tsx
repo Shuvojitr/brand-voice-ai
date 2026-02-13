@@ -109,7 +109,7 @@ function AppContent() {
         <Route path="/docs" element={<Docs />} />
         <Route path="/blog" element={<Blog />} />
         <Route path="/blog/category/:category" element={<BlogCategory />} />
-        <Route path="/blog/author/:name" element={<BlogAuthor />} />
+        <Route path="/blog/author/:authorId" element={<BlogAuthor />} />
         <Route path="/blog/:slug" element={<BlogPost />} />
         {/* Admin Routes */}
         <Route path="/admin" element={<AdminOverview />} />

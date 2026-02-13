@@ -284,7 +284,7 @@ export default function Blog() {
                     <div className="flex flex-wrap items-center gap-3 sm:gap-4 text-xs sm:text-sm text-muted-foreground">
                       {getAuthorName(featuredPost) && (
                         <Link
-                          to={`/blog/author/${encodeURIComponent(getAuthorName(featuredPost))}`}
+                          to={`/blog/author/${featuredPost.author_user_id || encodeURIComponent(getAuthorName(featuredPost))}`}
                           onClick={(e) => e.stopPropagation()}
                           className="flex items-center gap-2 hover:text-foreground transition-colors"
                         >
@@ -417,7 +417,7 @@ export default function Blog() {
                     {/* Author & Read Time */}
                     <div className="flex items-center justify-between pt-4 border-t border-border/50">
                       <Link
-                        to={`/blog/author/${encodeURIComponent(getAuthorName(post))}`}
+                        to={`/blog/author/${post.author_user_id || encodeURIComponent(getAuthorName(post))}`}
                         onClick={(e) => e.stopPropagation()}
                         className="flex items-center gap-2 hover:opacity-80 transition-opacity"
                       >

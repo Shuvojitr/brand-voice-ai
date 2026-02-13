@@ -284,7 +284,7 @@ export default function BlogPostPage() {
           {/* Meta */}
           <div className="flex flex-wrap items-center justify-start gap-3 md:gap-6 text-xs sm:text-sm text-muted-foreground">
             <Link
-              to={`/blog/author/${encodeURIComponent(authorName)}`}
+              to={`/blog/author/${post.author_user_id || encodeURIComponent(authorName)}`}
               className="flex items-center gap-1.5 hover:text-foreground transition-colors"
             >
               {authorAvatar ? (
