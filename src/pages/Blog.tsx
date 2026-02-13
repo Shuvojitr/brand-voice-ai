@@ -12,11 +12,50 @@ import { cn } from "@/lib/utils";
 import { BlurImage } from "@/components/ui/blur-image";
 import { toast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
+import { useQuery } from "@tanstack/react-query";
 
 const POSTS_PER_PAGE = 6;
 
 export default function Blog() {
   const { data: posts, isLoading } = useBlogPosts();
+
+  // Fetch author profiles for all posts
+  const authorUserIds = useMemo(() => {
+    if (!posts) return [];
+    return [...new Set(posts.map(p => p.author_user_id).filter(Boolean))] as string[];
+  }, [posts]);
+
+  const { data: authorProfiles } = useQuery({
+    queryKey: ["blog-author-profiles", authorUserIds],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("profiles")
+        .select("id, full_name, email, avatar_url")
+        .in("id", authorUserIds);
+      if (error) throw error;
+      const map: Record<string, { full_name: string | null; email: string | null; avatar_url: string | null }> = {};
+      for (const p of data || []) {
+        map[p.id] = p;
+      }
+      return map;
+    },
+    enabled: authorUserIds.length > 0,
+  });
+
+  const getAuthorName = (post: { author_user_id?: string | null; author_name?: string | null }) => {
+    if (post.author_user_id && authorProfiles?.[post.author_user_id]) {
+      const p = authorProfiles[post.author_user_id];
+      return p.full_name || p.email || post.author_name || "Admin";
+    }
+    return post.author_name || "Admin";
+  };
+
+  const getAuthorAvatar = (post: { author_user_id?: string | null; author_avatar?: string | null }) => {
+    if (post.author_user_id && authorProfiles?.[post.author_user_id]) {
+      return authorProfiles[post.author_user_id].avatar_url || post.author_avatar || null;
+    }
+    return post.author_avatar || null;
+  };
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedCategory, setSelectedCategory] = useState<string>("all");
   const [currentPage, setCurrentPage] = useState(1);
@@ -243,16 +282,16 @@ export default function Blog() {
 
                     {/* Meta Info */}
                     <div className="flex flex-wrap items-center gap-3 sm:gap-4 text-xs sm:text-sm text-muted-foreground">
-                      {featuredPost.author_name && (
+                      {getAuthorName(featuredPost) && (
                         <Link
-                          to={`/blog/author/${encodeURIComponent(featuredPost.author_name)}`}
+                          to={`/blog/author/${encodeURIComponent(getAuthorName(featuredPost))}`}
                           onClick={(e) => e.stopPropagation()}
                           className="flex items-center gap-2 hover:text-foreground transition-colors"
                         >
-                          {featuredPost.author_avatar ? (
+                          {getAuthorAvatar(featuredPost) ? (
                             <img
-                              src={featuredPost.author_avatar}
-                              alt={featuredPost.author_name}
+                              src={getAuthorAvatar(featuredPost)!}
+                              alt={getAuthorName(featuredPost)}
                               loading="lazy"
                               className="h-8 w-8 rounded-full object-cover"
                             />
@@ -261,7 +300,7 @@ export default function Blog() {
                               <User className="h-4 w-4 text-primary" />
                             </div>
                           )}
-                          <span className="font-medium">{featuredPost.author_name}</span>
+                          <span className="font-medium">{getAuthorName(featuredPost)}</span>
                         </Link>
                       )}
                       {featuredPost.published_at && (
@@ -378,14 +417,14 @@ export default function Blog() {
                     {/* Author & Read Time */}
                     <div className="flex items-center justify-between pt-4 border-t border-border/50">
                       <Link
-                        to={`/blog/author/${encodeURIComponent(post.author_name || "Admin")}`}
+                        to={`/blog/author/${encodeURIComponent(getAuthorName(post))}`}
                         onClick={(e) => e.stopPropagation()}
                         className="flex items-center gap-2 hover:opacity-80 transition-opacity"
                       >
-                        {post.author_avatar ? (
+                        {getAuthorAvatar(post) ? (
                           <img
-                            src={post.author_avatar}
-                            alt={post.author_name || "Author"}
+                            src={getAuthorAvatar(post)!}
+                            alt={getAuthorName(post)}
                             loading="lazy"
                             className="h-7 w-7 rounded-full object-cover"
                           />
@@ -395,7 +434,7 @@ export default function Blog() {
                           </div>
                         )}
                         <span className="text-sm font-medium">
-                          {post.author_name || "Admin"}
+                          {getAuthorName(post)}
                         </span>
                       </Link>
                       {post.read_time_minutes && (
