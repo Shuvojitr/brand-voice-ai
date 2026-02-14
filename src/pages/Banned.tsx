@@ -1,8 +1,51 @@
-import { ShieldX, Mail, HelpCircle } from "lucide-react";
+import { useEffect, useState } from "react";
+import { useNavigate } from "react-router-dom";
+import { ShieldX, Mail, HelpCircle, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { supabase } from "@/integrations/supabase/client";
 
 const Banned = () => {
+  const navigate = useNavigate();
+  const [loading, setLoading] = useState(true);
+  const [isBanned, setIsBanned] = useState(false);
+
+  useEffect(() => {
+    const checkBanStatus = async () => {
+      const { data: { session } } = await supabase.auth.getSession();
+
+      if (!session?.user) {
+        navigate("/", { replace: true });
+        return;
+      }
+
+      const { data: profile } = await supabase
+        .from("profiles")
+        .select("is_banned")
+        .eq("id", session.user.id)
+        .single();
+
+      if (profile?.is_banned) {
+        setIsBanned(true);
+      } else {
+        navigate("/dashboard", { replace: true });
+      }
+      setLoading(false);
+    };
+
+    checkBanStatus();
+  }, [navigate]);
+
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-background flex items-center justify-center">
+        <Loader2 className="h-8 w-8 animate-spin text-primary" />
+      </div>
+    );
+  }
+
+  if (!isBanned) return null;
+
   return (
     <div className="min-h-screen bg-background flex items-center justify-center p-4">
       <Card className="max-w-md w-full text-center">
