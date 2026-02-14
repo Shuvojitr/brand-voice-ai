@@ -13,6 +13,7 @@ import { BlurImage } from "@/components/ui/blur-image";
 import { toast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import { useQuery } from "@tanstack/react-query";
+import { useBlogCategories } from "@/hooks/useBlogCategories";
 
 const POSTS_PER_PAGE = 6;
 
@@ -105,12 +106,47 @@ export default function Blog() {
     }
   };
 
-  // Get unique categories from posts
+  // Fetch categories from blog_categories table
+  const { categories: blogCategories } = useBlogCategories();
+
+  // Fetch post_categories pivot data
+  const { data: postCategoryLinks } = useQuery({
+    queryKey: ["post-categories-links"],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("post_categories")
+        .select("post_id, category_id");
+      if (error) throw error;
+      return data || [];
+    },
+  });
+
+  // Build lookup: postId -> category names & slugs
+  const postCategoryMap = useMemo(() => {
+    const map: Record<string, { name: string; slug: string }[]> = {};
+    if (!postCategoryLinks || !blogCategories) return map;
+    const catMap = new Map(blogCategories.map(c => [c.id, c]));
+    for (const link of postCategoryLinks) {
+      const cat = catMap.get(link.category_id);
+      if (cat && cat.is_active) {
+        if (!map[link.post_id]) map[link.post_id] = [];
+        map[link.post_id].push({ name: cat.name, slug: cat.slug });
+      }
+    }
+    return map;
+  }, [postCategoryLinks, blogCategories]);
+
+  // Active categories that have at least one published post
   const categories = useMemo(() => {
-    if (!posts) return [];
-    const cats = new Set(posts.map((p) => p.category).filter(Boolean));
-    return Array.from(cats) as string[];
-  }, [posts]);
+    if (!blogCategories || !postCategoryLinks || !posts) return [];
+    const publishedPostIds = new Set(posts.map(p => p.id));
+    const activeCatIds = new Set(
+      postCategoryLinks
+        .filter(link => publishedPostIds.has(link.post_id))
+        .map(link => link.category_id)
+    );
+    return blogCategories.filter(c => c.is_active && activeCatIds.has(c.id));
+  }, [blogCategories, postCategoryLinks, posts]);
 
   // Get featured post (first featured or first post)
   const featuredPost = useMemo(() => {
@@ -142,7 +178,7 @@ export default function Blog() {
         );
 
       const matchesCategory =
-        selectedCategory === "all" || post.category === selectedCategory;
+        selectedCategory === "all" || (postCategoryLinks || []).some(link => link.post_id === post.id && link.category_id === selectedCategory);
 
       return matchesSearch && matchesCategory;
     });
@@ -212,13 +248,13 @@ export default function Blog() {
               </Button>
               {categories.map((cat) => (
                 <Button
-                  key={cat}
-                  variant={selectedCategory === cat ? "default" : "outline"}
+                  key={cat.id}
+                  variant={selectedCategory === cat.id ? "default" : "outline"}
                   size="sm"
-                  onClick={() => handleCategoryChange(cat)}
+                  onClick={() => handleCategoryChange(cat.id)}
                   className="rounded-full whitespace-nowrap text-xs sm:text-sm"
                 >
-                  {cat}
+                  {cat.name}
                 </Button>
               ))}
             </div>
@@ -260,16 +296,17 @@ export default function Blog() {
                       <Badge variant="glow" className="text-sm">
                         Featured
                       </Badge>
-                      {featuredPost.category && (
+                      {postCategoryMap[featuredPost.id]?.map((cat) => (
                         <Link
-                          to={`/blog/category/${encodeURIComponent(featuredPost.category)}`}
+                          key={cat.slug}
+                          to={`/blog/category/${encodeURIComponent(cat.slug)}`}
                           onClick={(e) => e.stopPropagation()}
                         >
                           <Badge variant="outline" className="text-sm hover:bg-primary/10 transition-colors">
-                            {featuredPost.category}
+                            {cat.name}
                           </Badge>
                         </Link>
-                      )}
+                      ))}
                     </div>
 
                     <h2 className="text-xl sm:text-2xl md:text-3xl lg:text-4xl font-bold leading-tight group-hover:text-primary transition-colors">
@@ -385,16 +422,17 @@ export default function Blog() {
                   <div className="flex-1 flex flex-col">
                     {/* Category & Date */}
                     <div className="flex items-center gap-2 sm:gap-3 mb-2 sm:mb-3 text-xs sm:text-sm">
-                      {post.category && (
+                      {postCategoryMap[post.id]?.map((cat) => (
                         <Link
-                          to={`/blog/category/${encodeURIComponent(post.category)}`}
+                          key={cat.slug}
+                          to={`/blog/category/${encodeURIComponent(cat.slug)}`}
                           onClick={(e) => e.stopPropagation()}
                         >
                           <Badge variant="secondary" className="rounded-full font-medium hover:bg-secondary/80 transition-colors">
-                            {post.category}
+                            {cat.name}
                           </Badge>
                         </Link>
-                      )}
+                      ))}
                       {post.published_at && (
                         <span className="text-muted-foreground">
                           {formatDistanceToNow(new Date(post.published_at), {
