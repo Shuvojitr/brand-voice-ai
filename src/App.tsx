@@ -41,6 +41,7 @@ import AdminTemplateEditor from "./pages/admin/AdminTemplateEditor";
 import AdminTestimonials from "./pages/admin/AdminTestimonials";
 import AdminFaqs from "./pages/admin/AdminFaqs";
 import AdminPlans from "./pages/admin/AdminPlans";
+import AdminPaymentGateways from "./pages/admin/AdminPaymentGateways";
 import AdminAppearance from "./pages/admin/AdminAppearance";
 import AdminSettings from "./pages/admin/AdminSettings";
 import AdminApiKeys from "./pages/admin/AdminApiKeys";
@@ -128,6 +129,7 @@ function AppContent() {
         <Route path="/admin/testimonials" element={<AdminTestimonials />} />
         <Route path="/admin/faqs" element={<AdminFaqs />} />
         <Route path="/admin/plans" element={<AdminPlans />} />
+        <Route path="/admin/payment-gateways" element={<AdminPaymentGateways />} />
         <Route path="/admin/appearance" element={<AdminAppearance />} />
         <Route path="/admin/seo" element={<AdminSeo />} />
         <Route path="/admin/activity" element={<AdminActivityLog />} />
