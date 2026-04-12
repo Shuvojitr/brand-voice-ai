@@ -1068,6 +1068,120 @@ export type Database = {
         }
         Relationships: []
       }
+      payment_providers: {
+        Row: {
+          api_key_encrypted: string | null
+          api_secret_encrypted: string | null
+          config: Json
+          created_at: string
+          description: string | null
+          id: string
+          is_active: boolean
+          logo_url: string | null
+          mode: string
+          name: string
+          provider_type: string
+          slug: string
+          sort_order: number
+          supported_currencies: string[]
+          updated_at: string
+          webhook_secret_encrypted: string | null
+          webhook_url: string | null
+        }
+        Insert: {
+          api_key_encrypted?: string | null
+          api_secret_encrypted?: string | null
+          config?: Json
+          created_at?: string
+          description?: string | null
+          id?: string
+          is_active?: boolean
+          logo_url?: string | null
+          mode?: string
+          name: string
+          provider_type?: string
+          slug: string
+          sort_order?: number
+          supported_currencies?: string[]
+          updated_at?: string
+          webhook_secret_encrypted?: string | null
+          webhook_url?: string | null
+        }
+        Update: {
+          api_key_encrypted?: string | null
+          api_secret_encrypted?: string | null
+          config?: Json
+          created_at?: string
+          description?: string | null
+          id?: string
+          is_active?: boolean
+          logo_url?: string | null
+          mode?: string
+          name?: string
+          provider_type?: string
+          slug?: string
+          sort_order?: number
+          supported_currencies?: string[]
+          updated_at?: string
+          webhook_secret_encrypted?: string | null
+          webhook_url?: string | null
+        }
+        Relationships: []
+      }
+      plan_prices: {
+        Row: {
+          created_at: string
+          currency: string
+          id: string
+          is_active: boolean
+          metadata: Json
+          plan_id: string
+          price_identifier: string | null
+          price_identifier_yearly: string | null
+          provider_id: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          currency?: string
+          id?: string
+          is_active?: boolean
+          metadata?: Json
+          plan_id: string
+          price_identifier?: string | null
+          price_identifier_yearly?: string | null
+          provider_id: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          currency?: string
+          id?: string
+          is_active?: boolean
+          metadata?: Json
+          plan_id?: string
+          price_identifier?: string | null
+          price_identifier_yearly?: string | null
+          provider_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "plan_prices_plan_id_fkey"
+            columns: ["plan_id"]
+            isOneToOne: false
+            referencedRelation: "plans"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "plan_prices_provider_id_fkey"
+            columns: ["provider_id"]
+            isOneToOne: false
+            referencedRelation: "payment_providers"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       plans: {
         Row: {
           created_at: string | null
@@ -1088,8 +1202,6 @@ export type Database = {
           price_yearly: number | null
           slug: string
           sort_order: number
-          stripe_price_id: string | null
-          stripe_price_id_yearly: string | null
           updated_at: string | null
           yearly_discount: number
         }
@@ -1112,8 +1224,6 @@ export type Database = {
           price_yearly?: number | null
           slug: string
           sort_order?: number
-          stripe_price_id?: string | null
-          stripe_price_id_yearly?: string | null
           updated_at?: string | null
           yearly_discount?: number
         }
@@ -1136,8 +1246,6 @@ export type Database = {
           price_yearly?: number | null
           slug?: string
           sort_order?: number
-          stripe_price_id?: string | null
-          stripe_price_id_yearly?: string | null
           updated_at?: string | null
           yearly_discount?: number
         }
