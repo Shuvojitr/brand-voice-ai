@@ -30,7 +30,7 @@ export function LiveChatWidget({ userName, userEmail, onClose }: LiveChatWidgetP
   const [message, setMessage] = useState("");
   const [showAutoReply, setShowAutoReply] = useState(false);
   const scrollRef = useRef<HTMLDivElement>(null);
-  const autoReplyTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const autoReplyTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   
   const { data: settings, isLoading: settingsLoading } = useLiveChatSettings();
   const { data: activeChat, isLoading: chatLoading } = useUserActiveChat();

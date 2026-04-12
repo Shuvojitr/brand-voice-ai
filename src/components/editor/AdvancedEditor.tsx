@@ -42,7 +42,7 @@ export function AdvancedEditor({
   const [saveStatus, setSaveStatus] = useState<SaveStatus>("saved");
   const [wordCount, setWordCount] = useState(0);
   const [currentDocId, setCurrentDocId] = useState(documentId);
-  const saveTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const saveTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const lastSavedContentRef = useRef(initialContent);
   const lastSavedTitleRef = useRef(initialTitle);
 
