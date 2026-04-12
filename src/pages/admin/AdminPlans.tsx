@@ -12,7 +12,7 @@ import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, D
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { useToast } from "@/hooks/use-toast";
 import { usePlans, useCreatePlan, useUpdatePlan, useDeletePlan, Plan } from "@/hooks/usePlans";
-import { Plus, Pencil, Trash2, Loader2, DollarSign, Star, X, GripVertical, Percent } from "lucide-react";
+import { Plus, Pencil, Trash2, Loader2, DollarSign, Star, X, GripVertical } from "lucide-react";
 
 type PlanFormData = Omit<Plan, "id" | "created_at" | "updated_at">;
 
@@ -48,7 +48,7 @@ export default function AdminPlans() {
   const [formData, setFormData] = useState<PlanFormData>(defaultFormData);
   const [newFeatureMonthly, setNewFeatureMonthly] = useState("");
   const [newFeatureYearly, setNewFeatureYearly] = useState("");
-  const [newFeature, setNewFeature] = useState("");
+  
 
   const openCreateDialog = () => {
     setEditingPlan(null);
@@ -235,7 +235,7 @@ export default function AdminPlans() {
                   <TableHead>Price</TableHead>
                   <TableHead>Discounts</TableHead>
                   <TableHead>Credits</TableHead>
-                  <TableHead>Stripe ID</TableHead>
+                  <TableHead>Features</TableHead>
                   <TableHead>Status</TableHead>
                   <TableHead className="text-right">Actions</TableHead>
                 </TableRow>
@@ -281,14 +281,9 @@ export default function AdminPlans() {
                     </TableCell>
                     <TableCell>{plan.credits.toLocaleString()}</TableCell>
                     <TableCell>
-                      <div className="flex flex-col gap-1">
-                        <code className="text-xs bg-muted px-1 py-0.5 rounded">
-                          M: {plan.stripe_price_id || "—"}
-                        </code>
-                        <code className="text-xs bg-muted px-1 py-0.5 rounded">
-                          Y: {plan.stripe_price_id_yearly || "—"}
-                        </code>
-                      </div>
+                      <span className="text-sm text-muted-foreground">
+                        {plan.features_monthly?.length || 0} features
+                      </span>
                     </TableCell>
                     <TableCell>
                       <Badge variant={plan.is_active ? "default" : "secondary"}>
@@ -476,30 +471,6 @@ export default function AdminPlans() {
                 </div>
               </div>
 
-              <div className="grid grid-cols-2 gap-4">
-                <div className="space-y-2">
-                  <Label htmlFor="stripe_price_id">Monthly Stripe Price ID</Label>
-                  <Input
-                    id="stripe_price_id"
-                    value={formData.stripe_price_id || ""}
-                    onChange={(e) =>
-                      setFormData({ ...formData, stripe_price_id: e.target.value })
-                    }
-                    placeholder="price_xxx"
-                  />
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="stripe_price_id_yearly">Yearly Stripe Price ID</Label>
-                  <Input
-                    id="stripe_price_id_yearly"
-                    value={formData.stripe_price_id_yearly || ""}
-                    onChange={(e) =>
-                      setFormData({ ...formData, stripe_price_id_yearly: e.target.value })
-                    }
-                    placeholder="price_xxx_yearly"
-                  />
-                </div>
-              </div>
 
               <div className="grid grid-cols-3 gap-4">
                 <div className="space-y-2">
