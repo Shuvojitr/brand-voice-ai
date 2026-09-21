@@ -1,70 +1,50 @@
+# AI Agent Platform (AI customer-support chatbots) — added alongside the AI writing product
 
+Goal: your customers create their own support chatbots, feed them their own website/files/text/Q&A, test them, and paste one snippet into their own site. Everything that exists today keeps working untouched — this is a new, self-contained module reusing your current login, organizations, credits, plans, AI settings, and design.
 
-## Plan: Convert Template Editor from Popup to Full Page
+## What you'll see when it's done
 
-### Overview
-Convert the current template editing dialog to a dedicated full-page editor, similar to the Blog Post Editor. This will provide more screen space, better navigation, and a more consistent editing experience.
+New "AI Agents" area in the user dashboard:
+- My Agents (list, status, quick stats)
+- Create Agent (5 steps: basics, personality, knowledge, appearance, review)
+- Agent detail with tabs: Playground, Knowledge, Conversations, Analytics, Appearance, Settings, Deploy
+- Deploy gives a one-line snippet to paste into their website
 
-### Changes
+New admin area: Admin → AI Agents (all agents across accounts, usage, cost, enable/disable/delete, global limits).
 
-**1. Create Template Editor Page**
-Create a new page `src/pages/admin/AdminTemplateEditor.tsx` that:
-- Supports both create (`/admin/templates/new`) and edit (`/admin/templates/edit/:templateId`) modes
-- Uses the AdminLayout wrapper for consistent navigation
-- Has a header with back button, template name, and save/delete actions
-- Contains the same tabbed interface (Edit, Template Form, Preview Prompt) but with full-page layout
-- Shows loading skeleton when fetching template data
+## Build order
 
-**2. Update Routing**
-Add new routes in `App.tsx`:
-- `/admin/templates/new` - Create new template
-- `/admin/templates/edit/:templateId` - Edit existing template
+Because of the size, I'll ship in sequence and check in after each stage, so you can use and review each part as it lands.
 
-**3. Simplify AdminTemplates.tsx**
-- Remove the large Dialog component for template editing (~300+ lines)
-- Update "Add" and "Edit" buttons to navigate to the new page routes
-- Keep the delete confirmation dialog (AlertDialog) as is
+1. **Data + security foundation** — new tables for agents, knowledge sources, documents, chunks (with vector search), conversations, messages, feedback, usage, allowed domains. Strict per-organization isolation on every table.
+2. **Knowledge pipeline** — website crawler, file processing (PDF/DOCX/TXT/MD/CSV), pasted text, Q&A pairs; background processing with visible status (queued → processing → ready → failed), page/chunk counts, re-crawl, delete.
+3. **Chat engine** — retrieves the agent's own knowledge first, then answers with it; refuses to invent prices/policies; configurable fallback message and fallback action (message, collect email, create support ticket, contact link, human handoff).
+4. **Dashboard UI** — My Agents, creation wizard, knowledge manager, playground (shows which sources were used), conversations, per-agent analytics incl. unanswered questions, all settings tabs.
+5. **Embeddable widget** — lightweight async script, mobile-friendly, streaming replies, welcome message + suggested questions, thumbs up/down feedback, respects appearance settings, allowed domains, rate limits, and agent status.
+6. **Admin panel** — cross-account overview, moderation, global model/limit configuration.
+7. **Verification pass** — re-test writing platform, templates, documents, billing, blog, support, live chat, analytics, admin/manager panels; plus isolation tests across two accounts.
 
-**4. Update Manager Panel (Optional)**
-Apply the same pattern to `ManagerTemplates.tsx` for consistency:
-- Create `/manager/templates/new` and `/manager/templates/edit/:templateId` routes
-- Or reuse the same editor component if permissions allow
+## Credits and plan limits
 
-### New Page Layout
+Reuses your existing organization credit balance — no second billing system. Agent usage is recorded separately by category so reports can split it out: agent message, embedding, crawl, file processing. Limits come from configurable plan values (max agents, monthly messages, max knowledge sources, pages per crawl, file size, total chunks) rather than hardcoded numbers, so real billing can attach later. Expensive actions check the balance first and stop with a clear upgrade message instead of going negative.
 
-```text
-+------------------------------------------------------------------+
-|  [<- Back to Templates]            Template Editor    [Save] [Delete] |
-+------------------------------------------------------------------+
-|  Tabs: [Edit] [Template Form] [Preview Prompt]                      |
-+------------------------------------------------------------------+
-|                                                                      |
-|  (Full-height tab content with comfortable spacing)                  |
-|                                                                      |
-|  - Name, Slug, Category, Icon, Model fields                         |
-|  - Description textarea                                              |
-|  - System Prompt textarea (larger)                                   |
-|  - Form Schema JSON editor (larger)                                  |
-|  - Active toggle                                                     |
-|                                                                      |
-+------------------------------------------------------------------+
-```
+## Security
 
-### Files to Create
-- `src/pages/admin/AdminTemplateEditor.tsx` - New full-page template editor
+- Per-organization isolation enforced in the database, not just in the UI; one account's knowledge can never be retrieved by another's agent.
+- Public widget only ever carries a public agent id — no keys, no database credentials, no provider keys.
+- Allowed-domain checks, per-visitor and per-agent rate limits, request size caps, file type/size validation, crawl page caps, and prompt-injection hardening in the system prompt.
+- Agent dashboards and conversations stay out of search engines.
 
-### Files to Modify
-- `src/App.tsx` - Add new routes
-- `src/pages/admin/AdminTemplates.tsx` - Remove dialog, update buttons to use navigation
-- `src/pages/manager/ManagerTemplates.tsx` - Same changes for manager panel
+## Technical notes
 
-### Technical Details
+- Postgres `vector` extension for embeddings + a security-definer match function scoped to one agent id; HNSW index for fast retrieval.
+- Embeddings and chat both go through Lovable AI so no customer-supplied keys are needed; admin AI settings choose chat model and embedding model.
+- New edge functions: `agent-chat` (public, streaming, JWT off, validated by agent id + domain + rate limit), `agent-crawl`, `agent-process-file`, `agent-embed-text`, `agent-widget` (serves `widget.js`), plus a background worker invoked asynchronously so the browser never blocks.
+- Crawler: sitemap discovery with same-origin BFS fallback, boilerplate stripping, ~800-token chunks with overlap, capped pages per crawl, per-source status/error tracking.
+- Frontend: new `src/pages/agents/*`, `src/components/agents/*`, `src/hooks/useAgents*.ts`; existing files touched only to add routes (`App.tsx`) and sidebar entries. No new UI framework — existing Tailwind tokens and shadcn components only.
+- Widget is a standalone self-contained script (no React on the host page), shadow-DOM isolated so it can't clash with the customer's site styles.
+- Reuses `credit_usage` with a category column addition for agent usage, and your existing `support_tickets` for human handoff.
 
-The new editor page will:
-- Use `useParams()` to get `templateId` for edit mode
-- Use `useNavigate()` for back navigation after save/delete
-- Fetch template data with React Query when in edit mode
-- Submit using the same Supabase logic already in place
-- Show toast notifications on success/error
-- Have proper loading states
+## Not included unless you ask
 
+Real payment capture for agent usage (existing payment setup stays as-is), multilingual translation of the dashboard itself, and voice/phone agents.
