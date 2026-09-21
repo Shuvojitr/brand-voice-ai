@@ -388,7 +388,7 @@ function handleScroll(): void {
   }
 }
 
-let scrollTimeout: ReturnType<typeof setTimeout> | null = null;
+let scrollTimeout: NodeJS.Timeout | null = null;
 
 function throttledScrollHandler(): void {
   if (!scrollTimeout) {

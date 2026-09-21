@@ -11,7 +11,7 @@ interface TypingState {
 export function useTypingIndicator(chatId: string | null, isAdmin: boolean) {
   const [otherUserTyping, setOtherUserTyping] = useState(false);
   const channelRef = useRef<RealtimeChannel | null>(null);
-  const typingTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const typingTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const isTypingRef = useRef(false);
 
   useEffect(() => {

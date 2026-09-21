@@ -10,6 +10,8 @@ export interface Plan {
   price_yearly: number | null;
   currency: string;
   interval: "month" | "year" | "forever";
+  stripe_price_id: string | null;
+  stripe_price_id_yearly: string | null;
   features_monthly: string[];
   features_yearly: string[];
   credits: number;

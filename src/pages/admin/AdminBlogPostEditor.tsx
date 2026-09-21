@@ -63,7 +63,7 @@ export default function AdminBlogPostEditor() {
   const [saveStatus, setSaveStatus] = useState<SaveStatus>("saved");
   const [currentPostId, setCurrentPostId] = useState<string | null>(postId || null);
   const fileInputRef = useRef<HTMLInputElement>(null);
-  const autoSaveTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const autoSaveTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const lastSavedDataRef = useRef<string>("");
 
   // Track if this is a published post being edited
